@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { customFetch } from "@/shared/api/mutator";
+import {
+  confirmDomain,
+  getCheckpoint,
+  submitFeedback,
+} from "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller";
+import { requireApiData } from "@/shared/api";
 
-// OpenAPI is not generated for the new pipeline review checkpoint endpoints yet.
+// 호출은 generated pipeline-review-controller(getCheckpoint/confirmDomain/submitFeedback)에 위임한다.
+// 이 wrapper는 (1) 응답 data envelope unwrap, (2) UI가 의존하는 도메인 타입 정규화
+// (generated ReviewCheckpointView는 tasks가 optional이고 payload가 loose object라 화면 계약에 부족),
+// (3) React Query queryKey/enabled/invalidate 표준화 목적으로만 유지한다.
 
 export interface ReviewTaskPayload {
   candidateId?: string;
@@ -49,6 +57,9 @@ export interface ReviewCheckpointView {
   tasks: ReviewTaskView[];
 }
 
+const checkpointQueryKey = (workspaceId?: number, pipelineJobId?: number) =>
+  ["pipeline-review-checkpoint", workspaceId, pipelineJobId] as const;
+
 function requirePipelineReviewIds(workspaceId?: number, pipelineJobId?: number) {
   if (workspaceId == null || pipelineJobId == null) {
     throw new Error("workspaceId and pipelineJobId are required");
@@ -58,13 +69,14 @@ function requirePipelineReviewIds(workspaceId?: number, pipelineJobId?: number) 
 
 export function usePipelineReviewCheckpoint(workspaceId?: number, pipelineJobId?: number) {
   return useQuery({
-    queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId],
+    queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
     enabled: workspaceId != null && pipelineJobId != null,
-    queryFn: () => {
+    queryFn: async () => {
       const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
-      return customFetch<ReviewCheckpointView>(
-        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint`,
-        { method: "GET" },
+      const response = await getCheckpoint(ids.workspaceId, ids.pipelineJobId);
+      return requireApiData<ReviewCheckpointView>(
+        response as unknown as { data?: ReviewCheckpointView },
+        "리뷰 체크포인트 응답을 확인할 수 없습니다.",
       );
     },
   });
@@ -75,17 +87,12 @@ export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: n
   return useMutation({
     mutationFn: (reviewTaskId: number) => {
       const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
-      return customFetch(
-        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint/domain-confirmation`,
-        {
-          method: "POST",
-          body: JSON.stringify({ reviewTaskId }),
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return confirmDomain(ids.workspaceId, ids.pipelineJobId, { reviewTaskId });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId] });
+      void queryClient.invalidateQueries({
+        queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
+      });
     },
   });
 }
@@ -95,17 +102,12 @@ export function useSubmitPipelineFeedback(workspaceId?: number, pipelineJobId?: 
   return useMutation({
     mutationFn: (decisions: Array<{ reviewTaskId: number; decisionType: string }>) => {
       const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
-      return customFetch(
-        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint/human-feedback`,
-        {
-          method: "POST",
-          body: JSON.stringify({ decisions }),
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return submitFeedback(ids.workspaceId, ids.pipelineJobId, { decisions });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId] });
+      void queryClient.invalidateQueries({
+        queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
+      });
     },
   });
 }

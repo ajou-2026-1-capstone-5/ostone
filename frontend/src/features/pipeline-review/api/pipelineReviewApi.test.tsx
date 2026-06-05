@@ -2,18 +2,29 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { customFetch } from "@/shared/api/mutator";
+import {
+  confirmDomain,
+  getCheckpoint,
+  submitFeedback,
+} from "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller";
 import {
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
   useSubmitPipelineFeedback,
 } from "./pipelineReviewApi";
 
-vi.mock("@/shared/api/mutator", () => ({
-  customFetch: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller",
+  () => ({
+    getCheckpoint: vi.fn(),
+    confirmDomain: vi.fn(),
+    submitFeedback: vi.fn(),
+  }),
+);
 
-const mockedCustomFetch = vi.mocked(customFetch);
+const mockedGetCheckpoint = vi.mocked(getCheckpoint);
+const mockedConfirmDomain = vi.mocked(confirmDomain);
+const mockedSubmitFeedback = vi.mocked(submitFeedback);
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({
@@ -23,35 +34,42 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 beforeEach(() => {
-  mockedCustomFetch.mockReset();
+  mockedGetCheckpoint.mockReset();
+  mockedConfirmDomain.mockReset();
+  mockedSubmitFeedback.mockReset();
 });
 
 describe("pipelineReviewApi", () => {
-  it("fetches checkpoint with workspace and pipeline job ids", async () => {
-    mockedCustomFetch.mockResolvedValueOnce({
+  it("delegates checkpoint query to generated getCheckpoint and unwraps data", async () => {
+    const checkpoint = {
       pipelineJobId: 7,
       pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
       reviewKind: "DOMAIN_CONFIRMATION",
       tasks: [],
-    });
+    };
+    mockedGetCheckpoint.mockResolvedValueOnce({
+      data: checkpoint,
+      status: 200,
+    } as unknown as Awaited<ReturnType<typeof getCheckpoint>>);
 
     const { result } = renderHook(() => usePipelineReviewCheckpoint(1, 7), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/1/pipeline-jobs/7/review-checkpoint",
-      { method: "GET" },
-    );
+    expect(mockedGetCheckpoint).toHaveBeenCalledWith(1, 7);
+    expect(result.current.data).toEqual(checkpoint);
   });
 
   it("does not fetch checkpoint until ids are available", () => {
     renderHook(() => usePipelineReviewCheckpoint(undefined, 7), { wrapper });
 
-    expect(mockedCustomFetch).not.toHaveBeenCalled();
+    expect(mockedGetCheckpoint).not.toHaveBeenCalled();
   });
 
-  it("posts selected domain candidate and invalidates checkpoint query", async () => {
-    mockedCustomFetch.mockResolvedValueOnce({ status: "DOMAIN_CONFIRMED_REPLAY_TRIGGERED" });
+  it("posts selected domain candidate via generated confirmDomain", async () => {
+    mockedConfirmDomain.mockResolvedValueOnce({
+      data: { status: "DOMAIN_CONFIRMED_REPLAY_TRIGGERED" },
+      status: 200,
+    } as unknown as Awaited<ReturnType<typeof confirmDomain>>);
 
     const { result } = renderHook(() => useConfirmPipelineDomain(1, 7), { wrapper });
 
@@ -59,18 +77,14 @@ describe("pipelineReviewApi", () => {
       await result.current.mutateAsync(11);
     });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/1/pipeline-jobs/7/review-checkpoint/domain-confirmation",
-      {
-        method: "POST",
-        body: JSON.stringify({ reviewTaskId: 11 }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    expect(mockedConfirmDomain).toHaveBeenCalledWith(1, 7, { reviewTaskId: 11 });
   });
 
-  it("posts feedback decisions for replay", async () => {
-    mockedCustomFetch.mockResolvedValueOnce({ status: "FEEDBACK_REPLAY_TRIGGERED" });
+  it("posts feedback decisions via generated submitFeedback", async () => {
+    mockedSubmitFeedback.mockResolvedValueOnce({
+      data: { status: "FEEDBACK_REPLAY_TRIGGERED" },
+      status: 200,
+    } as unknown as Awaited<ReturnType<typeof submitFeedback>>);
 
     const { result } = renderHook(() => useSubmitPipelineFeedback(1, 7), { wrapper });
 
@@ -78,15 +92,8 @@ describe("pipelineReviewApi", () => {
       await result.current.mutateAsync([{ reviewTaskId: 21, decisionType: "cannot_link" }]);
     });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/1/pipeline-jobs/7/review-checkpoint/human-feedback",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          decisions: [{ reviewTaskId: 21, decisionType: "cannot_link" }],
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    expect(mockedSubmitFeedback).toHaveBeenCalledWith(1, 7, {
+      decisions: [{ reviewTaskId: 21, decisionType: "cannot_link" }],
+    });
   });
 });
