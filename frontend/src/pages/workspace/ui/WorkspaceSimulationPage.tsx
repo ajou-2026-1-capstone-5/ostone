@@ -91,6 +91,10 @@ const CANDIDATE_STATUSES: Array<{
   { value: "", label: "전체" },
 ];
 
+const FEEDBACK_LIST_ERROR = "시뮬레이션 피드백 목록을 불러오지 못했습니다.";
+const CANDIDATE_LIST_ERROR = "개선 후보 목록을 불러오지 못했습니다.";
+const GOLDEN_CASE_LIST_ERROR = "검증 케이스 목록을 불러오지 못했습니다.";
+
 const ACTION_TYPES = [
   "ASK_SLOT",
   "ADVANCE",
@@ -302,6 +306,9 @@ export function WorkspaceSimulationPage() {
     SimulationImprovementCandidate[]
   >([]);
   const [goldenCases, setGoldenCases] = useState<SimulationGoldenCase[]>([]);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
+  const [goldenCaseError, setGoldenCaseError] = useState<string | null>(null);
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<
     SimulationImprovementCandidateStatus | ""
   >(() => candidateStatusFromQuery);
@@ -355,34 +362,62 @@ export function WorkspaceSimulationPage() {
 
   const reloadFeedback = async (status = feedbackStatusFilter) => {
     if (parsedWorkspaceId === null) return;
-    const page = await simulationApi.listFeedback(parsedWorkspaceId, {
-      status,
-      page: 0,
-      size: PAGE_SIZE,
-    });
-    setFeedbackItems(page.content);
+    setFeedbackError(null);
+    try {
+      const page = await simulationApi.listFeedback(parsedWorkspaceId, {
+        status,
+        page: 0,
+        size: PAGE_SIZE,
+      });
+      setFeedbackItems(page.content);
+    } catch (error) {
+      console.error("Failed to load simulation feedback list:", error);
+      setFeedbackItems([]);
+      setFeedbackError(FEEDBACK_LIST_ERROR);
+      throw error;
+    }
   };
 
   const reloadCandidates = async (status = candidateStatusFilter) => {
     if (parsedWorkspaceId === null) return;
-    const page = await simulationApi.listImprovementCandidates(
-      parsedWorkspaceId,
-      {
-        status,
-        page: 0,
-        size: PAGE_SIZE,
-      },
-    );
-    setCandidateItems(page.content);
+    setCandidateError(null);
+    try {
+      const page = await simulationApi.listImprovementCandidates(
+        parsedWorkspaceId,
+        {
+          status,
+          page: 0,
+          size: PAGE_SIZE,
+        },
+      );
+      setCandidateItems(page.content);
+    } catch (error) {
+      console.error("Failed to load simulation improvement candidates:", error);
+      setCandidateItems([]);
+      setCandidateError(CANDIDATE_LIST_ERROR);
+      throw error;
+    }
   };
 
   const reloadGoldenCases = async () => {
     if (parsedWorkspaceId === null) return;
-    const page = await simulationApi.listGoldenCases(parsedWorkspaceId, {
-      page: 0,
-      size: PAGE_SIZE,
-    });
-    setGoldenCases(page.content);
+    setGoldenCaseError(null);
+    try {
+      const page = await simulationApi.listGoldenCases(parsedWorkspaceId, {
+        page: 0,
+        size: PAGE_SIZE,
+      });
+      setGoldenCases(page.content);
+    } catch (error) {
+      console.error("Failed to load simulation golden cases:", error);
+      setGoldenCases([]);
+      setGoldenCaseError(GOLDEN_CASE_LIST_ERROR);
+      throw error;
+    }
+  };
+
+  const reloadFeedbackAndCandidates = async () => {
+    await Promise.allSettled([reloadFeedback(), reloadCandidates()]);
   };
 
   useEffect(() => {
@@ -452,6 +487,7 @@ export function WorkspaceSimulationPage() {
 
     let active = true;
     setIsLoadingFeedback(true);
+    setFeedbackError(null);
     simulationApi
       .listFeedback(parsedWorkspaceId, {
         status: feedbackStatusFilter,
@@ -461,9 +497,11 @@ export function WorkspaceSimulationPage() {
       .then((page) => {
         if (active) setFeedbackItems(page.content);
       })
-      .catch(() => {
-        if (active)
-          toast.error("시뮬레이션 피드백 목록을 불러오지 못했습니다.");
+      .catch((error) => {
+        if (!active) return;
+        console.error("Failed to load simulation feedback list:", error);
+        setFeedbackItems([]);
+        setFeedbackError(FEEDBACK_LIST_ERROR);
       })
       .finally(() => {
         if (active) setIsLoadingFeedback(false);
@@ -479,6 +517,7 @@ export function WorkspaceSimulationPage() {
 
     let active = true;
     setIsLoadingCandidates(true);
+    setCandidateError(null);
     simulationApi
       .listImprovementCandidates(parsedWorkspaceId, {
         status: candidateStatusFilter,
@@ -488,8 +527,14 @@ export function WorkspaceSimulationPage() {
       .then((page) => {
         if (active) setCandidateItems(page.content);
       })
-      .catch(() => {
-        if (active) toast.error("개선 후보 목록을 불러오지 못했습니다.");
+      .catch((error) => {
+        if (!active) return;
+        console.error(
+          "Failed to load simulation improvement candidates:",
+          error,
+        );
+        setCandidateItems([]);
+        setCandidateError(CANDIDATE_LIST_ERROR);
       })
       .finally(() => {
         if (active) setIsLoadingCandidates(false);
@@ -505,13 +550,17 @@ export function WorkspaceSimulationPage() {
 
     let active = true;
     setIsLoadingGoldenCases(true);
+    setGoldenCaseError(null);
     simulationApi
       .listGoldenCases(parsedWorkspaceId, { page: 0, size: PAGE_SIZE })
       .then((page) => {
         if (active) setGoldenCases(page.content);
       })
-      .catch(() => {
-        if (active) toast.error("검증 케이스 목록을 불러오지 못했습니다.");
+      .catch((error) => {
+        if (!active) return;
+        console.error("Failed to load simulation golden cases:", error);
+        setGoldenCases([]);
+        setGoldenCaseError(GOLDEN_CASE_LIST_ERROR);
       })
       .finally(() => {
         if (active) setIsLoadingGoldenCases(false);
@@ -626,11 +675,7 @@ export function WorkspaceSimulationPage() {
       setFeedbackDescription("");
       setFeedbackExpectedBehavior("");
       toast.success("시뮬레이션 피드백을 남겼습니다.");
-      try {
-        await reloadFeedback();
-      } catch {
-        toast.error("피드백 목록 새로고침에 실패했습니다.");
-      }
+      await reloadFeedback().catch(() => undefined);
     } catch {
       toast.error("시뮬레이션 피드백을 저장하지 못했습니다.");
     } finally {
@@ -647,11 +692,7 @@ export function WorkspaceSimulationPage() {
       );
       toast.success("개선 후보를 생성했습니다.");
       setActiveSideTab("candidates");
-      try {
-        await Promise.all([reloadFeedback(), reloadCandidates()]);
-      } catch {
-        toast.error("개선 후보 목록 새로고침에 실패했습니다.");
-      }
+      await reloadFeedbackAndCandidates();
     } catch {
       toast.error("개선 후보를 생성하지 못했습니다.");
     } finally {
@@ -673,11 +714,7 @@ export function WorkspaceSimulationPage() {
         },
       );
       toast.success("개선 후보 상태를 변경했습니다.");
-      try {
-        await reloadCandidates();
-      } catch {
-        toast.error("개선 후보 목록 새로고침에 실패했습니다.");
-      }
+      await reloadCandidates().catch(() => undefined);
     } catch {
       toast.error("개선 후보 상태를 변경하지 못했습니다.");
     } finally {
@@ -698,7 +735,7 @@ export function WorkspaceSimulationPage() {
         },
       );
       toast.success("개선 후보를 초안 버전에 반영했습니다.");
-      await Promise.all([reloadCandidates(), reloadFeedback()]);
+      await reloadFeedbackAndCandidates();
     } catch {
       toast.error("개선 후보를 승인하지 못했습니다.");
     } finally {
@@ -727,7 +764,7 @@ export function WorkspaceSimulationPage() {
         delete next[candidate.id];
         return next;
       });
-      await Promise.all([reloadCandidates(), reloadFeedback()]);
+      await reloadFeedbackAndCandidates();
     } catch {
       toast.error("개선 후보를 반려하지 못했습니다.");
     } finally {
@@ -761,11 +798,7 @@ export function WorkspaceSimulationPage() {
         },
       );
       toast.success("검증 케이스를 저장했습니다.");
-      try {
-        await reloadGoldenCases();
-      } catch {
-        toast.error("검증 케이스 목록 새로고침에 실패했습니다.");
-      }
+      await reloadGoldenCases().catch(() => undefined);
     } catch {
       toast.error("검증 케이스를 저장하지 못했습니다.");
     } finally {
@@ -793,11 +826,7 @@ export function WorkspaceSimulationPage() {
           ? "검증 케이스 replay가 통과했습니다."
           : "검증 케이스 replay가 실패했습니다.",
       );
-      try {
-        await reloadGoldenCases();
-      } catch {
-        toast.error("검증 케이스 목록 새로고침에 실패했습니다.");
-      }
+      await reloadGoldenCases().catch(() => undefined);
     } catch {
       toast.error("검증 케이스 replay를 실행하지 못했습니다.");
     } finally {
@@ -1142,6 +1171,15 @@ export function WorkspaceSimulationPage() {
                   <p className={styles.feedbackMuted}>
                     검증 케이스를 불러오는 중입니다.
                   </p>
+                ) : goldenCaseError ? (
+                  <div className={styles.secondaryErrorState}>
+                    <ErrorState
+                      message={goldenCaseError}
+                      onRetry={() => {
+                        void reloadGoldenCases().catch(() => undefined);
+                      }}
+                    />
+                  </div>
                 ) : goldenCases.length === 0 ? (
                   <p className={styles.feedbackMuted}>
                     저장된 검증 케이스가 없습니다.
@@ -1358,6 +1396,15 @@ export function WorkspaceSimulationPage() {
                   <p className={styles.feedbackMuted}>
                     피드백을 불러오는 중입니다.
                   </p>
+                ) : feedbackError ? (
+                  <div className={styles.secondaryErrorState}>
+                    <ErrorState
+                      message={feedbackError}
+                      onRetry={() => {
+                        void reloadFeedback().catch(() => undefined);
+                      }}
+                    />
+                  </div>
                 ) : feedbackItems.length === 0 ? (
                   <p className={styles.feedbackMuted}>
                     조건에 맞는 피드백이 없습니다.
@@ -1438,6 +1485,15 @@ export function WorkspaceSimulationPage() {
                   <p className={styles.feedbackMuted}>
                     개선 후보를 불러오는 중입니다.
                   </p>
+                ) : candidateError ? (
+                  <div className={styles.secondaryErrorState}>
+                    <ErrorState
+                      message={candidateError}
+                      onRetry={() => {
+                        void reloadCandidates().catch(() => undefined);
+                      }}
+                    />
+                  </div>
                 ) : candidateItems.length === 0 ? (
                   <p className={styles.feedbackMuted}>
                     조건에 맞는 개선 후보가 없습니다.

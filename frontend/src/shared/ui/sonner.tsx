@@ -7,7 +7,12 @@ import {
 } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
-const Toaster = ({ ...props }: ToasterProps) => {
+import { cn } from "../lib/utils";
+import styles from "./sonner.module.css";
+
+const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
+  const toastClassNames = toastOptions?.classNames;
+
   return (
     <Sonner
       theme="light"
@@ -33,6 +38,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      toastOptions={{
+        ...toastOptions,
+        classNames: {
+          ...toastClassNames,
+          success: cn(styles.passiveSuccessToast, toastClassNames?.success),
+        },
+      }}
       {...props}
     />
   );
