@@ -29,6 +29,7 @@ const PHASE_ERROR_FALLBACK: Record<UploadPhase, string> = {
   transfer: "파일 업로드에 실패했습니다.",
   complete: "업로드 완료 처리에 실패했습니다.",
 };
+const DUPLICATE_UPLOAD_ERROR_MESSAGE = "이미 업로드가 진행 중입니다.";
 
 interface RawFileUploadState {
   readonly isUploading: boolean;
@@ -59,7 +60,13 @@ export function useRawFileUpload() {
 
   const start = useCallback(
     async ({ workspaceId, file, onSuccess, onError }: StartUploadParams) => {
+      if (abortRef.current) {
+        onError(DUPLICATE_UPLOAD_ERROR_MESSAGE);
+        return;
+      }
+
       const controller = new AbortController();
+      const isCurrentUpload = () => abortRef.current === controller;
       abortRef.current = controller;
       setState({ isUploading: true, progress: 0 });
 
@@ -82,22 +89,35 @@ export function useRawFileUpload() {
           contentType: initResult.contentType,
           serverSideEncryptionRequired: initResult.serverSideEncryptionRequired,
           signal: controller.signal,
-          onProgress: (progress) => setState({ isUploading: true, progress }),
+          onProgress: (progress) => {
+            if (isCurrentUpload()) {
+              setState({ isUploading: true, progress });
+            }
+          },
         });
 
         phase = "complete";
         const completeResult = await completeRawFileUpload(workspaceId, initResult.datasetId);
 
-        setState({ isUploading: false, progress: 100 });
-        onSuccess(completeResult);
+        if (isCurrentUpload()) {
+          setState({ isUploading: false, progress: 100 });
+          onSuccess(completeResult);
+        }
       } catch (error) {
-        setState({ isUploading: false, progress: 0 });
         if (error instanceof PresignedUploadAbortError) {
+          if (isCurrentUpload()) {
+            setState({ isUploading: false, progress: 0 });
+          }
           return;
         }
-        onError(getPhaseErrorMessage(error, phase));
+        if (isCurrentUpload()) {
+          setState({ isUploading: false, progress: 0 });
+          onError(getPhaseErrorMessage(error, phase));
+        }
       } finally {
-        abortRef.current = null;
+        if (isCurrentUpload()) {
+          abortRef.current = null;
+        }
       }
     },
     [],
