@@ -39,6 +39,7 @@ class TriggerIngestionUseCaseTest {
 
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private IngestionAirflowTriggerPort airflowTriggerPort;
+  @Mock private IngestionDatasetStatusPort ingestionDatasetStatusPort;
   @Mock private PlatformTransactionManager transactionManager;
 
   private TriggerIngestionUseCase useCase;
@@ -75,6 +76,7 @@ class TriggerIngestionUseCaseTest {
         new TriggerIngestionUseCase(
             pipelineJobRepository,
             airflowTriggerPort,
+            ingestionDatasetStatusPort,
             new ObjectMapper(),
             fixedClock,
             transactionManager);
@@ -92,6 +94,7 @@ class TriggerIngestionUseCaseTest {
     assertThat(job.getAirflowRunId()).isEqualTo("pipeline_job_99");
     assertThat(job.getStartedAt().toInstant()).isEqualTo(fixedClock.instant());
     verify(airflowTriggerPort).trigger(any(IngestionTriggerCommand.class));
+    verify(ingestionDatasetStatusPort, never()).markIngestionTriggerFailed(any(), any());
   }
 
   @Test
@@ -123,6 +126,7 @@ class TriggerIngestionUseCaseTest {
 
     assertThat(savedJob.get().getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(savedJob.get().getFinishedAt().toInstant()).isEqualTo(fixedClock.instant());
+    verify(ingestionDatasetStatusPort).markIngestionTriggerFailed(1L, 42L);
   }
 
   @Test

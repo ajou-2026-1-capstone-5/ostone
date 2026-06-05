@@ -136,8 +136,8 @@ class CompleteRawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_keep_processing_state_when_trigger_fails_after_commit")
-  void complete_triggerFails_keepsProcessingState() {
+  @DisplayName("should_propagate_afterCommit_trigger_failure_after_processing_transition")
+  void complete_triggerFails_propagatesAfterCommitFailure() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = uploadingDataset();
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))

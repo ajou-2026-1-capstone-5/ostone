@@ -106,6 +106,14 @@ public class Dataset {
     return false;
   }
 
+  public boolean markIngestionTriggerFailed() {
+    if (status == DatasetStatus.UPLOADING || status == DatasetStatus.PROCESSING) {
+      this.status = DatasetStatus.ERROR;
+      return true;
+    }
+    return false;
+  }
+
   @PrePersist
   protected void onPersist() {
     OffsetDateTime now = OffsetDateTime.now();
