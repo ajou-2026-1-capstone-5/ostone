@@ -37,21 +37,32 @@ class WorkflowMatchingServiceTest {
   @Mock private WorkflowMatchingProfileJdbcRepository profileRepository;
   @Mock private WorkflowMatchDecisionJdbcRepository decisionRepository;
 
+  private SimpleMeterRegistry meterRegistry;
   private WorkflowMatchingService service;
 
   @BeforeEach
   void setUp() {
+    meterRegistry = new SimpleMeterRegistry();
+    ObjectMapper objectMapper = new ObjectMapper();
+    WorkflowMatchingTextSignals textSignals = new WorkflowMatchingTextSignals();
+    WorkflowMatchingJsonParser jsonParser =
+        new WorkflowMatchingJsonParser(objectMapper, meterRegistry);
     service =
         new WorkflowMatchingService(
             embeddingProperties(),
-            embeddingClient,
             new SensitiveTextRedactor(),
             chatSessionRepository,
-            profileRepository,
-            decisionRepository,
-            new ObjectMapper(),
-            new SimpleMeterRegistry(),
-            Clock.fixed(Instant.parse("2026-05-31T00:00:00Z"), ZoneOffset.UTC));
+            new WorkflowMatchingProfileCandidateProvider(
+                embeddingProperties(),
+                embeddingClient,
+                profileRepository,
+                textSignals,
+                Clock.fixed(Instant.parse("2026-05-31T00:00:00Z"), ZoneOffset.UTC)),
+            new WorkflowMatchingCore(embeddingProperties(), jsonParser, textSignals),
+            new WorkflowMatchDecisionRecorder(
+                embeddingProperties(), decisionRepository, objectMapper),
+            new WorkflowMatchingMetrics(meterRegistry),
+            textSignals);
   }
 
   @Test
@@ -522,6 +533,88 @@ class WorkflowMatchingServiceTest {
             eq("{}"),
             eq("[]"),
             eq("profile_missing"));
+  }
+
+  @Test
+  @DisplayName("route JSON parse 실패는 fallback metric을 남기고 매칭을 계속한다")
+  void should_recordJsonFallbackMetricAndContinueMatching_when_routeJsonIsMalformed() {
+    givenSession();
+    given(profileRepository.countActiveProfiles(101L)).willReturn(1);
+    given(embeddingClient.embed(anyString(), eq(EmbeddingInputType.SEARCH_QUERY)))
+        .willReturn(vector(1.0f, 0.0f));
+    given(profileRepository.findNearestActive(eq(101L), anyString(), anyString(), eq(30)))
+        .willReturn(
+            List.of(
+                candidate(
+                    20L,
+                    10L,
+                    "refund_request",
+                    "환불 요청",
+                    "refund_flow",
+                    "환불 접수",
+                    0.96,
+                    "{bad-json",
+                    "{\"workflowReplayFitness\":0.90,\"workflowPrecision\":0.80,"
+                        + "\"workflowConfidence\":0.90}")));
+
+    WorkflowMatchResult result = service.match(1L, "환불하고 싶어요", "");
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(
+            meterRegistry
+                .counter("workflow_matching.json_fallback", "source", "route_condition")
+                .count())
+        .isEqualTo(1.0);
+    verify(decisionRepository)
+        .record(
+            eq(1L),
+            eq(101L),
+            eq(20L),
+            eq(10L),
+            eq("CONFIDENT"),
+            eq(result.candidates().getFirst().confidence()),
+            anyString(),
+            eq("profile-v1"),
+            eq("bedrock"),
+            eq("cohere.embed-v4:0"),
+            eq("ap-northeast-2"),
+            anyString(),
+            anyString(),
+            anyString(),
+            eq(null));
+  }
+
+  @Test
+  @DisplayName("intent entry JSON parse 실패는 fallback metric을 남기고 매칭을 계속한다")
+  void should_recordJsonFallbackMetricAndContinueMatching_when_intentEntryJsonIsMalformed() {
+    givenSession();
+    given(profileRepository.countActiveProfiles(101L)).willReturn(1);
+    given(embeddingClient.embed(anyString(), eq(EmbeddingInputType.SEARCH_QUERY)))
+        .willReturn(vector(1.0f, 0.0f));
+    given(profileRepository.findNearestActive(eq(101L), anyString(), anyString(), eq(30)))
+        .willReturn(
+            List.of(
+                candidateWithEntryCondition(
+                    20L,
+                    10L,
+                    "refund_request",
+                    "환불 요청",
+                    "refund_flow",
+                    "환불 접수",
+                    0.96,
+                    "{bad-json",
+                    "{}",
+                    "{\"workflowReplayFitness\":0.90,\"workflowPrecision\":0.80,"
+                        + "\"workflowConfidence\":0.90}")));
+
+    WorkflowMatchResult result = service.match(1L, "환불하고 싶어요", "");
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(
+            meterRegistry
+                .counter("workflow_matching.json_fallback", "source", "intent_entry_condition")
+                .count())
+        .isEqualTo(1.0);
   }
 
   private void givenSession() {
