@@ -79,7 +79,12 @@ def _conf_bool(key: str, default: bool = False) -> bool:
     value = _conf_value(key)
     if value is None:
         return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise PipelineConfigurationError(f"{key} must be a boolean value.")
 
 
 def _conf_json_file(key: str, filename: str) -> str | None:
