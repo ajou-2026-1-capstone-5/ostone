@@ -1,0 +1,86 @@
+{
+  "domain-pack-drafts": {
+    "externalEventId": "domain_pack_generation:manual__run:domain-pack-drafts",
+    "packKey": "refund-pack",
+    "packName": "Refund Pack",
+    "summaryJson": "{\"clusterCount\":1}"
+  },
+  "intent-drafts": {
+    "externalEventId": "domain_pack_generation:manual__run:intent-drafts",
+    "domainPackVersionId": 101,
+    "intents": [
+      {
+        "intentCode": "refund_request",
+        "name": "Refund request",
+        "description": "Customer asks for a refund.",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{}",
+        "entryConditionJson": "{}",
+        "evidenceJson": "[]",
+        "metaJson": "{}",
+        "representativeCases": [
+          {
+            "conversationId": "conv_001",
+            "canonicalText": "환불 요청합니다",
+            "customerProblemText": "환불",
+            "endedStatus": "resolved"
+          }
+        ]
+      }
+    ]
+  },
+  "workflow-drafts": {
+    "externalEventId": "domain_pack_generation:manual__run:workflow-drafts",
+    "domainPackVersionId": 101,
+    "finalCallback": true,
+    "slots": [
+      {
+        "slotCode": "order_id",
+        "name": "Order ID",
+        "description": "Target order.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{}",
+        "defaultValueJson": null,
+        "metaJson": "{}"
+      }
+    ],
+    "policies": [
+      {
+        "policyCode": "refund_policy_default",
+        "name": "Refund policy",
+        "description": "Default refund policy.",
+        "severity": "HIGH",
+        "conditionJson": "{}",
+        "actionJson": "{}",
+        "evidenceJson": "[]",
+        "metaJson": "{}"
+      }
+    ],
+    "risks": [],
+    "workflows": [
+      {
+        "workflowCode": "refund_flow",
+        "name": "Refund flow",
+        "description": "Refund workflow.",
+        "graphJson": "{\"nodes\":[],\"edges\":[]}",
+        "evidenceJson": "[]",
+        "metaJson": "{}",
+        "intentCode": "refund_request",
+        "isPrimary": true,
+        "routeConditionJson": "{}"
+      }
+    ],
+    "intentSlotBindings": [
+      {
+        "intentCode": "refund_request",
+        "slotCode": "order_id",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "Order ID?",
+        "conditionJson": "{}"
+      }
+    ]
+  }
+}
