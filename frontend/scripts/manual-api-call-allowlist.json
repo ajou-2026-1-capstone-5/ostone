@@ -67,6 +67,15 @@
       "wrapperPurpose": "unwrap/select"
     },
     {
+      "file": "src/features/consultation/api/consultationEvidenceApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/consultation/sessions/${}/messages/${}/domain-pack-elements",
+      "reason": "OpenAPI generated endpoint is not available for consultation message domain pack evidence lookup.",
+      "scope": "Consultation message domain pack evidence read endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
       "file": "src/features/consultation/api/llmToolWorkflowApi.ts",
       "importName": "customFetch",
       "callee": "customFetch",

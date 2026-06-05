@@ -19,6 +19,10 @@ import {
 } from "../../../features/consultation/lib/chatRoleLabels";
 import { formatWaitDuration } from "../../../features/consultation/lib/formatWaitDuration";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
+import {
+  consultationEvidenceApi,
+  type MessageDomainPackElements,
+} from "../../../features/consultation/api/consultationEvidenceApi";
 import type {
   ChatSession,
   ConsultationSessionStatus,
@@ -636,6 +640,13 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [composerDrafts, setComposerDrafts] = useState<Record<string, ChatComposerDraft>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [messageDomainPackElements, setMessageDomainPackElements] =
+    useState<MessageDomainPackElements>();
+  const [isMessageDomainPackElementsLoading, setIsMessageDomainPackElementsLoading] =
+    useState(false);
+  const [messageDomainPackElementsError, setMessageDomainPackElementsError] = useState<
+    string | null
+  >(null);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
   const [matchedWorkflow, setMatchedWorkflow] = useState<MatchedWorkflow | null>(null);
@@ -773,6 +784,9 @@ export const ConsultationPage: React.FC = () => {
     setMessages([]);
     setMessagesCustomerId(null);
     setMessagePagination({ nextPage: 0, totalPages: 0, isLoadingPrevious: false });
+    setMessageDomainPackElements(undefined);
+    setIsMessageDomainPackElementsLoading(false);
+    setMessageDomainPackElementsError(null);
     setMatchedWorkflow(null);
     setIsMatchedWorkflowLoading(false);
     setIsDraftResponseLoading(false);
@@ -1175,6 +1189,66 @@ export const ConsultationPage: React.FC = () => {
       cancelled = true;
     };
   }, [activeCustomerId, clearPendingMessages]);
+
+  useEffect(() => {
+    if (!activeCustomerId || !selectedMessage) {
+      setMessageDomainPackElements(undefined);
+      setIsMessageDomainPackElementsLoading(false);
+      setMessageDomainPackElementsError(null);
+      return;
+    }
+
+    const sessionId = Number(activeCustomerId);
+    const messageId = Number(selectedMessage.id);
+    if (!Number.isInteger(sessionId) || !Number.isInteger(messageId)) {
+      setMessageDomainPackElements({ slots: [], policies: [], risks: [] });
+      setIsMessageDomainPackElementsLoading(false);
+      setMessageDomainPackElementsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setMessageDomainPackElements(undefined);
+    setIsMessageDomainPackElementsLoading(true);
+    setMessageDomainPackElementsError(null);
+
+    const routeWorkspaceId =
+      workspaceId ?? (workspacePathId ? Number.parseInt(workspacePathId, 10) : null);
+    void consultationEvidenceApi
+      .getMessageDomainPackElements(
+        sessionId,
+        messageId,
+        routeWorkspaceId
+          ? {
+              workspaceId: routeWorkspaceId,
+              packId: matchedWorkflow?.domainPackId ?? null,
+              versionId: matchedWorkflow?.domainPackVersionId ?? null,
+            }
+          : null,
+      )
+      .then((elements) => {
+        if (cancelled) return;
+        setMessageDomainPackElements(elements);
+        setMessageDomainPackElementsError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to load message domain pack elements:", error);
+        setMessageDomainPackElements({ slots: [], policies: [], risks: [] });
+        setMessageDomainPackElementsError(
+          "상담은 계속 진행할 수 있습니다. 잠시 후 메시지를 다시 선택해 주세요.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsMessageDomainPackElementsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCustomerId, matchedWorkflow, selectedMessage, workspaceId, workspacePathId]);
 
   const handleLoadPreviousMessages = useCallback(async () => {
     if (
@@ -1721,6 +1795,10 @@ export const ConsultationPage: React.FC = () => {
           {selectedMessage ? (
             <MessageDetailPanel
               message={selectedMessage}
+              domainPackElements={messageDomainPackElements}
+              isDomainPackElementsLoading={isMessageDomainPackElementsLoading}
+              domainPackElementsError={messageDomainPackElementsError}
+              onOpenDomainPackElement={(path) => navigate(path)}
               onClose={() => setSelectedMessageId(null)}
             />
           ) : (

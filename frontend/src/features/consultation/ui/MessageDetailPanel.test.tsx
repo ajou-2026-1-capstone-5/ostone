@@ -58,9 +58,11 @@ describe("MessageDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     expect(
-      screen.getByText("확인 항목, 응대 기준, 주의 사항이 연결되면 이 영역에 표시됩니다."),
+      screen.getByText(
+        "확인 항목, 응대 기준, 주의 사항이 연결되면 이 영역에 표시됩니다.",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText("가격 문의")).not.toBeInTheDocument();
   });
@@ -93,7 +95,9 @@ describe("MessageDetailPanel", () => {
       />,
     );
 
-    expect(screen.queryByTestId("message-domain-empty")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("message-domain-empty"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("가격 문의")).toBeInTheDocument();
     expect(screen.getByText("89,000원")).toBeInTheDocument();
     expect(screen.getByText("배송지 주소")).toBeInTheDocument();
@@ -101,6 +105,85 @@ describe("MessageDetailPanel", () => {
     expect(screen.getByText("환불 정책")).toBeInTheDocument();
     expect(screen.getByText("고객 불만 고조")).toBeInTheDocument();
     expect(screen.getByText("환불 요청")).toBeInTheDocument();
+  });
+
+  it("shows loading state while domain pack elements are being loaded", () => {
+    render(
+      <MessageDetailPanel
+        message={{
+          id: "1",
+          senderRole: "CUSTOMER",
+          content: "test",
+          timestamp: "12:00",
+        }}
+        isDomainPackElementsLoading
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("message-domain-loading")).toHaveTextContent(
+      "근거를 불러오는 중입니다",
+    );
+    expect(
+      screen.queryByTestId("message-domain-empty"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows an in-panel error state when evidence loading fails", () => {
+    render(
+      <MessageDetailPanel
+        message={{
+          id: "1",
+          senderRole: "CUSTOMER",
+          content: "test",
+          timestamp: "12:00",
+        }}
+        domainPackElementsError="상담은 계속 진행할 수 있습니다."
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("message-domain-error")).toHaveTextContent(
+      "근거를 불러오지 못했습니다",
+    );
+    expect(
+      screen.getByText("상담은 계속 진행할 수 있습니다."),
+    ).toBeInTheDocument();
+  });
+
+  it("calls domain pack navigation callback when a linked evidence tag is clicked", () => {
+    const onOpenDomainPackElement = vi.fn();
+
+    render(
+      <MessageDetailPanel
+        message={{
+          id: "1",
+          senderRole: "CUSTOMER",
+          content: "test",
+          timestamp: "12:00",
+        }}
+        domainPackElements={{
+          slots: [
+            {
+              name: "주문 번호",
+              extracted: true,
+              value: "ORD-1",
+              detailPath: "/workspaces/2/domain-packs/4/slots/10?versionId=8",
+            },
+          ],
+          policies: [],
+          risks: [],
+        }}
+        onOpenDomainPackElement={onOpenDomainPackElement}
+        onClose={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /주문 번호/ }));
+
+    expect(onOpenDomainPackElement).toHaveBeenCalledWith(
+      "/workspaces/2/domain-packs/4/slots/10?versionId=8",
+    );
   });
 
   /* ─── Test 5: partially connected elements ─── */
