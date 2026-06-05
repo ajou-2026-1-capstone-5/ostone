@@ -265,6 +265,65 @@ def test_workflow_payload_includes_domain_pack_version_id() -> None:
     assert payload["externalEventId"] == "domain_pack_generation:manual__run:workflow-drafts"
 
 
+def test_callback_payload_contract_matches_fixture() -> None:
+    fixture_path = Path(__file__).parents[1] / "fixtures" / "publish_candidate" / "callback_payload_contract.json"
+    expected = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    actual = {
+        "domain-pack-drafts": publish.build_domain_pack_payload(_candidate(), _stage_context()),
+        "intent-drafts": publish.build_intent_payload(_candidate(), _stage_context(), 101),
+        "workflow-drafts": publish.build_workflow_payload(_candidate(), _stage_context(), 101),
+    }
+
+    assert actual == expected
+
+
+def test_publish_success_writes_result_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    manifest_path, _candidate_path = _write_publish_inputs(tmp_path)
+    artifact_root = tmp_path / "artifacts"
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+
+    def fake_post_callback(
+        backend_base_url: str,
+        job_id: str,
+        callback_type: str,
+        payload: dict[str, object],
+        _webhook_secret: str,
+        _timeout_seconds: float,
+    ) -> CallbackResponse:
+        body: dict[str, object] = {"status": "CREATED"}
+        if callback_type == "domain-pack-drafts":
+            body.update({"domainPackId": 7, "domainPackVersionId": 101, "versionNo": 3})
+        return CallbackResponse(
+            callback_type=callback_type,
+            external_event_id=cast(str, payload["externalEventId"]),
+            endpoint=f"{backend_base_url}/{job_id}/{callback_type}",
+            http_status=201,
+            response_status="CREATED",
+            response_body=json.dumps(body),
+            response_body_truncated=False,
+            parsed_response_body=body,
+        )
+
+    monkeypatch.setattr(publish, "post_callback", fake_post_callback)
+
+    payload = publish.run(str(manifest_path))
+
+    result_path = Path(cast(str, payload["publish_result_path"]))
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "completed"
+    assert result["publishStatus"] == "SUCCEEDED"
+    assert result["domainPackVersionId"] == 101
+    assert result["failedCallbackType"] is None
+    assert result["error"] is None
+    assert [callback["type"] for callback in result["callbackResults"]] == [
+        "domain-pack-drafts",
+        "intent-drafts",
+        "workflow-drafts",
+    ]
+
+
 def test_retry_reuses_existing_domain_pack_context(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     manifest_path, _candidate_path = _write_publish_inputs(tmp_path)
     artifact_root = tmp_path / "artifacts"
@@ -416,9 +475,7 @@ def test_unexpected_callback_status_fails_before_next_callback(monkeypatch: pyte
     assert result["error"]["parsedResponseBody"] == {"status": "WEIRD", "domainPackVersionId": 101}
 
 
-def test_evaluation_blocked_surfaces_needs_human_review(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_evaluation_blocked_surfaces_needs_human_review(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     candidate = _candidate()
     candidate["evaluationSummary"] = {
         "passed": False,

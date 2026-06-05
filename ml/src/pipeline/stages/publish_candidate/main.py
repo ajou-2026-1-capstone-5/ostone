@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-import hashlib
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -12,21 +10,24 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
 from pipeline.stages.preprocessing.io import read_stage_context
+from pipeline.stages.publish_candidate import payloads
+from pipeline.stages.publish_candidate.state import (
+    SUCCESS_RESPONSE_STATUSES,
+    DomainPackContextLost,
+    PublishCandidateResult,
+    PublishCandidateResultWriter,
+)
 
 SCHEMA_VERSION = "1.0"
 EVIDENCE_JSON_MAX_LEN = 5000
 _ALLOWED_EVIDENCE_TYPES = frozenset({"keyword", "exemplar_conv_id", "member_conv_id"})
-CALLBACK_DOMAIN_PACK = "domain-pack-drafts"
-CALLBACK_INTENT = "intent-drafts"
-CALLBACK_WORKFLOW = "workflow-drafts"
-SUCCESS_RESPONSE_STATUSES = {"CREATED", "DUPLICATE_IGNORED", "OK", "SUCCEEDED"}
-WORKFLOW_LIST_KEYS = (
-    "slots",
-    "policies",
-    "risks",
-    "workflows",
-    "intentSlotBindings",
-)
+CALLBACK_DOMAIN_PACK = payloads.CALLBACK_DOMAIN_PACK
+CALLBACK_INTENT = payloads.CALLBACK_INTENT
+CALLBACK_WORKFLOW = payloads.CALLBACK_WORKFLOW
+WORKFLOW_LIST_KEYS = payloads.WORKFLOW_LIST_KEYS
+build_domain_pack_payload = payloads.build_domain_pack_payload
+build_intent_payload = payloads.build_intent_payload
+build_workflow_payload = payloads.build_workflow_payload
 
 
 class PublishCandidateStageError(PipelineStageError):
@@ -35,61 +36,58 @@ class PublishCandidateStageError(PipelineStageError):
         self.manifest_payload = manifest_payload
 
 
-class DomainPackContextLost(PipelineStageError):
-    pass
-
-
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     runtime_config = PipelineRuntimeConfig.from_env()
     stage_context = read_stage_context(upstream_manifest_path, stage_name="publish_candidate")
     stage_dir = ensure_stage_directory(stage_context, runtime_config)
-    result_path = stage_dir / "publish_candidate_result.json"
-    result = _load_existing_result(result_path) or _initial_result(stage_context)
+    result_writer = PublishCandidateResultWriter(stage_dir / "publish_candidate_result.json")
+    result = result_writer.load() or PublishCandidateResult.initial(stage_context, SCHEMA_VERSION)
 
     try:
-        candidate_path = _prepare_candidate_input(upstream_manifest_path, result, result_path)
+        candidate_path = _prepare_candidate_input(upstream_manifest_path, result, result_writer)
         if runtime_config.callback_enabled:
             _validate_pipeline_job_id(stage_context.pipeline_job_id)
 
         candidate = _load_valid_candidate(candidate_path)
-        _surface_evaluation_review(candidate, result, result_path)
+        _surface_evaluation_review(candidate, result, result_writer)
 
-        if _skip_callbacks_if_disabled(runtime_config, result, result_path, candidate):
-            return _manifest_payload(result, result_path)
+        if _skip_callbacks_if_disabled(runtime_config, result, result_writer, candidate):
+            return result.manifest_payload(result_writer.path)
 
-        _mark_running(result, result_path)
-        _run_callbacks(candidate, result, result_path, stage_context, runtime_config)
-        _mark_succeeded(result, result_path)
-        return _manifest_payload(result, result_path)
+        result.mark_running()
+        result_writer.write(result)
+        _run_callbacks(candidate, result, result_writer, stage_context, runtime_config)
+        result.mark_succeeded()
+        result_writer.write(result)
+        return result.manifest_payload(result_writer.path)
     except PublishCandidateStageError:
         raise
     except PipelineCallbackError as exc:
-        result["publishStatus"] = "FAILED"
-        result["failedCallbackType"] = exc.callback_type
-        result["error"] = exc.to_error_object()
-        _write_result(result_path, result)
-        raise _stage_error(str(exc), result, result_path) from exc
+        result.mark_failed(exc.callback_type, exc.to_error_object())
+        result_writer.write(result)
+        raise _stage_error(str(exc), result, result_writer) from exc
     except (PipelineConfigurationError, PipelineStageError, OSError, json.JSONDecodeError, ValueError) as exc:
-        result["publishStatus"] = "FAILED"
-        result["failedCallbackType"] = CALLBACK_DOMAIN_PACK if isinstance(exc, DomainPackContextLost) else None
-        result["error"] = {
-            "type": type(exc).__name__,
-            "message": str(exc),
-            "responseBody": None,
-            "parsedResponseBody": None,
-        }
-        _write_result(result_path, result)
-        raise _stage_error(str(exc), result, result_path) from exc
+        result.mark_failed(
+            CALLBACK_DOMAIN_PACK if isinstance(exc, DomainPackContextLost) else None,
+            {
+                "type": type(exc).__name__,
+                "message": str(exc),
+                "responseBody": None,
+                "parsedResponseBody": None,
+            },
+        )
+        result_writer.write(result)
+        raise _stage_error(str(exc), result, result_writer) from exc
 
 
 def _prepare_candidate_input(
     upstream_manifest_path: str | None,
-    result: dict[str, Any],
-    result_path: Path,
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
 ) -> Path:
     candidate_path = _read_candidate_artifact_path(upstream_manifest_path)
-    result["candidateArtifactPath"] = str(candidate_path)
-    _write_result(result_path, result)
+    result.set_candidate_artifact_path(candidate_path)
+    result_writer.write(result)
     return candidate_path
 
 
@@ -99,7 +97,11 @@ def _load_valid_candidate(candidate_path: Path) -> dict[str, Any]:
     return candidate
 
 
-def _surface_evaluation_review(candidate: dict[str, Any], result: dict[str, Any], result_path: Path) -> None:
+def _surface_evaluation_review(
+    candidate: dict[str, Any],
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
+) -> None:
     if not _evaluation_blocked(candidate):
         return
 
@@ -118,9 +120,8 @@ def _surface_evaluation_review(candidate: dict[str, Any], result: dict[str, Any]
     if review_reasons:
         summary["qualityReviewReasons"] = review_reasons
     domain_pack_draft["summaryJson"] = json.dumps(summary, ensure_ascii=False)
-    result["evaluationGateStatus"] = "NEEDS_HUMAN_REVIEW"
-    result["evaluationGateReason"] = "evaluationSummary.passed=false"
-    _write_result(result_path, result)
+    result.mark_evaluation_needs_human_review()
+    result_writer.write(result)
 
 
 def _parse_json_object(value: object) -> dict[str, Any]:
@@ -141,58 +142,20 @@ def _string_list(value: object) -> list[str]:
 
 def _skip_callbacks_if_disabled(
     runtime_config: PipelineRuntimeConfig,
-    result: dict[str, Any],
-    result_path: Path,
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
     candidate: dict[str, Any],
 ) -> bool:
     if runtime_config.callback_enabled:
         return False
 
-    result.update(
-        {
-            "publishStatus": "SKIPPED",
-            "skipReason": "CALLBACK_DISABLED",
-            "domainPackId": None,
-            "domainPackVersionId": None,
-            "versionNo": None,
-            "candidateCount": len(_candidate_items(candidate)),
-            "domainPackContexts": {},
-            "failedCallbackType": None,
-            "callbackResults": [],
-            "error": None,
-        }
-    )
-    _write_result(result_path, result)
+    result.mark_skipped(len(_candidate_items(candidate)))
+    result_writer.write(result)
     return True
 
 
-def _mark_running(result: dict[str, Any], result_path: Path) -> None:
-    result["publishStatus"] = "RUNNING"
-    result["error"] = None
-    result["failedCallbackType"] = None
-    _write_result(result_path, result)
-
-
-def _mark_succeeded(result: dict[str, Any], result_path: Path) -> None:
-    result["publishStatus"] = "SUCCEEDED"
-    result["failedCallbackType"] = None
-    result["error"] = None
-    _write_result(result_path, result)
-
-
 def build_external_event_id(dag_id: str, run_id: str, callback_type: str, scope: str | None = None) -> str:
-    scoped_callback = f"{callback_type}:{scope}" if scope else callback_type
-    candidate = f"{dag_id}:{run_id}:{scoped_callback}"
-    if len(candidate) <= 255:
-        return candidate
-    canonical_payload = json.dumps(
-        {"callback_type": callback_type, "dag_id": dag_id, "run_id": run_id, "scope": scope},
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    )
-    digest = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
-    return f"airflow:{callback_type}:{digest}"
+    return payloads.build_external_event_id(dag_id, run_id, callback_type, scope)
 
 
 def load_candidate(candidate_path: Path) -> dict[str, Any]:
@@ -309,126 +272,30 @@ def _validate_workflow_intent_codes(
             raise PipelineStageError(f"workflow references unknown intentCode: {intent_code}")
 
 
-def build_domain_pack_payload(
-    candidate: dict[str, Any],
-    stage_context: StageContext,
-    scope: str | None = None,
-) -> dict[str, object]:
-    domain_pack_draft = _required_object(candidate, "domainPackDraft")
-    return {
-        "externalEventId": build_external_event_id(
-            stage_context.dag_id,
-            stage_context.run_id,
-            CALLBACK_DOMAIN_PACK,
-            scope,
-        ),
-        "packKey": domain_pack_draft["packKey"],
-        "packName": domain_pack_draft["packName"],
-        "summaryJson": domain_pack_draft.get("summaryJson"),
-    }
-
-
-def build_intent_payload(
-    candidate: dict[str, Any],
-    stage_context: StageContext,
-    domain_pack_version_id: int,
-    scope: str | None = None,
-) -> dict[str, object]:
-    intent_draft = _required_object(candidate, "intentDraft")
-    return {
-        "externalEventId": build_external_event_id(
-            stage_context.dag_id,
-            stage_context.run_id,
-            CALLBACK_INTENT,
-            scope,
-        ),
-        "domainPackVersionId": domain_pack_version_id,
-        "intents": copy.deepcopy(intent_draft["intents"]),
-    }
-
-
-def build_workflow_payload(
-    candidate: dict[str, Any],
-    stage_context: StageContext,
-    domain_pack_version_id: int,
-    scope: str | None = None,
-    final_callback: bool = True,
-) -> dict[str, object]:
-    workflow_draft = _required_object(candidate, "workflowDraft")
-    payload: dict[str, object] = {
-        "externalEventId": build_external_event_id(
-            stage_context.dag_id,
-            stage_context.run_id,
-            CALLBACK_WORKFLOW,
-            scope,
-        ),
-        "domainPackVersionId": domain_pack_version_id,
-        "finalCallback": final_callback,
-    }
-    for key in WORKFLOW_LIST_KEYS:
-        payload[key] = copy.deepcopy(workflow_draft.get(key) or [])
-    return payload
-
-
 def apply_domain_pack_response(
     result: dict[str, Any],
     parsed_response_body: object | None,
     scope: str | None = None,
 ) -> None:
-    if not isinstance(parsed_response_body, dict):
-        raise DomainPackContextLost("domain-pack-drafts response body must be a JSON object.")
-
-    domain_pack_id = _int_or_none(parsed_response_body.get("domainPackId"))
-    domain_pack_version_id = _int_or_none(parsed_response_body.get("domainPackVersionId"))
-    version_no = _int_or_none(parsed_response_body.get("versionNo"))
-    if domain_pack_version_id is None:
-        raise DomainPackContextLost("domain-pack-drafts response did not include domainPackVersionId.")
-
-    result["domainPackId"] = domain_pack_id
-    result["domainPackVersionId"] = domain_pack_version_id
-    result["versionNo"] = version_no
-    if scope is not None:
-        contexts = result.get("domainPackContexts")
-        if not isinstance(contexts, dict):
-            contexts = {}
-        contexts[scope] = {
-            "domainPackId": domain_pack_id,
-            "domainPackVersionId": domain_pack_version_id,
-            "versionNo": version_no,
-        }
-        result["domainPackContexts"] = contexts
-
-
-def _domain_pack_version_id(result: dict[str, Any], scope: str | None) -> int | None:
-    if scope is None:
-        return _int_or_none(result.get("domainPackVersionId"))
-    contexts = result.get("domainPackContexts")
-    if isinstance(contexts, dict):
-        context = contexts.get(scope)
-        if isinstance(context, dict):
-            return _int_or_none(context.get("domainPackVersionId"))
-    for callback in reversed(_callback_results(result)):
-        if callback.get("type") != CALLBACK_DOMAIN_PACK or callback.get("scope") != scope:
-            continue
-        parsed = callback.get("parsedResponseBody")
-        if isinstance(parsed, dict):
-            return _int_or_none(parsed.get("domainPackVersionId"))
-    return None
+    state = PublishCandidateResult.from_payload(result)
+    state.apply_domain_pack_response(parsed_response_body, scope)
+    result.clear()
+    result.update(state.to_payload())
 
 
 def _run_callbacks(
     candidate: dict[str, Any],
-    result: dict[str, Any],
-    result_path: Path,
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
     stage_context: StageContext,
     runtime_config: PipelineRuntimeConfig,
 ) -> None:
     _candidate_items(candidate)
-    result["candidateCount"] = 1
+    result.candidate_count = 1
     _run_candidate_callbacks(
         candidate,
         result,
-        result_path,
+        result_writer,
         stage_context,
         runtime_config,
         None,
@@ -438,43 +305,44 @@ def _run_callbacks(
 
 def _run_candidate_callbacks(
     candidate: dict[str, Any],
-    result: dict[str, Any],
-    result_path: Path,
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
     stage_context: StageContext,
     runtime_config: PipelineRuntimeConfig,
     scope: str | None,
     *,
     final_callback: bool,
 ) -> None:
-    if not _has_successful_callback(result, CALLBACK_DOMAIN_PACK, scope):
+    if not result.has_successful_callback(CALLBACK_DOMAIN_PACK, scope):
         domain_payload = build_domain_pack_payload(candidate, stage_context, scope)
         domain_response = _post_callback(domain_payload, CALLBACK_DOMAIN_PACK, stage_context, runtime_config)
         _validate_callback_response(domain_response)
-        _append_callback_result(result, domain_response.to_result_entry(), scope)
-        apply_domain_pack_response(result, domain_response.parsed_response_body, scope)
-        _write_result(result_path, result)
+        result.append_callback_response(domain_response, scope)
+        result.apply_domain_pack_response(domain_response.parsed_response_body, scope)
+        result_writer.write(result)
 
-    domain_pack_version_id = _domain_pack_version_id(result, scope)
+    domain_pack_version_id = result.domain_pack_version_id_for(scope)
     if domain_pack_version_id is None:
-        result["publishStatus"] = "FAILED"
-        result["failedCallbackType"] = CALLBACK_DOMAIN_PACK
-        result["error"] = {
-            "type": "DomainPackContextLost",
-            "message": "domainPackVersionId is unavailable after domain-pack-drafts callback.",
-            "responseBody": None,
-            "parsedResponseBody": None,
-        }
-        _write_result(result_path, result)
-        raise _stage_error("Domain pack callback context was lost.", result, result_path)
+        result.mark_failed(
+            CALLBACK_DOMAIN_PACK,
+            {
+                "type": "DomainPackContextLost",
+                "message": "domainPackVersionId is unavailable after domain-pack-drafts callback.",
+                "responseBody": None,
+                "parsedResponseBody": None,
+            },
+        )
+        result_writer.write(result)
+        raise _stage_error("Domain pack callback context was lost.", result, result_writer)
 
-    if not _has_successful_callback(result, CALLBACK_INTENT, scope):
+    if not result.has_successful_callback(CALLBACK_INTENT, scope):
         intent_payload = build_intent_payload(candidate, stage_context, domain_pack_version_id, scope)
         intent_response = _post_callback(intent_payload, CALLBACK_INTENT, stage_context, runtime_config)
         _validate_callback_response(intent_response)
-        _append_callback_result(result, intent_response.to_result_entry(), scope)
-        _write_result(result_path, result)
+        result.append_callback_response(intent_response, scope)
+        result_writer.write(result)
 
-    if not _has_successful_callback(result, CALLBACK_WORKFLOW, scope):
+    if not result.has_successful_callback(CALLBACK_WORKFLOW, scope):
         workflow_payload = build_workflow_payload(
             candidate,
             stage_context,
@@ -484,8 +352,8 @@ def _run_candidate_callbacks(
         )
         workflow_response = _post_callback(workflow_payload, CALLBACK_WORKFLOW, stage_context, runtime_config)
         _validate_callback_response(workflow_response)
-        _append_callback_result(result, workflow_response.to_result_entry(), scope)
-        _write_result(result_path, result)
+        result.append_callback_response(workflow_response, scope)
+        result_writer.write(result)
 
 
 def _post_callback(
@@ -502,29 +370,6 @@ def _post_callback(
         runtime_config.airflow_webhook_secret or "",
         runtime_config.callback_timeout_seconds,
     )
-
-
-def _initial_result(stage_context: StageContext) -> dict[str, Any]:
-    return {
-        "schemaVersion": SCHEMA_VERSION,
-        "publishStatus": "PENDING",
-        "pipelineContext": {
-            "dagId": stage_context.dag_id,
-            "runId": stage_context.run_id,
-            "pipelineJobId": stage_context.pipeline_job_id,
-            "workspaceId": stage_context.workspace_id,
-            "datasetId": stage_context.dataset_id,
-        },
-        "candidateArtifactPath": None,
-        "domainPackId": None,
-        "domainPackVersionId": None,
-        "versionNo": None,
-        "candidateCount": 0,
-        "domainPackContexts": {},
-        "failedCallbackType": None,
-        "callbackResults": [],
-        "error": None,
-    }
 
 
 def _read_candidate_artifact_path(upstream_manifest_path: str | None) -> Path:
@@ -546,58 +391,12 @@ def _read_candidate_artifact_path(upstream_manifest_path: str | None) -> Path:
     return manifest_path.parent / candidate_path
 
 
-def _load_existing_result(result_path: Path) -> dict[str, Any] | None:
-    if not result_path.exists():
-        return None
-    result = json.loads(result_path.read_text(encoding="utf-8"))
-    if not isinstance(result, dict):
-        raise PipelineStageError(f"Existing publish result must be a JSON object: {result_path}")
-    return cast(dict[str, Any], result)
-
-
-def _write_result(result_path: Path, result: dict[str, Any]) -> None:
-    result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
-def _manifest_payload(result: dict[str, Any], result_path: Path) -> dict[str, object]:
-    callbacks = []
-    for callback in _callback_results(result):
-        callbacks.append(
-            {
-                "type": callback.get("type"),
-                "scope": callback.get("scope"),
-                "external_event_id": callback.get("externalEventId"),
-                "http_status": callback.get("httpStatus"),
-                "response_status": callback.get("responseStatus"),
-            }
-        )
-
-    return {
-        "status": _manifest_status(result),
-        "candidate_artifact_path": result.get("candidateArtifactPath"),
-        "publish_result_path": str(result_path.resolve()),
-        "domain_pack_id": result.get("domainPackId"),
-        "domain_pack_version_id": result.get("domainPackVersionId"),
-        "domain_pack_contexts": result.get("domainPackContexts"),
-        "candidate_count": result.get("candidateCount"),
-        "version_no": result.get("versionNo"),
-        "callbacks": callbacks,
-        "failed_callback_type": result.get("failedCallbackType"),
-        "publish_status": result.get("publishStatus"),
-    }
-
-
-def _manifest_status(result: dict[str, Any]) -> str:
-    publish_status = result.get("publishStatus")
-    if publish_status == "SUCCEEDED":
-        return "completed"
-    if publish_status == "FAILED":
-        return "failed"
-    return str(publish_status).lower()
-
-
-def _stage_error(message: str, result: dict[str, Any], result_path: Path) -> PublishCandidateStageError:
-    return PublishCandidateStageError(message, _manifest_payload(result, result_path))
+def _stage_error(
+    message: str,
+    result: PublishCandidateResult,
+    result_writer: PublishCandidateResultWriter,
+) -> PublishCandidateStageError:
+    return PublishCandidateStageError(message, result.manifest_payload(result_writer.path))
 
 
 def _evaluation_blocked(candidate: dict[str, Any]) -> bool:
@@ -605,32 +404,6 @@ def _evaluation_blocked(candidate: dict[str, Any]) -> bool:
     if isinstance(evaluation_summary, dict) and evaluation_summary.get("passed") is False:
         return True
     return any(_evaluation_blocked(item) for item in _candidate_items(candidate) if item is not candidate)
-
-
-def _has_successful_callback(result: dict[str, Any], callback_type: str, scope: str | None = None) -> bool:
-    for callback in _callback_results(result):
-        if callback.get("type") != callback_type:
-            continue
-        if callback.get("scope") != scope:
-            continue
-        http_status = _int_or_none(callback.get("httpStatus"))
-        response_status = callback.get("responseStatus")
-        if http_status is None or http_status < 200 or http_status >= 300:
-            continue
-        if response_status in SUCCESS_RESPONSE_STATUSES:
-            return True
-    return False
-
-
-def _append_callback_result(
-    result: dict[str, Any],
-    callback_result: dict[str, object],
-    scope: str | None = None,
-) -> None:
-    callback_result["scope"] = scope
-    callbacks = _callback_results(result)
-    callbacks.append(callback_result)
-    result["callbackResults"] = callbacks
 
 
 def _validate_callback_response(response: CallbackResponse) -> None:
@@ -646,13 +419,6 @@ def _validate_callback_response(response: CallbackResponse) -> None:
         response_body_truncated=response.response_body_truncated,
         parsed_response_body=response.parsed_response_body,
     )
-
-
-def _callback_results(result: dict[str, Any]) -> list[dict[str, Any]]:
-    callback_results = result.get("callbackResults")
-    if not isinstance(callback_results, list):
-        return []
-    return [callback for callback in callback_results if isinstance(callback, dict)]
 
 
 def _candidate_items(candidate: dict[str, Any]) -> list[dict[str, Any]]:
