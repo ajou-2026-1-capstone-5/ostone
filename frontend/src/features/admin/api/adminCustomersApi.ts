@@ -1,9 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { apiClient } from "@/shared/api";
+import {
+  detail,
+  list1,
+} from "@/shared/api/generated/endpoints/admin-customer-controller/admin-customer-controller";
+import type { List1Params } from "@/shared/api/generated/zod";
+import { requireApiData } from "@/shared/api";
 
-// OpenAPI generated endpoints do not include #499 yet; switch this wrapper to generated
-// functions after backend OpenAPI generation is available.
+// 호출은 generated admin-customer-controller(list1/detail)에 위임한다.
+// 이 wrapper는 (1) 응답 data envelope unwrap, (2) UI가 의존하는 도메인 타입 정규화
+// (generated 응답 타입은 전 필드 optional이라 화면 계약에 부족), (3) 검색어 trim과
+// list/detail scope를 가지는 queryKey 표준화 목적으로만 유지한다.
 
 export interface AdminCustomerWorkspace {
   id: number;
@@ -112,27 +119,32 @@ export const adminCustomerQueryKeys = {
     [...adminCustomerQueryKeys.all, "detail", workspaceId] as const,
 };
 
-function buildQuery(params: AdminCustomerListParams): string {
-  const query = new URLSearchParams({
-    page: String(params.page),
-    size: String(params.size),
-  });
+function toList1Params(params: AdminCustomerListParams): List1Params {
   const search = params.search.trim();
-  if (search) {
-    query.set("q", search);
-  }
-  if (params.status) {
-    query.set("status", params.status);
-  }
-  return query.toString();
+  return {
+    page: params.page,
+    size: params.size,
+    ...(search ? { q: search } : {}),
+    ...(params.status ? { status: params.status } : {}),
+  };
 }
 
-export function listAdminCustomers(params: AdminCustomerListParams): Promise<AdminCustomerSlice> {
-  return apiClient.get<AdminCustomerSlice>(`/admin/customers?${buildQuery(params)}`);
+export async function listAdminCustomers(
+  params: AdminCustomerListParams,
+): Promise<AdminCustomerSlice> {
+  const response = await list1(toList1Params(params));
+  return requireApiData<AdminCustomerSlice>(
+    response as unknown as { data?: AdminCustomerSlice },
+    "고객사 목록 응답을 확인할 수 없습니다.",
+  );
 }
 
-export function getAdminCustomerDetail(workspaceId: number): Promise<AdminCustomerDetail> {
-  return apiClient.get<AdminCustomerDetail>(`/admin/customers/${workspaceId}`);
+export async function getAdminCustomerDetail(workspaceId: number): Promise<AdminCustomerDetail> {
+  const response = await detail(workspaceId);
+  return requireApiData<AdminCustomerDetail>(
+    response as unknown as { data?: AdminCustomerDetail },
+    "고객사 상세 응답을 확인할 수 없습니다.",
+  );
 }
 
 export function useAdminCustomers(params: AdminCustomerListParams) {
