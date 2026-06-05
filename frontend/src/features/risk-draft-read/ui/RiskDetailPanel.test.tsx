@@ -100,7 +100,8 @@ describe("RiskDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText(/"channel": "web"/)).toBeInTheDocument();
+    // 객체는 운영자용 요약(채널 → web)으로, 파싱 불가 문자열은 원문 그대로 안전하게 표시한다.
+    expect(screen.getByText("web")).toBeInTheDocument();
     expect(screen.getByText("{invalid-json")).toBeInTheDocument();
     expect(screen.getByText("사기 위험")).toBeInTheDocument();
   });

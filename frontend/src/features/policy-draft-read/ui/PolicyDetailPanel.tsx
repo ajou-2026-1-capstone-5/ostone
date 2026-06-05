@@ -3,6 +3,7 @@ import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { usePolicyDetail } from "../model/usePolicyDetail";
 import type { PolicyDefinition } from "@/entities/policy";
+import { ReadableJsonCard } from "@/shared/ui/ReadableJsonCard";
 import styles from "./PolicyDetailPanel.module.css";
 
 type PolicyJsonField = Readonly<{
@@ -137,7 +138,7 @@ export function PolicyDetailPanel({
           />
         </div>
         {jsonFields.map((field) => (
-          <JsonCard key={field.label} label={field.label} value={field.value} />
+          <ReadableJsonCard key={field.label} label={field.label} raw={field.value} />
         ))}
       </div>
     </section>
@@ -196,30 +197,6 @@ function InfoCard({ label, value }: Readonly<{ label: string; value: ReactNode }
       <div className={styles.cardBody}>{value}</div>
     </section>
   );
-}
-
-function JsonCard({ label, value }: Readonly<PolicyJsonField>) {
-  const formattedValue = formatJsonForDisplay(value);
-
-  return (
-    <section className={styles.card} data-json-field={label.toLowerCase()}>
-      <header className={styles.cardHeader}>{label}</header>
-      <div className={styles.cardBody}>
-        <pre className={styles.jsonBlock}>
-          <code>{formattedValue}</code>
-        </pre>
-      </div>
-    </section>
-  );
-}
-
-function formatJsonForDisplay(raw: string): string {
-  if (!raw) return "—";
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
-  } catch {
-    return raw;
-  }
 }
 
 function formatDate(raw: string): string {
