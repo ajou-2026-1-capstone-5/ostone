@@ -153,6 +153,20 @@ jobs:
           java-version: ${{ env.TOOL_JAVA_VERSION }}
           distribution: "temurin"
 
+      - name: Restore Gradle cache
+        id: backend-gradle-cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-backend-java-${{ env.TOOL_JAVA_VERSION }}-${{ hashFiles('backend/gradle.lockfile', 'backend/**/*.gradle*', 'backend/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Log Gradle cache result
+        run: |
+          echo "Gradle cache hit: ${{ steps.backend-gradle-cache.outputs.cache-hit || 'false' }}"
+
       - name: Install pgvector extension
         run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
@@ -200,6 +214,8 @@ jobs:
     needs: paths-filter
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
     steps:
       - uses: actions/checkout@v4
 
@@ -212,6 +228,18 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.TOOL_UV_VERSION }}
+
+      - name: Restore uv cache
+        id: ml-uv-cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: /tmp/.uv-cache
+          key: ${{ runner.os }}-uv-ml-${{ env.TOOL_UV_VERSION }}-${{ hashFiles('ml/.python-version', 'ml/pyproject.toml', 'ml/uv.lock') }}
+
+      - name: Log uv cache result
+        run: |
+          echo "uv cache hit: ${{ steps.ml-uv-cache.outputs.cache-hit || 'false' }}"
 
       - name: Sync dependencies
         working-directory: ./ml
@@ -243,13 +271,19 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Cache Gradle packages
+      - name: Restore Gradle cache
+        id: backend-sonar-gradle-cache
         uses: actions/cache@v4
+        continue-on-error: true
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('backend/**/*.gradle*', 'backend/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-backend-sonar-java-${{ env.TOOL_JAVA_VERSION }}-${{ hashFiles('backend/gradle.lockfile', 'backend/**/*.gradle*', 'backend/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Log Gradle cache result
+        run: |
+          echo "Gradle cache hit: ${{ steps.backend-sonar-gradle-cache.outputs.cache-hit || 'false' }}"
 
       - name: Run backend SonarCloud analysis
         working-directory: ./backend
@@ -305,6 +339,8 @@ jobs:
     needs: paths-filter
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true) && needs.paths-filter.outputs.ml == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
     steps:
       - uses: actions/checkout@v4
         with:
@@ -325,6 +361,18 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.TOOL_UV_VERSION }}
+
+      - name: Restore uv cache
+        id: ml-sonar-uv-cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: /tmp/.uv-cache
+          key: ${{ runner.os }}-uv-ml-sonar-${{ env.TOOL_UV_VERSION }}-${{ hashFiles('ml/.python-version', 'ml/pyproject.toml', 'ml/uv.lock') }}
+
+      - name: Log uv cache result
+        run: |
+          echo "uv cache hit: ${{ steps.ml-sonar-uv-cache.outputs.cache-hit || 'false' }}"
 
       - name: Sync dependencies
         working-directory: ./ml
