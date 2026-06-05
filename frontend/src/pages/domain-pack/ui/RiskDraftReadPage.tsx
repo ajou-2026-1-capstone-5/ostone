@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { RiskDetailPanel, RiskListPanel } from "@/features/risk-draft-read/ui";
@@ -24,6 +24,8 @@ export function RiskDraftReadPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const [editingRisk, setEditingRisk] = useState<EditingRiskState | null>(null);
+  const listSlotRef = useRef<HTMLDivElement>(null);
+  const shouldFocusListRef = useRef(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
@@ -37,6 +39,13 @@ export function RiskDraftReadPage() {
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const hasSelection = selectedRiskId !== null;
+
+  useEffect(() => {
+    if (!shouldFocusListRef.current || hasSelection) return;
+    listSlotRef.current?.focus();
+    shouldFocusListRef.current = false;
+  }, [hasSelection]);
 
   if (wsId === null || pId === null || vId === null || hasInvalidRiskId) {
     return (
@@ -48,11 +57,16 @@ export function RiskDraftReadPage() {
     );
   }
 
-  const hasSelection = selectedRiskId !== null;
   const activeEditingRiskId =
     editingRisk?.routeKey === routeKey && editingRisk.riskId === selectedRiskId
       ? editingRisk.riskId
       : null;
+
+  const handleBackToList = () => {
+    setEditingRisk(null);
+    shouldFocusListRef.current = true;
+    navigate(domainPackSectionPath(wsId, pId, vId, "risks"), { replace: true });
+  };
 
   const crumbs: Crumb[] = buildDomainPackCrumbs({
     wsId,
@@ -69,8 +83,18 @@ export function RiskDraftReadPage() {
   return (
     <OstoneShell active="risk" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
+        {hasSelection && (
+          <button type="button" className={styles.backButton} onClick={handleBackToList}>
+            목록
+          </button>
+        )}
         <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
-          <div className={styles.listSlot}>
+          <div
+            ref={listSlotRef}
+            className={styles.listSlot}
+            tabIndex={-1}
+            aria-label="주의 사항 목록 영역"
+          >
             <RiskListPanel
               workspaceId={wsId}
               packId={pId}

@@ -83,6 +83,17 @@ describe("PolicyDraftReadPage", () => {
     });
   });
 
+  it("정책 상세에서 목록 버튼을 누르면 선택 없는 목록 URL로 replace한다", () => {
+    navigate.mockReset();
+    renderPage("/workspaces/1/domain-packs/7/policies/3?versionId=101");
+
+    fireEvent.click(screen.getByRole("button", { name: "목록" }));
+
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/policies?versionId=101", {
+      replace: true,
+    });
+  });
+
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
     renderPage("/workspaces/abc/domain-packs/7/policies?versionId=101");
 

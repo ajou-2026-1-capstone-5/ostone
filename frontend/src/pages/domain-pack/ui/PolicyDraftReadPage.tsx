@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
@@ -24,6 +24,8 @@ export function PolicyDraftReadPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const [editingPolicy, setEditingPolicy] = useState<EditingPolicyState | null>(null);
+  const listSlotRef = useRef<HTMLDivElement>(null);
+  const shouldFocusListRef = useRef(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
@@ -37,6 +39,13 @@ export function PolicyDraftReadPage() {
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const hasSelection = selectedPolicyId !== null;
+
+  useEffect(() => {
+    if (!shouldFocusListRef.current || hasSelection) return;
+    listSlotRef.current?.focus();
+    shouldFocusListRef.current = false;
+  }, [hasSelection]);
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
@@ -58,11 +67,16 @@ export function PolicyDraftReadPage() {
     navigate(path);
   };
 
-  const hasSelection = selectedPolicyId !== null;
   const activeEditingPolicyId =
     editingPolicy?.routeKey === routeKey && editingPolicy.policyId === selectedPolicyId
       ? editingPolicy.policyId
       : null;
+
+  const handleBackToList = () => {
+    setEditingPolicy(null);
+    shouldFocusListRef.current = true;
+    navigate(domainPackSectionPath(wsId, pId, vId, "policies"), { replace: true });
+  };
 
   const crumbs: Crumb[] = buildDomainPackCrumbs({
     wsId,
@@ -79,8 +93,18 @@ export function PolicyDraftReadPage() {
   return (
     <OstoneShell active="policy" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
+        {hasSelection && (
+          <button type="button" className={styles.backButton} onClick={handleBackToList}>
+            목록
+          </button>
+        )}
         <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
-          <div className={styles.listSlot}>
+          <div
+            ref={listSlotRef}
+            className={styles.listSlot}
+            tabIndex={-1}
+            aria-label="응대 기준 목록 영역"
+          >
             <PolicyListPanel
               workspaceId={wsId}
               packId={pId}
