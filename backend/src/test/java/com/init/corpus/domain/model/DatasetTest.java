@@ -56,6 +56,31 @@ class DatasetTest {
   }
 
   @Test
+  @DisplayName("markIngestionTriggerFailed: PROCESSING → ERROR로 전이하고 true를 반환한다")
+  void markIngestionTriggerFailed_fromProcessing_transitionsToError() {
+    Dataset dataset = Dataset.createUploading(1L, "key", "테스트", "CRM", 1L);
+    dataset.markProcessing();
+
+    boolean changed = dataset.markIngestionTriggerFailed();
+
+    assertThat(changed).isTrue();
+    assertThat(dataset.getStatus()).isEqualTo(DatasetStatus.ERROR);
+  }
+
+  @Test
+  @DisplayName("markIngestionTriggerFailed: DONE 상태면 전이 없이 false를 반환한다")
+  void markIngestionTriggerFailed_fromDone_returnsFalse() {
+    Dataset dataset = Dataset.createUploading(1L, "key", "테스트", "CRM", 1L);
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        dataset, "status", DatasetStatus.DONE);
+
+    boolean changed = dataset.markIngestionTriggerFailed();
+
+    assertThat(changed).isFalse();
+    assertThat(dataset.getStatus()).isEqualTo(DatasetStatus.DONE);
+  }
+
+  @Test
   @DisplayName("updateMetaJson: null을 전달하면 NullPointerException을 던진다")
   void updateMetaJson_null_throwsNpe() {
     Dataset dataset = Dataset.createUploading(1L, "key", "테스트", "CRM", 1L);

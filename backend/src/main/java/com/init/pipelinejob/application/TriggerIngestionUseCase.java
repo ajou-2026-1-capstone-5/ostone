@@ -22,6 +22,7 @@ public class TriggerIngestionUseCase {
 
   private final PipelineJobRepository pipelineJobRepository;
   private final IngestionAirflowTriggerPort airflowTriggerPort;
+  private final IngestionDatasetStatusPort ingestionDatasetStatusPort;
   private final ObjectMapper objectMapper;
   private final Clock clock;
   private final TransactionTemplate requiresNewTx;
@@ -29,11 +30,13 @@ public class TriggerIngestionUseCase {
   public TriggerIngestionUseCase(
       PipelineJobRepository pipelineJobRepository,
       IngestionAirflowTriggerPort airflowTriggerPort,
+      IngestionDatasetStatusPort ingestionDatasetStatusPort,
       ObjectMapper objectMapper,
       Clock clock,
       PlatformTransactionManager transactionManager) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.airflowTriggerPort = airflowTriggerPort;
+    this.ingestionDatasetStatusPort = ingestionDatasetStatusPort;
     this.objectMapper = objectMapper;
     this.clock = clock;
     this.requiresNewTx = buildRequiresNewTemplate(transactionManager);
@@ -67,6 +70,7 @@ public class TriggerIngestionUseCase {
               objectKey));
     } catch (AirflowTriggerFailedException ex) {
       markFailed(createdJob.pipelineJobId(), ex.getMessage());
+      markDatasetTriggerFailed(workspaceId, datasetId);
       throw ex;
     }
 
@@ -101,6 +105,11 @@ public class TriggerIngestionUseCase {
             pipelineJobRepository.saveAndFlush(job);
           }
         });
+  }
+
+  private void markDatasetTriggerFailed(Long workspaceId, Long datasetId) {
+    requiresNewTx.executeWithoutResult(
+        status -> ingestionDatasetStatusPort.markIngestionTriggerFailed(workspaceId, datasetId));
   }
 
   private String buildPayloadJson(
