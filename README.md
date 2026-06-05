@@ -430,9 +430,9 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 | 모듈 | 빌드 | 테스트 |
 | --- | --- | --- |
-| Backend | `(cd backend && ./gradlew build)` | H2: `(cd backend && ./gradlew test)` / PostgreSQL: `(cd backend && ./gradlew testPg)` |
-| Frontend | `(cd frontend && pnpm build)` | `(cd frontend && pnpm test)` |
-| ML | `(cd ml && uv sync)` | `(cd ml && uv run pytest)` |
+| Backend | `(cd backend && ./gradlew build)` | H2: `(cd backend && ./gradlew test jacocoTestCoverageVerification)` / PostgreSQL: `(cd backend && ./gradlew testPg)` |
+| Frontend | `(cd frontend && pnpm build)` | `(cd frontend && pnpm test -- --coverage --run)` |
+| ML | `(cd ml && uv sync)` | `(cd ml && uv run pytest --cov=src --cov-report=term-missing)` |
 
 전체 커맨드·프로필·Docker 세부 사항은 [`AGENTS.md`](AGENTS.md), 모듈별 상세는 각 모듈 README를 참조한다.
 
@@ -443,10 +443,11 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 ### CI
 
 - **paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트한다.
-  - `backend`: `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest` (PostgreSQL/Liquibase 테스트 후 CI 속도 최적화용 체크스타일 스킵)
-  - `frontend`: `pnpm install --frozen-lockfile && pnpm test && pnpm build`
-  - `ml`: `uv sync && uv run pytest`
+  - `backend`: `./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest` (H2 coverage gate와 PostgreSQL/Liquibase 재현 테스트를 함께 실행)
+  - `frontend`: `pnpm install --frozen-lockfile && pnpm test -- --coverage --run && pnpm build`
+  - `ml`: `uv sync && uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml`
 - **spec-check**: `feature/*`, `fix/*`, `spec/*` 브랜치는 `.agent/specs/{이슈번호}.md` 스펙 파일을 필수 검증한다.
+- **coverage baseline**: Backend line 90% / branch 70%, Frontend statements 80% / branches 70% / functions 75% / lines 80%, ML total 80%를 CI에서 강제한다. 장기 목표는 `.agent/rules/testing.md`의 70%+ 라인 커버리지와 새 코드 80% 기준이며, baseline은 coverage 개선 PR에서 점진적으로 상향한다. CI는 각 모듈의 coverage artifact를 업로드해 실패한 파일/영역을 확인할 수 있게 한다.
 - Backend의 빠른 로컬 테스트(`./gradlew test` 또는 `./gradlew testH2`)는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
 - Backend의 CI 재현 테스트(`./gradlew testPg`)는 PostgreSQL/pgvector DB에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 로컬 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓸 수 있다.
 

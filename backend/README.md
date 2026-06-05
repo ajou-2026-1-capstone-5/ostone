@@ -43,6 +43,9 @@ infrastructure/  → JPA Repository, External Client, Config
 # 테스트
 ./gradlew test
 
+# H2 테스트 + JaCoCo coverage gate
+./gradlew test jacocoTestCoverageVerification
+
 # CI와 같은 PostgreSQL/Liquibase 조건 테스트
 ./gradlew testPg
 
@@ -88,9 +91,10 @@ Liquibase로 스키마 관리됩니다.
 ## 테스트 DB 전략
 
 - `./gradlew test`와 `./gradlew testH2`는 빠른 단위/슬라이스 검증용 경로입니다. `src/test/resources/application.yml`의 H2 인메모리 DB를 사용하고 Liquibase를 비활성화합니다.
+- `./gradlew test jacocoTestCoverageVerification`은 H2 테스트 결과로 JaCoCo line 90% / branch 70% baseline을 검증합니다. `build/reports/jacoco/test/jacocoTestReport.xml`과 `build/reports/jacoco/test/html/index.html`에서 커버리지 파일별 근거를 확인할 수 있습니다.
 - `./gradlew testPg`는 통합/CI 재현용 경로입니다. PostgreSQL/pgvector DB에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증합니다.
 - `testPg`의 기본 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`입니다. 다른 DB를 사용할 때는 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`를 지정합니다.
-- CI backend job은 `pgvector/pgvector:pg16` 서비스에 `vector` extension을 만든 뒤 `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest`를 실행합니다.
+- CI backend job은 `pgvector/pgvector:pg16` 서비스에 `vector` extension을 만든 뒤 `./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest`를 실행합니다.
 
 ```bash
 docker run --rm --name ostone-test-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d pgvector/pgvector:pg16

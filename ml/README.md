@@ -27,11 +27,15 @@ docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-da
 `ml/` 디렉터리에서:
 
 ```bash
-uv sync && uv run pytest && uv run ruff check . && uv run ruff format . && uv run mypy .
+uv sync && uv run pytest --cov=src --cov-report=term-missing && uv run ruff check . && uv run ruff format . && uv run mypy .
 ```
 
 - 위 명령으로 공유 `postgres`도 함께 기동
 - backend/frontend까지 포함한 전체 스택은 루트 `README.md` 참고
+
+## Coverage Gate
+
+ML 테스트 커버리지는 `pyproject.toml`의 `tool.coverage.report.fail_under = 80`을 기준으로 한다. CI는 `uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml`을 실행해 기준을 강제하고, 실패 시 terminal missing-line report와 `coverage.xml`에서 부족한 영역을 확인한다.
 
 ## Parsed Consultation Dataset
 
