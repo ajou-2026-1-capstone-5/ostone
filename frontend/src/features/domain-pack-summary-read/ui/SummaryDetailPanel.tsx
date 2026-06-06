@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { DomainPackVersionDetail } from "@/entities/domain-pack";
+import type { DomainPackVersionDetail, DomainPackVersionSummary } from "@/entities/domain-pack";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -15,6 +15,7 @@ import {
 import { SummaryJsonCard } from "./SummaryJsonCard";
 import { ComponentCountGrid } from "./ComponentCountGrid";
 import { useDomainPackRevisionSummary } from "../model/useDomainPackRevisionSummary";
+import { useDomainPackApprovalReadiness } from "../model/useDomainPackApprovalReadiness";
 import {
   buildActionSummary,
   formatCurrentVersionLabel,
@@ -23,6 +24,7 @@ import {
   formatVersionNo,
   normalizeDescription,
 } from "../model/versionFormat";
+import { DomainPackApprovalCard } from "./DomainPackApprovalCard";
 import styles from "./SummaryDetailPanel.module.css";
 
 interface SummaryDetailPanelProps {
@@ -34,6 +36,8 @@ interface SummaryDetailPanelProps {
   deployingVersionId?: number | null;
   applyingVersionId?: number | null;
   discardingVersionId?: number | null;
+  versions?: DomainPackVersionSummary[];
+  approvalReadinessEnabled?: boolean;
   onDeploy?: (versionId: number) => void;
   onApplyDraft?: (versionId: number, description?: string) => void;
   onDiscardDraft?: (versionId: number) => void;
@@ -48,6 +52,8 @@ export function SummaryDetailPanel({
   deployingVersionId = null,
   applyingVersionId = null,
   discardingVersionId = null,
+  versions = [],
+  approvalReadinessEnabled = false,
   onDeploy,
   onApplyDraft,
   onDiscardDraft,
@@ -71,11 +77,23 @@ export function SummaryDetailPanel({
     onApplyDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
   const canDiscardDraft =
     onDiscardDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
+  const shouldUseApprovalReadiness =
+    approvalReadinessEnabled && isDraftVersion && versionId != null && onApplyDraft != null;
+  const shouldRenderDraftActions =
+    isDraftVersion &&
+    versionId != null &&
+    (onDiscardDraft != null || (onApplyDraft != null && !shouldUseApprovalReadiness));
   const revisionSummaryState = useDomainPackRevisionSummary({
     workspaceId: wsId,
     packId,
     versionId,
     summaryJson: v?.summaryJson,
+  });
+  const approvalReadiness = useDomainPackApprovalReadiness({
+    workspaceId: wsId,
+    packId,
+    version: approvalReadinessEnabled ? v : undefined,
+    versions,
   });
 
   const handleConfirmDeploy = () => {
@@ -87,6 +105,10 @@ export function SummaryDetailPanel({
     if (!canApplyDraft) return;
     onApplyDraft(versionId, normalizeDescription(applyDescription));
     setApplyDialogOpen(false);
+  };
+  const handleConfirmApproval = () => {
+    if (!canApplyDraft || versionId == null || !approvalReadiness.ready) return;
+    onApplyDraft?.(versionId);
   };
   const handleConfirmDiscard = () => {
     if (!canDiscardDraft) return;
@@ -150,7 +172,7 @@ export function SummaryDetailPanel({
         </div>
         <div className={styles.metaSide}>
           {v.description ? <p className={styles.versionDescription}>{v.description}</p> : null}
-          {isDraftVersion && versionId != null && (onApplyDraft || onDiscardDraft) ? (
+          {shouldRenderDraftActions ? (
             <div className={styles.deployActions}>
               {onDiscardDraft && (
                 <button
@@ -164,7 +186,7 @@ export function SummaryDetailPanel({
                   {isDiscarding ? "삭제 중..." : "삭제"}
                 </button>
               )}
-              {onApplyDraft && (
+              {onApplyDraft && !shouldUseApprovalReadiness && (
                 <button
                   type="button"
                   className={styles.deployButton}
@@ -196,6 +218,16 @@ export function SummaryDetailPanel({
           ) : null}
         </div>
       </div>
+
+      {shouldUseApprovalReadiness && (
+        <DomainPackApprovalCard
+          readiness={approvalReadiness}
+          isActivating={isApplying}
+          isPublished={false}
+          onApprove={handleConfirmApproval}
+          onRetryReadiness={approvalReadiness.retry}
+        />
+      )}
 
       <AlertDialog
         open={isDeployDialogOpen}

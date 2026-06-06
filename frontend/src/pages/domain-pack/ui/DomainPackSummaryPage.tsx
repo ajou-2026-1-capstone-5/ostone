@@ -294,6 +294,8 @@ function DomainPackSummaryPageContent({
             packId={packId}
             currentVersionId={currentVersionId}
             currentVersionNo={currentVersionNo}
+            versions={pack?.versions ?? []}
+            approvalReadinessEnabled
             deployingVersionId={
               deployMutation.isPending ? deployMutation.variables?.versionId : null
             }

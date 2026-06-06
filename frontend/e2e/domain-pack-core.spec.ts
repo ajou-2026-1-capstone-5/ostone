@@ -147,8 +147,8 @@ test.describe("Domain pack core read flows", () => {
       });
     });
 
-    test.describe("When they apply and discard a draft version", () => {
-      test("Then the draft action dialogs send the selected version operations", async ({
+    test.describe("When approval readiness has blockers on a draft version @critical", () => {
+      test("Then approval is blocked and the blocker action opens Intent review", async ({
         page,
       }, testInfo) => {
         await page.goto("/workspaces/1/domain-packs/1?versionId=3");
@@ -160,17 +160,28 @@ test.describe("Domain pack core read flows", () => {
         ).toBeVisible();
         await expect(page.getByText("고액 환불 정책")).toBeVisible();
         await expect(page.getByText("고액 환불 검토 워크플로우")).toBeVisible();
-        await captureScreen(page, testInfo, "domain-pack-draft-actions");
 
-        await page.getByRole("button", { name: "적용", exact: true }).click();
-        await expect(page.getByRole("alertdialog")).toContainText(
-          "검토 중인 v3 수정버전을 적용할까요?",
+        const approval = page.getByRole("region", { name: "승인 준비 상태" });
+        await expect(approval).toBeVisible();
+        await expect(approval).toContainText("차단됨");
+        await expect(approval).toContainText(
+          "승인 또는 반려되지 않은 Intent가 1개 남아 있습니다.",
         );
-        await page.getByLabel("변경사항 정리").fill("검토본 적용 메모");
-        await page.getByRole("button", { name: "적용하기" }).click();
-        await expect(page.getByText("초안 수정버전이 적용되었습니다.")).toBeVisible();
-        expect(seen).toContain("POST /workspaces/1/domain-packs/1/versions/3/activate");
+        await expect(approval.getByRole("button", { name: "승인", exact: true })).toBeDisabled();
+        await expect(page.getByRole("alertdialog")).toHaveCount(0);
+        expect(seen).not.toContain("POST /workspaces/1/domain-packs/1/versions/3/activate");
+        await captureScreen(page, testInfo, "domain-pack-approval-blockers");
 
+        await approval.getByRole("button", { name: /Intent 검토하기/ }).click();
+        await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\/intents\?versionId=3/);
+        await expect(page.getByText("고액 환불 문의")).toBeVisible();
+        expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/3/intents");
+        expect(seen).not.toContain("POST /workspaces/1/domain-packs/1/versions/3/activate");
+      });
+    });
+
+    test.describe("When they discard a draft version", () => {
+      test("Then the discard dialog removes the selected draft", async ({ page }) => {
         await page.goto("/workspaces/1/domain-packs/1?versionId=3");
         await page.getByRole("button", { name: "삭제", exact: true }).click();
         await expect(page.getByRole("alertdialog")).toContainText(
