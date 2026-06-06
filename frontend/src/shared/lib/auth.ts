@@ -2,6 +2,7 @@ const ACCESS_TOKEN_KEY = "accessToken";
 const LEGACY_REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
 export const SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+export const AUTH_SESSION_CHANGED_EVENT = "ostone:auth-session-changed";
 
 const memoryStorage = new Map<string, string>();
 
@@ -39,6 +40,14 @@ function removeAuthValue(key: string): void {
   memoryStorage.delete(key);
 }
 
+function notifyAuthSessionChanged(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
+}
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -56,6 +65,7 @@ export function saveAuthSession(tokens: AuthTokens, user: AuthUser): void {
   setAuthValue(ACCESS_TOKEN_KEY, tokens.accessToken);
   removeAuthValue(LEGACY_REFRESH_TOKEN_KEY);
   setAuthValue(USER_KEY, JSON.stringify(user));
+  notifyAuthSessionChanged();
 }
 
 export function saveAuthTokens(tokens: AuthTokens): void {
@@ -67,6 +77,7 @@ export function clearAuthSession(): void {
   removeAuthValue(ACCESS_TOKEN_KEY);
   removeAuthValue(LEGACY_REFRESH_TOKEN_KEY);
   removeAuthValue(USER_KEY);
+  notifyAuthSessionChanged();
 }
 
 export function getAccessToken(): string | null {

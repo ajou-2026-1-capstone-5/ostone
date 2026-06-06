@@ -1,7 +1,183 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { installAuth } from "./support/generated-api-auth";
+import { installAuth, makeJwt } from "./support/generated-api-auth";
 import { captureScreen, installAdminApiMocks, installAppApiMocks } from "./support/app-mocks";
+
+type AccountScope = "previous" | "current";
+
+const previousWorkspace = {
+  id: 1,
+  workspaceKey: "previous-workspace",
+  name: "Previous Account Workspace",
+  description: "이전 계정 workspace",
+  status: "ACTIVE",
+  myRole: "OWNER",
+  createdAt: "2026-06-01T00:00:00+09:00",
+  updatedAt: "2026-06-04T09:00:00+09:00",
+};
+
+const currentWorkspace = {
+  id: 2,
+  workspaceKey: "current-workspace",
+  name: "Current Account Workspace",
+  description: "현재 계정 workspace",
+  status: "ACTIVE",
+  myRole: "OWNER",
+  createdAt: "2026-06-02T00:00:00+09:00",
+  updatedAt: "2026-06-04T09:00:00+09:00",
+};
+
+async function fulfillJson(route: Route, body: unknown, status = 200) {
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  });
+}
+
+async function installCrossAccountWorkspaceMocks(page: Page) {
+  let account: AccountScope = "previous";
+  const seen: string[] = [];
+
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    const method = request.method();
+    seen.push(`${account} ${method} ${path}${url.search}`);
+
+    if (method === "POST" && path === "/auth/login") {
+      expect(request.postDataJSON()).toEqual({
+        email: "current@example.com",
+        password: "password123",
+      });
+      account = "current";
+      await fulfillJson(route, {
+        data: {
+          accessToken: makeJwt(),
+          refreshToken: "current-refresh-token",
+          tokenType: "Bearer",
+          expiresIn: 3600,
+          user: {
+            id: 22,
+            email: "current@example.com",
+            name: "현재 상담사",
+            role: "OPERATOR",
+          },
+        },
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces") {
+      await fulfillJson(route, account === "previous" ? [previousWorkspace] : [currentWorkspace]);
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/1") {
+      if (account === "previous") {
+        await fulfillJson(route, previousWorkspace);
+        return;
+      }
+      await fulfillJson(
+        route,
+        { code: "WORKSPACE_ACCESS_DENIED", message: "접근 권한이 없습니다." },
+        403,
+      );
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2") {
+      await fulfillJson(route, currentWorkspace);
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2/domain-packs") {
+      await fulfillJson(route, { data: [], status: 200 });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/consultation/metrics") {
+      await fulfillJson(route, {
+        workspaceId: 1,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        totalConsultationCount: 7,
+        completedConsultationCount: 6,
+        averageFirstResponseSeconds: 42,
+        averageLlmFirstResponseSeconds: 3,
+        averageHumanFirstResponseSeconds: 120,
+        llmHandledCount: 5,
+        humanInterventionCount: 1,
+        unresolvedSessionCount: 0,
+        comparison: null,
+        coverage: {
+          workflowMatchedCount: 6,
+          workflowMatchRate: 0.85,
+          intentClassificationSuccessCount: 6,
+          intentClassificationSuccessRate: 0.85,
+          lowConfidenceCount: 0,
+          lowConfidenceRate: 0,
+          unmatchedSessionCount: 1,
+          autoCompletedWorkflowCount: 5,
+          humanHandoffRate: 0.14,
+          llmOnlyProcessingRate: 0.71,
+          measurementStatus: "READY",
+          measurementMessage: "측정 가능",
+          trend: [],
+        },
+        handledTodayCount: 2,
+        llmHandledTodayCount: 2,
+        humanHandledTodayCount: 0,
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/dashboard/workflow-rankings") {
+      await fulfillJson(route, {
+        workspaceId: 1,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        totalConsultationCount: 7,
+        rankings: [],
+        topRankings: [],
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/dashboard/knowledge-pack-health") {
+      await fulfillJson(route, {
+        activeKnowledgePack: {
+          packId: 1,
+          packName: "Previous Account Pack",
+          versionId: 1,
+          versionNo: 1,
+          publishedAt: "2026-06-01T00:00:00+09:00",
+          createdAt: "2026-06-01T00:00:00+09:00",
+          sourcePipelineJobId: null,
+        },
+        lastLogUpload: null,
+        lastKnowledgePackGeneration: null,
+        pendingReviewCount: 0,
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/dashboard/action-recommendations") {
+      await fulfillJson(route, {
+        workspaceId: 1,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        recommendations: [],
+      });
+      return;
+    }
+
+    await fulfillJson(route, { code: "E2E_UNMOCKED", message: `${method} ${path}` }, 500);
+  });
+
+  return seen;
+}
 
 test.describe("Application navigation boundaries", () => {
   test.describe("Given no authenticated session", () => {
@@ -57,6 +233,59 @@ test.describe("Application navigation boundaries", () => {
         )
         .toEqual({ accessToken: null, refreshToken: null, user: null });
       expect(seen).toEqual(["POST /auth/refresh"]);
+    });
+  });
+
+  test.describe("Given browser history includes another account's workspace URL", () => {
+    test("When a different account logs in and navigates back, Then previous workspace data is not exposed", async ({
+      page,
+    }) => {
+      const seen = await installCrossAccountWorkspaceMocks(page);
+      await installAuth(page, {
+        name: "이전 상담사",
+        email: "previous@example.com",
+      });
+
+      await page.goto("/workspaces/1/dashboard");
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Previous Account Workspace",
+      );
+      await expect(page.getByText("Previous Account Pack")).toBeVisible();
+
+      await page.getByTestId("account-menu-trigger").click();
+      await page.getByTestId("account-menu-logout").click();
+      await expect(page).toHaveURL(/\/login$/);
+
+      await page.getByLabel("이메일 주소").fill("current@example.com");
+      await page.getByLabel("비밀번호").fill("password123");
+      await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+      await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+
+      await page.goBack();
+      await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+      await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+      await expect(page.getByText("총 상담")).toHaveCount(0);
+      expect(seen).toContain("current GET /workspaces/1");
+
+      await page.goForward();
+      await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+
+      await page.goBack();
+      await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await page.reload();
+      await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+      await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
     });
   });
 
