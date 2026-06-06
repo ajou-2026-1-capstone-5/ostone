@@ -1,10 +1,41 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { installAuth } from "./support/generated-api-auth";
 import { captureScreen, installAppApiMocks } from "./support/app-mocks";
 
 function expectNoRequest(seen: string[], request: string) {
   expect(seen).not.toContain(request);
+}
+
+function expectRequestCount(seen: string[], request: string, expectedCount: number) {
+  const calls = seen.filter((entry) => entry === request);
+  expect(calls).toHaveLength(expectedCount);
+}
+
+async function expectWorkspaceBillingUrlWithoutQueries(
+  page: Page,
+  workspaceId: number,
+  queryKeys: readonly string[],
+) {
+  await expect(page).toHaveURL(new RegExp(`/workspaces/${workspaceId}/billing$`));
+
+  const currentUrl = new URL(page.url());
+  expect(currentUrl.pathname).toBe(`/workspaces/${workspaceId}/billing`);
+  expect(currentUrl.search).toBe("");
+
+  for (const queryKey of queryKeys) {
+    expect(currentUrl.searchParams.has(queryKey)).toBe(false);
+  }
+}
+
+async function expectBackHistoryKeepsWorkspaceBillingWithoutQueries(
+  page: Page,
+  workspaceId: number,
+  queryKeys: readonly string[],
+) {
+  const previousEntry = await page.goBack();
+  expect(previousEntry).not.toBeNull();
+  await expectWorkspaceBillingUrlWithoutQueries(page, workspaceId, queryKeys);
 }
 
 test.describe("Billing screens", () => {
@@ -79,13 +110,24 @@ test.describe("Billing screens", () => {
   test.describe("Given a Toss billing redirect succeeds", () => {
     test.describe("When the success landing page receives auth parameters", () => {
       test("Then it confirms billing authorization and returns to billing", async ({ page }) => {
+        const sensitiveQueryKeys = ["authKey", "customerKey"] as const;
+
+        await page.goto("/workspaces/1/billing");
+        await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
+
         await page.goto(
           "/billing/success?workspaceId=1&flow=billing&authKey=auth-e2e&customerKey=customer-qa-workspace",
         );
 
-        await expect(page).toHaveURL(/\/workspaces\/1\/billing/);
+        await expectWorkspaceBillingUrlWithoutQueries(page, 1, sensitiveQueryKeys);
         await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
-        expect(seen).toContain("POST /workspaces/1/billing/authorizations");
+        expectRequestCount(seen, "POST /workspaces/1/billing/authorizations", 1);
+        await expectBackHistoryKeepsWorkspaceBillingWithoutQueries(
+          page,
+          1,
+          sensitiveQueryKeys,
+        );
+        expectRequestCount(seen, "POST /workspaces/1/billing/authorizations", 1);
       });
     });
   });
@@ -93,13 +135,24 @@ test.describe("Billing screens", () => {
   test.describe("Given a Toss widget payment succeeds", () => {
     test.describe("When the success landing page receives payment parameters", () => {
       test("Then it confirms the one-off payment and returns to billing", async ({ page }) => {
+        const sensitiveQueryKeys = ["paymentKey", "orderId", "amount"] as const;
+
+        await page.goto("/workspaces/1/billing");
+        await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
+
         await page.goto(
           "/billing/success?workspaceId=1&flow=widget&paymentKey=payment-e2e&orderId=order-e2e&amount=99000",
         );
 
-        await expect(page).toHaveURL(/\/workspaces\/1\/billing/);
+        await expectWorkspaceBillingUrlWithoutQueries(page, 1, sensitiveQueryKeys);
         await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
-        expect(seen).toContain("POST /workspaces/1/payments/confirm");
+        expectRequestCount(seen, "POST /workspaces/1/payments/confirm", 1);
+        await expectBackHistoryKeepsWorkspaceBillingWithoutQueries(
+          page,
+          1,
+          sensitiveQueryKeys,
+        );
+        expectRequestCount(seen, "POST /workspaces/1/payments/confirm", 1);
       });
 
       test("Then a repeated orderId does not confirm the payment again", async ({ page }) => {
