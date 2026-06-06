@@ -387,7 +387,32 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it("shows refresh and list navigation for no active checkpoint waiting states", () => {
+  it("shows cancelled state with upload retry and job refresh actions", () => {
+    const refetch = vi.fn();
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch,
+      data: { pipelineJobId: 7, pipelineStatus: "CANCELLED", reviewKind: null, tasks: [] },
+    } as never);
+
+    renderCard();
+
+    expect(screen.getByText("파이프라인이 취소되었습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("업로드를 다시 시작하거나 취소된 job 상태를 다시 조회할 수 있습니다."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "업로드 다시 시작" })).toHaveAttribute(
+      "href",
+      "/workspaces/1/upload",
+    );
+    expect(screen.queryByRole("link", { name: "도메인팩 관리로 이동" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "현재 job 새로고침" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows only refresh for no active checkpoint waiting states", () => {
     const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
@@ -400,13 +425,32 @@ describe("PipelineReviewCheckpointCard", () => {
     renderCard();
 
     expect(screen.getByText("활성 리뷰 체크포인트가 없습니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "도메인팩 관리로 이동" })).toHaveAttribute(
-      "href",
-      "/workspaces/1/domain-packs",
-    );
+    expect(
+      screen.getByText(
+        "파이프라인이 검토 입력을 기다리는 상태가 되면 이 화면에 작업이 표시됩니다. 완료 전 승인/적용은 시작하지 않습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "도메인팩 관리로 이동" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /승인|적용|배포/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "상태 새로고침" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  it("disables refresh while no active checkpoint state is fetching", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      isFetching: true,
+      refetch: vi.fn(),
+      data: { pipelineJobId: 7, pipelineStatus: "RUNNING", reviewKind: null, tasks: [] },
+    } as never);
+
+    renderCard();
+
+    expect(screen.getByRole("button", { name: "상태 새로고침" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: "도메인팩 관리로 이동" })).not.toBeInTheDocument();
+  });
+
 });
 
 function createHumanFeedbackCheckpoint(taskIds: number[]) {

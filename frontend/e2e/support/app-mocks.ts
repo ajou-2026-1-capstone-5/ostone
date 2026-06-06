@@ -9,6 +9,7 @@ const WORKFLOW_ID = 401;
 const INTENT_ID = 501;
 const DATASET_ID = 77;
 const PIPELINE_JOB_ID = 900;
+const RUNNING_GENERATION_PIPELINE_JOB_ID = 905;
 const SIMULATION_SESSION_ID = 8801;
 const SIMULATION_GOLDEN_CASE_ID = 9951;
 const SIMULATION_REPLAY_SESSION_ID = 9952;
@@ -39,6 +40,7 @@ export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
   readonly domainPackGenerationFailureAttempts?: number;
   readonly dashboardKnowledgePackHealth?: "default" | "error";
+  readonly generatedPipelineJob?: "domain-confirmation" | "running";
 }
 
 interface PipelineReviewMockState {
@@ -1475,11 +1477,12 @@ async function fulfillUploadAndReview(
       return true;
     }
 
+    const generatedJob =
+      options.generatedPipelineJob === "running"
+        ? { pipelineJobId: RUNNING_GENERATION_PIPELINE_JOB_ID, status: "RUNNING" }
+        : { pipelineJobId: PIPELINE_JOB_ID, status: "WAITING_DOMAIN_CONFIRMATION" };
     await fulfillJson(route, {
-      data: {
-        pipelineJobId: PIPELINE_JOB_ID,
-        status: "WAITING_DOMAIN_CONFIRMATION",
-      },
+      data: generatedJob,
       status: 200,
     });
     return true;
@@ -1543,6 +1546,16 @@ async function fulfillUploadAndReview(
           },
         },
       ],
+    });
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/1/pipeline-jobs/905/review-checkpoint") {
+    await fulfillJson(route, {
+      pipelineJobId: RUNNING_GENERATION_PIPELINE_JOB_ID,
+      pipelineStatus: "RUNNING",
+      reviewKind: null,
+      tasks: [],
     });
     return true;
   }

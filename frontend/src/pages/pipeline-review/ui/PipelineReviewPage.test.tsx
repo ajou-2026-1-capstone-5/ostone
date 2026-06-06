@@ -60,20 +60,46 @@ describe("PipelineReviewPage", () => {
 
     expect(screen.getByText("초안 생성 전에 파이프라인 입력을 확정합니다.")).toBeInTheDocument();
     expect(screen.getByText("사람 피드백 대기")).toBeInTheDocument();
+    expect(screen.getByText("체크포인트 완료 후 진행")).toBeInTheDocument();
     expect(screen.getByTestId("checkpoint-card")).toHaveTextContent("1:7");
     expect(mockedUseCheckpoint).toHaveBeenCalledWith(1, 7, { autoRefresh: true });
     await waitFor(() => expect(screen.getByTestId("crumbs")).toHaveTextContent("Pipeline review"));
   });
 
   it.each([
-    ["WAITING_DOMAIN_CONFIRMATION", "DOMAIN_CONFIRMATION", "도메인 확정 대기", "결정 후 replay"],
-    ["SUCCEEDED", null, "파이프라인 완료", "활성 체크포인트 없음"],
-    ["FAILED", null, "파이프라인 실패", "활성 체크포인트 없음"],
-    ["RUNNING", null, "RUNNING", "활성 체크포인트 없음"],
-    [undefined, null, "확인 중", "활성 체크포인트 없음"],
+    [
+      "WAITING_DOMAIN_CONFIRMATION",
+      "DOMAIN_CONFIRMATION",
+      "도메인 확정 대기",
+      "결정 후 replay",
+      "체크포인트 완료 후 진행",
+    ],
+    [
+      "SUCCEEDED",
+      null,
+      "파이프라인 완료",
+      "활성 체크포인트 없음",
+      "Domain Pack 승인 화면에서 진행",
+    ],
+    ["FAILED", null, "파이프라인 실패", "활성 체크포인트 없음", "실패 상태에서는 승인 불가"],
+    ["CANCELLED", null, "파이프라인 취소", "활성 체크포인트 없음", "취소 상태에서는 승인 불가"],
+    [
+      "RUNNING",
+      null,
+      "RUNNING",
+      "활성 체크포인트 없음",
+      "완료 후 Domain Pack 화면에서 진행",
+    ],
+    [
+      undefined,
+      null,
+      "확인 중",
+      "활성 체크포인트 없음",
+      "완료 후 Domain Pack 화면에서 진행",
+    ],
   ])(
     "maps checkpoint status %s and review kind %s",
-    (pipelineStatus, reviewKind, expectedStatus, expectedMode) => {
+    (pipelineStatus, reviewKind, expectedStatus, expectedMode, expectedApproval) => {
       mockedUseCheckpoint.mockReturnValue({
         data: {
           pipelineJobId: 7,
@@ -87,6 +113,7 @@ describe("PipelineReviewPage", () => {
 
       expect(screen.getByText(expectedStatus)).toBeInTheDocument();
       expect(screen.getByText(expectedMode)).toBeInTheDocument();
+      expect(screen.getByText(expectedApproval)).toBeInTheDocument();
     },
   );
 
