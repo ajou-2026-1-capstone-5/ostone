@@ -230,25 +230,117 @@ async function installCrossAccountWorkspaceMocks(
 
 test.describe("Application navigation boundaries", () => {
   test.describe("Given no authenticated session", () => {
-    test("When an anonymous visitor opens a private workspace URL, Then they are sent to login", async ({
+    test("When an anonymous visitor opens a private workspace URL, Then they are sent to login without workspace data @critical", async ({
       page,
     }) => {
+      const privateWorkspaceName = "Anonymous Workspace Should Stay Hidden";
+      const privatePackName = "Anonymous Domain Pack Should Stay Hidden";
       const seen: string[] = [];
+      await page.addInitScript(() => {
+        window.localStorage.removeItem("accessToken");
+        window.localStorage.removeItem("refreshToken");
+        window.localStorage.removeItem("user");
+      });
       await page.route("**/api/v1/**", async (route) => {
         const request = route.request();
         const url = new URL(request.url());
-        seen.push(`${request.method()} ${url.pathname.replace(/^\/api\/v1/, "")}`);
+        const path = url.pathname.replace(/^\/api\/v1/, "");
+        const method = request.method();
+        seen.push(`${method} ${path}`);
+
+        if (method === "POST" && path === "/auth/refresh") {
+          await fulfillJson(
+            route,
+            { code: "UNAUTHORIZED", message: "로그인이 필요합니다." },
+            401,
+          );
+          return;
+        }
+
+        if (method === "GET" && path === "/workspaces") {
+          await fulfillJson(route, [
+            {
+              id: 1,
+              workspaceKey: "anonymous-workspace",
+              name: privateWorkspaceName,
+              description: "비인증 상태에서 보이면 안 되는 workspace",
+              status: "ACTIVE",
+              myRole: "OWNER",
+              createdAt: "2026-06-01T00:00:00+09:00",
+              updatedAt: "2026-06-04T09:00:00+09:00",
+            },
+          ]);
+          return;
+        }
+
+        if (method === "GET" && path === "/workspaces/1") {
+          await fulfillJson(route, {
+            id: 1,
+            workspaceKey: "anonymous-workspace",
+            name: privateWorkspaceName,
+            description: "비인증 상태에서 보이면 안 되는 workspace",
+            status: "ACTIVE",
+            myRole: "OWNER",
+            createdAt: "2026-06-01T00:00:00+09:00",
+            updatedAt: "2026-06-04T09:00:00+09:00",
+          });
+          return;
+        }
+
+        if (
+          method === "GET" &&
+          path === "/workspaces/1/dashboard/knowledge-pack-health"
+        ) {
+          await fulfillJson(route, {
+            activeKnowledgePack: {
+              packId: 1,
+              packName: privatePackName,
+              versionId: 1,
+              versionNo: 1,
+              publishedAt: "2026-06-01T00:00:00+09:00",
+              createdAt: "2026-06-01T00:00:00+09:00",
+              sourcePipelineJobId: null,
+            },
+            lastLogUpload: null,
+            lastKnowledgePackGeneration: null,
+            pendingReviewCount: 0,
+          });
+          return;
+        }
+
         await route.fulfill({
           status: 500,
           contentType: "application/json",
-          body: JSON.stringify({ code: "E2E_UNEXPECTED_API", message: url.pathname }),
+          body: JSON.stringify({
+            code: "E2E_UNEXPECTED_API",
+            message: `${method} ${path}`,
+          }),
         });
       });
 
       await page.goto("/workspaces/1/dashboard");
 
       await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByRole("button", { name: "시스템 로그인" })).toBeVisible();
+      await expect(page.getByLabel("이메일 주소")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "시스템 로그인" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "대시보드", exact: true }),
+      ).toHaveCount(0);
+      await expect(page.getByTestId("workspace-marker")).toHaveCount(0);
+      await expect(page.getByText(privateWorkspaceName)).toHaveCount(0);
+      await expect(page.getByText(privatePackName)).toHaveCount(0);
+      await expect(page.getByText("총 상담")).toHaveCount(0);
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            accessToken: window.localStorage.getItem("accessToken"),
+            refreshToken: window.localStorage.getItem("refreshToken"),
+            user: window.localStorage.getItem("user"),
+          })),
+        )
+        .toEqual({ accessToken: null, refreshToken: null, user: null });
       expect(seen).toEqual(["POST /auth/refresh"]);
     });
 
