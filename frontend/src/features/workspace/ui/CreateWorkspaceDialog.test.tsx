@@ -89,7 +89,7 @@ function renderDialog() {
 }
 
 function submitWorkspaceName(name = "Support Team") {
-  fireEvent.change(screen.getByLabelText("제목"), { target: { value: name } });
+  fireEvent.change(screen.getByLabelText("이름"), { target: { value: name } });
   fireEvent.click(screen.getByRole("button", { name: "생성" }));
 }
 
@@ -259,7 +259,7 @@ describe("CreateWorkspaceDialog", () => {
 
     submitWorkspaceName();
     await waitFor(() => expect(screen.getByRole("button", { name: "생성 중..." })).toBeDisabled());
-    const form = screen.getByLabelText("제목").closest("form");
+    const form = screen.getByLabelText("이름").closest("form");
     if (!form) {
       throw new Error("workspace create form not found");
     }
@@ -290,11 +290,11 @@ describe("CreateWorkspaceDialog", () => {
 
   it("Dialog open 이벤트는 입력값을 유지하고 열림 상태를 전달한다", () => {
     const { onOpenChange } = renderDialog();
-    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Support Team" } });
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "Support Team" } });
 
     fireEvent.click(screen.getByRole("button", { name: "mock keep dialog open" }));
 
-    expect(screen.getByLabelText("제목")).toHaveValue("Support Team");
+    expect(screen.getByLabelText("이름")).toHaveValue("Support Team");
     expect(onOpenChange).toHaveBeenCalledWith(true);
   });
 
