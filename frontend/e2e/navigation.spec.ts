@@ -27,6 +27,29 @@ const currentWorkspace = {
   updatedAt: "2026-06-04T09:00:00+09:00",
 };
 
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
+}
+
+interface CrossAccountWorkspaceMockOptions {
+  delayCurrentWorkspaceLoading?: boolean;
+}
+
+interface CrossAccountWorkspaceMocks {
+  seen: string[];
+  releaseCurrentWorkspaceLoading: () => void;
+}
+
+function createDeferred(): Deferred {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+
+  return { promise, resolve };
+}
+
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({
     status,
@@ -35,9 +58,24 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
-async function installCrossAccountWorkspaceMocks(page: Page) {
+async function installCrossAccountWorkspaceMocks(
+  page: Page,
+  options: CrossAccountWorkspaceMockOptions = {},
+): Promise<CrossAccountWorkspaceMocks> {
   let account: AccountScope = "previous";
   const seen: string[] = [];
+  let currentWorkspaceListCount = 0;
+  const currentWorkspaceListLoading = options.delayCurrentWorkspaceLoading
+    ? createDeferred()
+    : null;
+  const currentWorkspaceDetailLoading = options.delayCurrentWorkspaceLoading
+    ? createDeferred()
+    : null;
+
+  const releaseCurrentWorkspaceLoading = () => {
+    currentWorkspaceListLoading?.resolve();
+    currentWorkspaceDetailLoading?.resolve();
+  };
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
@@ -70,7 +108,16 @@ async function installCrossAccountWorkspaceMocks(page: Page) {
     }
 
     if (method === "GET" && path === "/workspaces") {
-      await fulfillJson(route, account === "previous" ? [previousWorkspace] : [currentWorkspace]);
+      if (account === "current") {
+        currentWorkspaceListCount += 1;
+        if (currentWorkspaceListCount > 1) {
+          await currentWorkspaceListLoading?.promise;
+        }
+      }
+      await fulfillJson(
+        route,
+        account === "previous" ? [previousWorkspace] : [currentWorkspace],
+      );
       return;
     }
 
@@ -88,6 +135,7 @@ async function installCrossAccountWorkspaceMocks(page: Page) {
     }
 
     if (method === "GET" && path === "/workspaces/2") {
+      await currentWorkspaceDetailLoading?.promise;
       await fulfillJson(route, currentWorkspace);
       return;
     }
@@ -176,7 +224,7 @@ async function installCrossAccountWorkspaceMocks(page: Page) {
     await fulfillJson(route, { code: "E2E_UNMOCKED", message: `${method} ${path}` }, 500);
   });
 
-  return seen;
+  return { seen, releaseCurrentWorkspaceLoading };
 }
 
 test.describe("Application navigation boundaries", () => {
@@ -240,7 +288,7 @@ test.describe("Application navigation boundaries", () => {
     test("When a different account logs in and navigates back, Then previous workspace data is not exposed", async ({
       page,
     }) => {
-      const seen = await installCrossAccountWorkspaceMocks(page);
+      const { seen } = await installCrossAccountWorkspaceMocks(page);
       await installAuth(page, {
         name: "이전 상담사",
         email: "previous@example.com",
@@ -284,6 +332,61 @@ test.describe("Application navigation boundaries", () => {
       await page.reload();
       await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
       await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+    });
+
+    test("When current workspace loading is slow, Then stale workspace data stays hidden", async ({
+      page,
+    }) => {
+      const { seen, releaseCurrentWorkspaceLoading } =
+        await installCrossAccountWorkspaceMocks(page, {
+          delayCurrentWorkspaceLoading: true,
+        });
+      await installAuth(page, {
+        name: "이전 상담사",
+        email: "previous@example.com",
+      });
+
+      await page.goto("/workspaces/1/dashboard");
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Previous Account Workspace",
+      );
+      await expect(page.getByText("Previous Account Pack")).toBeVisible();
+
+      await page.getByTestId("account-menu-trigger").click();
+      await page.getByTestId("account-menu-logout").click();
+      await expect(page).toHaveURL(/\/login$/);
+
+      await page.getByLabel("이메일 주소").fill("current@example.com");
+      await page.getByLabel("비밀번호").fill("password123");
+      await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+      try {
+        await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+        await expect(
+          page.getByText("워크스페이스 정보를 불러오는 중입니다."),
+        ).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText(
+          "워크스페이스 선택",
+        );
+        await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+        await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+        await expect(page.getByText("총 상담")).toHaveCount(0);
+        expect(seen).toContain("current GET /workspaces/2");
+        expect(
+          seen.filter((entry) => entry === "current GET /workspaces").length,
+        ).toBeGreaterThan(1);
+      } finally {
+        releaseCurrentWorkspaceLoading();
+      }
+
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+      await expect(
+        page.getByRole("heading", { name: "워크플로우", level: 1 }),
+      ).toBeVisible();
       await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
       await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
     });
