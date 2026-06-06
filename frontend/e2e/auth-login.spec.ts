@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { makeJwt } from "./support/generated-api-auth";
+import { installAuth, makeJwt } from "./support/generated-api-auth";
 
 const workspace = {
   id: 1,
@@ -54,6 +54,49 @@ const workflow = {
   metaJson: "{}",
 };
 
+const previousWorkspace = {
+  id: 1,
+  workspaceKey: "previous-workspace",
+  name: "Previous Account Workspace",
+  status: "ACTIVE",
+  myRole: "OWNER",
+};
+
+const currentWorkspace = {
+  id: 1,
+  workspaceKey: "current-workspace",
+  name: "Current Account Workspace",
+  status: "ACTIVE",
+  myRole: "OWNER",
+};
+
+const previousPackSummary = {
+  ...activePackSummary,
+  name: "Previous Account Pack",
+  description: "이전 계정의 도메인팩",
+};
+
+const previousPackDetail = {
+  ...activePackDetail,
+  name: "Previous Account Pack",
+  description: "이전 계정의 도메인팩 상세",
+};
+
+const previousWorkflow = {
+  ...workflow,
+  name: "Previous Refund Workflow",
+  description: "이전 계정의 workflow",
+};
+
+function deferredResponse() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+
+  return { promise, resolve };
+}
+
 type DomainPackMode = "empty" | "active";
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {
@@ -64,11 +107,7 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
-async function installLoginApiMocks(
-  page: Page,
-  seen: string[],
-  domainPackMode: DomainPackMode,
-) {
+async function installLoginApiMocks(page: Page, seen: string[], domainPackMode: DomainPackMode) {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -133,20 +172,14 @@ async function installLoginApiMocks(
     }
 
     seen.push(`UNMOCKED ${method} ${path}`);
-    await fulfillJson(
-      route,
-      { code: "E2E_UNMOCKED", message: `${method} ${path}` },
-      500,
-    );
+    await fulfillJson(route, { code: "E2E_UNMOCKED", message: `${method} ${path}` }, 500);
   });
 }
 
 test.describe("Login screen", () => {
   test.describe("Given a valid operator account", () => {
     test.describe("When the operator submits the login form", () => {
-      test("Then the app stores the auth session and enters the workspace", async ({
-        page,
-      }) => {
+      test("Then the app stores the auth session and enters the workspace", async ({ page }) => {
         const seen: string[] = [];
 
         await installLoginApiMocks(page, seen, "empty");
@@ -157,18 +190,12 @@ test.describe("Login screen", () => {
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/1\/workflows/);
-        await expect(
-          page.getByRole("heading", { name: "워크플로우", level: 1 }),
-        ).toBeVisible();
+        await expect(page.getByRole("heading", { name: "워크플로우", level: 1 })).toBeVisible();
         await expect
-          .poll(() =>
-            page.evaluate(() => window.localStorage.getItem("accessToken")),
-          )
+          .poll(() => page.evaluate(() => window.localStorage.getItem("accessToken")))
           .toBeTruthy();
         expect(seen).toContain("POST /auth/login");
-        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual(
-          [],
-        );
+        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual([]);
       });
 
       test("Then an operator with an active domain pack lands on current workspace operations", async ({
@@ -197,38 +224,26 @@ test.describe("Login screen", () => {
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
-        await expect(page.getByTestId("workspace-marker")).toContainText(
-          "QA Workspace",
-        );
-        await expect(
-          page.getByRole("heading", { name: "워크플로우", level: 1 }),
-        ).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+        await expect(page.getByRole("heading", { name: "워크플로우", level: 1 })).toBeVisible();
         await expect(page.getByTestId("workspace-workflows")).toBeVisible();
-        await expect(
-          page.getByTestId("workspace-workflows-card-401"),
-        ).toContainText("Generated API Pack");
-        await expect(
-          page.getByTestId("workspace-workflows-card-401"),
-        ).toContainText("환불 처리");
-        await expect(
-          page.getByTestId("sidebar-link-dashboard"),
-        ).toHaveAttribute("href", "/workspaces/1/dashboard");
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText(
+          "Generated API Pack",
+        );
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText("환불 처리");
+        await expect(page.getByTestId("sidebar-link-dashboard")).toHaveAttribute(
+          "href",
+          "/workspaces/1/dashboard",
+        );
         await expect(page.getByTestId("sidebar-domain-link")).toHaveAttribute(
           "href",
           "/workspaces/1/domain-packs",
         );
-        await expect(
-          page.getByTestId("workspace-workflows-card-401-open"),
-        ).toBeEnabled();
-        await expect(
-          page.getByRole("heading", { name: "상담 로그 업로드" }),
-        ).not.toBeVisible();
+        await expect(page.getByTestId("workspace-workflows-card-401-open")).toBeEnabled();
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).not.toBeVisible();
         await expect
           .poll(() =>
-            page.evaluate(
-              () =>
-                JSON.parse(window.localStorage.getItem("user") ?? "{}").name,
-            ),
+            page.evaluate(() => JSON.parse(window.localStorage.getItem("user") ?? "{}").name),
           )
           .toBe("상담사");
         await expect(page.getByText("이전 운영자")).toHaveCount(0);
@@ -238,12 +253,158 @@ test.describe("Login screen", () => {
         expect(seen).toContain("GET /workspaces");
         expect(seen).toContain("GET /workspaces/1/domain-packs");
         expect(seen).toContain("GET /workspaces/1/domain-packs/1");
-        expect(seen).toContain(
-          "GET /workspaces/1/domain-packs/1/versions/1/workflows",
+        expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/workflows");
+        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual([]);
+      });
+
+      test("Then workspace loading keeps previous account data hidden", async ({ page }) => {
+        const seen: string[] = [];
+        let account: "previous" | "current" = "previous";
+        let currentWorkspaceListRequests = 0;
+        const delayedWorkspaceList = deferredResponse();
+        const delayedWorkspaceDetail = deferredResponse();
+
+        await page.route("**/api/v1/**", async (route) => {
+          const request = route.request();
+          const url = new URL(request.url());
+          const path = url.pathname.replace(/^\/api\/v1/, "");
+          const method = request.method();
+          seen.push(`${account} ${method} ${path}`);
+
+          if (method === "POST" && path === "/auth/login") {
+            expect(request.postDataJSON()).toEqual({
+              email: "current@example.com",
+              password: "password123",
+            });
+            account = "current";
+            await fulfillJson(route, {
+              data: {
+                accessToken: makeJwt(),
+                refreshToken: "current-refresh-token",
+                tokenType: "Bearer",
+                expiresIn: 3600,
+                user: {
+                  id: 7,
+                  email: "current@example.com",
+                  name: "현재 상담사",
+                  role: "OPERATOR",
+                },
+              },
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces") {
+            if (account === "previous") {
+              await fulfillJson(route, [previousWorkspace]);
+              return;
+            }
+
+            currentWorkspaceListRequests += 1;
+            if (currentWorkspaceListRequests > 1) {
+              await delayedWorkspaceList.promise;
+            }
+            await fulfillJson(route, [currentWorkspace]);
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1") {
+            if (account === "previous") {
+              await fulfillJson(route, previousWorkspace);
+              return;
+            }
+
+            await delayedWorkspaceDetail.promise;
+            await fulfillJson(route, currentWorkspace);
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1/domain-packs") {
+            await fulfillJson(route, {
+              data: account === "previous" ? [previousPackSummary] : [activePackSummary],
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1/domain-packs/1") {
+            await fulfillJson(route, {
+              data: account === "previous" ? previousPackDetail : activePackDetail,
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/workflows") {
+            await fulfillJson(route, {
+              data: account === "previous" ? [previousWorkflow] : [workflow],
+            });
+            return;
+          }
+
+          if (
+            method === "GET" &&
+            path === "/workspaces/1/domain-packs/1/versions/1/workflows/401"
+          ) {
+            await fulfillJson(route, {
+              data: account === "previous" ? previousWorkflow : workflow,
+            });
+            return;
+          }
+
+          seen.push(`UNMOCKED ${method} ${path}`);
+          await fulfillJson(route, { code: "E2E_UNMOCKED", message: `${method} ${path}` }, 500);
+        });
+
+        await installAuth(page, {
+          name: "이전 상담사",
+          email: "previous@example.com",
+        });
+
+        await page.goto("/workspaces/1/workflows");
+        await expect(page.getByTestId("workspace-marker")).toContainText(
+          "Previous Account Workspace",
         );
-        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual(
-          [],
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText(
+          "Previous Account Pack",
         );
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText(
+          "Previous Refund Workflow",
+        );
+
+        await page.getByTestId("account-menu-trigger").click();
+        await page.getByTestId("account-menu-logout").click();
+        await expect(page).toHaveURL(/\/login$/);
+
+        await page.getByLabel("이메일 주소").fill("current@example.com");
+        await page.getByLabel("비밀번호").fill("password123");
+        await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
+        await expect(page.getByText("워크스페이스 정보를 불러오는 중입니다.")).toBeVisible();
+        await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+        await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+        await expect(page.getByText("Previous Refund Workflow")).toHaveCount(0);
+        await expect(page.getByText("이전 상담사")).toHaveCount(0);
+        await expect(page.getByTestId("workspace-marker")).not.toContainText(
+          "Previous Account Workspace",
+        );
+        expect(seen).toContain("current GET /workspaces");
+        expect(seen).toContain("current GET /workspaces/1");
+
+        delayedWorkspaceList.resolve();
+        delayedWorkspaceDetail.resolve();
+
+        await expect(page.getByTestId("workspace-marker")).toContainText(
+          "Current Account Workspace",
+        );
+        await expect(page.getByTestId("workspace-workflows")).toBeVisible();
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText(
+          "Generated API Pack",
+        );
+        await expect(page.getByTestId("workspace-workflows-card-401")).toContainText("환불 처리");
+        await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+        await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+        await expect(page.getByText("Previous Refund Workflow")).toHaveCount(0);
+        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual([]);
       });
 
       test("Then a workspace without domain packs exposes log upload and keeps context after refresh", async ({
@@ -268,9 +429,7 @@ test.describe("Login screen", () => {
         };
 
         await page.addInitScript(() => {
-          if (
-            window.sessionStorage.getItem("e2e-legacy-auth-seeded") === "true"
-          ) {
+          if (window.sessionStorage.getItem("e2e-legacy-auth-seeded") === "true") {
             return;
           }
           window.sessionStorage.setItem("e2e-legacy-auth-seeded", "true");
@@ -376,46 +535,28 @@ test.describe("Login screen", () => {
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/42\/workflows$/);
-        await expect(page.getByTestId("workspace-marker")).toContainText(
-          "신규 상담팀",
-        );
-        await expect(
-          page.getByTestId("workspace-workflows-empty"),
-        ).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("신규 상담팀");
+        await expect(page.getByTestId("workspace-workflows-empty")).toBeVisible();
         await expect(page.getByText("이전 계정", { exact: true })).toBeHidden();
-        await expect(
-          page.getByText("이전 계정 워크스페이스", { exact: true }),
-        ).toBeHidden();
+        await expect(page.getByText("이전 계정 워크스페이스", { exact: true })).toBeHidden();
         await expect(page.getByText("Legacy Domain Pack")).toBeHidden();
 
         await page.getByRole("button", { name: "상담 로그 업로드" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/42\/upload$/);
-        await expect(page.getByTestId("workspace-marker")).toContainText(
-          "신규 상담팀",
-        );
-        await expect(
-          page.getByRole("heading", { name: "상담 로그 업로드" }),
-        ).toBeVisible();
-        await expect(
-          page.getByText("파일을 클릭하거나 끌어다 놓으세요"),
-        ).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("신규 상담팀");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+        await expect(page.getByText("파일을 클릭하거나 끌어다 놓으세요")).toBeVisible();
 
         await page.reload();
 
         await expect(page).toHaveURL(/\/workspaces\/42\/upload$/);
-        await expect(page.getByTestId("workspace-marker")).toContainText(
-          "신규 상담팀",
-        );
-        await expect(
-          page.getByRole("heading", { name: "상담 로그 업로드" }),
-        ).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("신규 상담팀");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
         await expect
           .poll(() =>
             page.evaluate(() => {
-              const user = JSON.parse(
-                window.localStorage.getItem("user") ?? "{}",
-              ) as {
+              const user = JSON.parse(window.localStorage.getItem("user") ?? "{}") as {
                 name?: string;
               };
               return {
@@ -433,9 +574,7 @@ test.describe("Login screen", () => {
         expect(seen).toContain("POST /auth/login");
         expect(seen).toContain("GET /workspaces/42/domain-packs");
         expect(seen).not.toContain("GET /workspaces/99/domain-packs");
-        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual(
-          [],
-        );
+        expect(seen.filter((entry) => entry.startsWith("UNMOCKED "))).toEqual([]);
       });
 
       test("Then a workspace-less account sees the workspace creation screen instead of a stale workspace", async ({
