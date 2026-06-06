@@ -16,10 +16,13 @@ function encodeBase64Url(value: unknown): string {
     .replace(/=+$/g, "");
 }
 
-export function makeJwt(role: E2eUserRole = "OPERATOR"): string {
+export function makeJwt(
+  role: E2eUserRole = "OPERATOR",
+  expiresAt = Math.floor(Date.now() / 1000) + 60 * 60,
+): string {
   const header = encodeBase64Url({ alg: "none", typ: "JWT" });
   const payload = encodeBase64Url({
-    exp: Math.floor(Date.now() / 1000) + 60 * 60,
+    exp: expiresAt,
     role,
   });
   return `${header}.${payload}.e2e`;
@@ -35,9 +38,12 @@ export async function installAuth(page: Page, options: InstallAuthOptions = {}) 
     role,
   };
 
-  await page.addInitScript(({ accessToken, user }) => {
-    window.localStorage.setItem("accessToken", accessToken);
-    window.localStorage.setItem("refreshToken", "e2e-refresh-token");
-    window.localStorage.setItem("user", JSON.stringify(user));
-  }, { accessToken: token, user });
+  await page.addInitScript(
+    ({ accessToken, user }) => {
+      window.localStorage.setItem("accessToken", accessToken);
+      window.localStorage.setItem("refreshToken", "e2e-refresh-token");
+      window.localStorage.setItem("user", JSON.stringify(user));
+    },
+    { accessToken: token, user },
+  );
 }

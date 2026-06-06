@@ -203,16 +203,40 @@ test.describe("Application navigation boundaries", () => {
       expect(seen).toEqual(["POST /auth/refresh"]);
     });
 
-    test("When a stale refresh token is rejected, Then stored auth state is cleared", async ({
+    test("When a stale refresh token is rejected, Then stored auth state is cleared @critical", async ({
       page,
     }) => {
       const seen: string[] = [];
-      await page.addInitScript(() => {
+      const expiredAccessToken = makeJwt("OPERATOR", Math.floor(Date.now() / 1000) - 60);
+      await page.addInitScript((expiredAccessToken) => {
+        window.localStorage.setItem("accessToken", expiredAccessToken);
         window.localStorage.setItem("refreshToken", "expired-refresh-token");
-        window.localStorage.setItem("user", JSON.stringify({ name: "만료 사용자" }));
-      });
-      await page.route("**/api/v1/auth/refresh", async (route) => {
-        seen.push("POST /auth/refresh");
+        window.localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: 71,
+            email: "expired@example.com",
+            name: "만료 사용자",
+            role: "OPERATOR",
+          }),
+        );
+      }, expiredAccessToken);
+      await page.route("**/api/v1/**", async (route) => {
+        const request = route.request();
+        const url = new URL(request.url());
+        const path = url.pathname.replace(/^\/api\/v1/, "");
+        const method = request.method();
+        seen.push(`${method} ${path}`);
+
+        if (method !== "POST" || path !== "/auth/refresh") {
+          await route.fulfill({
+            status: 500,
+            contentType: "application/json",
+            body: JSON.stringify({ code: "E2E_UNEXPECTED_API", message: `${method} ${path}` }),
+          });
+          return;
+        }
+
         await route.fulfill({
           status: 401,
           contentType: "application/json",
@@ -223,6 +247,10 @@ test.describe("Application navigation boundaries", () => {
       await page.goto("/workspaces/1/dashboard");
 
       await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByLabel("이메일 주소")).toBeVisible();
+      await expect(page.getByRole("button", { name: "시스템 로그인" })).toBeVisible();
+      await expect(page.getByText("만료 사용자")).toHaveCount(0);
+      await expect(page.getByTestId("workspace-marker")).toHaveCount(0);
       await expect
         .poll(() =>
           page.evaluate(() => ({
@@ -261,9 +289,7 @@ test.describe("Application navigation boundaries", () => {
       await page.getByRole("button", { name: "시스템 로그인" }).click();
 
       await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
-      await expect(page.getByTestId("workspace-marker")).toContainText(
-        "Current Account Workspace",
-      );
+      await expect(page.getByTestId("workspace-marker")).toContainText("Current Account Workspace");
 
       await page.goBack();
       await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
@@ -275,9 +301,7 @@ test.describe("Application navigation boundaries", () => {
 
       await page.goForward();
       await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
-      await expect(page.getByTestId("workspace-marker")).toContainText(
-        "Current Account Workspace",
-      );
+      await expect(page.getByTestId("workspace-marker")).toContainText("Current Account Workspace");
 
       await page.goBack();
       await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
