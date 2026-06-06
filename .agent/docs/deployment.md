@@ -81,7 +81,7 @@ GitHub repository 또는 `prod` environment에 다음 secrets를 설정한다.
 | `PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP` | `false`; `TF_VAR_airflow_api_allow_insecure_http`로 전달 |
 | `PROD_API_BASE_URL` | `https://api.<domain>/api/v1` |
 | `PROD_WS_URL` | `wss://api.<domain>` |
-| `PROD_BACKEND_DESIRED_COUNT` | `0` (최초 apply 기본값; 앱 이미지 배포 후 `1` 이상 권장) |
+| `PROD_BACKEND_DESIRED_COUNT` | `0` — 첫 Terraform apply 시점에는 backend 이미지가 아직 ECR에 없으므로 `0`으로 둔다. **첫 이미지 배포 후 반드시 `1` 이상으로 변경**한다(그대로 `0`이면 backend ECS 서비스가 기동되지 않는다). |
 | `PROD_BACKEND_AUTOSCALING_MIN_CAPACITY` | `1` |
 | `PROD_BACKEND_AUTOSCALING_MAX_CAPACITY` | `3` |
 | `PROD_GPU_INSTANCE_TYPE` | `g6.2xlarge` |

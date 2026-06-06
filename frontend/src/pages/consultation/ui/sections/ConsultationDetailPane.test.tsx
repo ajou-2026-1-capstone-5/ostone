@@ -64,4 +64,25 @@ describe("ConsultationDetailPane", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it("does not steal focus from another field when the parent re-renders with a new onClose", () => {
+    const ui = (onClose: () => void) => (
+      <>
+        <input data-testid="outside-input" />
+        <ConsultationDetailPane {...contentProps} isNarrow isOpen onClose={onClose} />
+      </>
+    );
+    const { rerender } = render(ui(vi.fn()));
+    expect(screen.getByRole("button", { name: "컨텍스트 닫기" })).toHaveFocus();
+
+    // 상담사가 작성칸(외부 입력)으로 focus를 옮긴 뒤 부모가 새 onClose 참조로 리렌더.
+    const input = screen.getByTestId("outside-input");
+    input.focus();
+    expect(input).toHaveFocus();
+
+    rerender(ui(vi.fn()));
+
+    // effect가 재실행되지 않아 focus를 닫기 버튼으로 빼앗지 않는다.
+    expect(input).toHaveFocus();
+  });
 });

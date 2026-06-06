@@ -88,4 +88,15 @@ describe("VersionSafetyBanner", () => {
     expect(screen.getByRole("status")).toHaveTextContent("최신 검토본만");
     expect(screen.getByText("검토본")).toBeInTheDocument();
   });
+
+  it("surfaces the in-progress reason when a deploy is running", () => {
+    mockUsePackDetail.mockReturnValue({ data: PACK, isLoading: false });
+    mockUseVersionDetail.mockReturnValue({
+      data: versionDetail({ versionId: 3, versionNo: 3, lifecycleStatus: "PUBLISHED" }),
+      isLoading: false,
+    });
+    render(<VersionSafetyBanner wsId={1} packId={2} versionId={3} deployingVersionId={3} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("배포를 진행");
+  });
 });

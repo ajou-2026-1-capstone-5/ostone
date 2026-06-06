@@ -271,7 +271,15 @@ function DomainPackSummaryPageContent({
           </div>
         </header>
 
-        <VersionSafetyBanner wsId={wsId} packId={packId} versionId={effectiveSelectedVersionId} />
+        <VersionSafetyBanner
+          wsId={wsId}
+          packId={packId}
+          versionId={effectiveSelectedVersionId}
+          deployingVersionId={deployMutation.isPending ? deployMutation.variables?.versionId : null}
+          applyingVersionId={
+            activateMutation.isPending ? activateMutation.variables?.versionId : null
+          }
+        />
 
         <div className={styles.twoPane}>
           <VersionListPanel

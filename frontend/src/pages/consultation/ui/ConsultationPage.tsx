@@ -92,7 +92,9 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [composerDrafts, setComposerDrafts] = useState<Record<string, ChatComposerDraft>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const isNarrowLayout = useIsBelow(1180);
+  // ≤1180px (useIsBelow(1181) = max-width:1180px). consultation-page.module.css의
+  // .contextTrigger 미디어쿼리(max-width:1180px)와 동일 경계로 맞춘다.
+  const isNarrowLayout = useIsBelow(1181);
   const [isContextOpen, setIsContextOpen] = useState(false);
   const [messageDomainPackElements, setMessageDomainPackElements] =
     useState<MessageDomainPackElements>();

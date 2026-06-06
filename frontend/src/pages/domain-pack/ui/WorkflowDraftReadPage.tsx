@@ -568,7 +568,7 @@ export function WorkflowDraftReadPage() {
   return (
     <OstoneShell active="workflows" crumbs={crumbs}>
       <div className={styles.detailPage}>
-        <VersionSafetyBanner wsId={wsId ?? 0} packId={pId ?? 0} versionId={vId} />
+        <VersionSafetyBanner wsId={wsId!} packId={pId!} versionId={vId} />
         <div className={styles.detailHeader}>
           <div className={styles.titleGroup}>
             <div className={styles.titleStack}>

@@ -12,6 +12,10 @@ interface VersionSafetyBannerProps {
   wsId: number;
   packId: number;
   versionId: number | null;
+  /** 배포/적용 진행 중인 버전 id. summary 화면에서 mutation 상태를 전달하면 배너가
+   *  "배포를 진행…"/"적용하고 있습니다" 사유를 보여준다. 하위 화면은 생략(null). */
+  deployingVersionId?: number | null;
+  applyingVersionId?: number | null;
 }
 
 const TONE_TO_PILL: Record<VersionSafetyTone, PillTone> = {
@@ -34,7 +38,13 @@ const COUNT_ITEMS: ReadonlyArray<{ key: keyof VersionSafetyCounts; label: string
  * 고정 노출한다 (#634). pack/version 쿼리를 자체 구독하므로 페이지는 versionId만
  * 넘기면 된다 (동일 query key라 React Query가 dedupe).
  */
-export function VersionSafetyBanner({ wsId, packId, versionId }: VersionSafetyBannerProps) {
+export function VersionSafetyBanner({
+  wsId,
+  packId,
+  versionId,
+  deployingVersionId = null,
+  applyingVersionId = null,
+}: VersionSafetyBannerProps) {
   const packQuery = usePackDetail(wsId, packId);
   const versionQuery = useVersionDetail(wsId, packId, versionId);
 
@@ -65,6 +75,8 @@ export function VersionSafetyBanner({ wsId, packId, versionId }: VersionSafetyBa
     versions: pack.versions ?? [],
     currentVersionId,
     currentVersionNo,
+    deployingVersionId,
+    applyingVersionId,
   });
 
   return (
