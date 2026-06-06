@@ -37,6 +37,16 @@ public interface JpaPipelineJobRepository
           Long workspaceId, Long datasetId, String jobType, List<String> statuses);
 
   @Override
+  default Optional<PipelineJob> findLatestByWorkspaceIdAndDatasetIdAndJobType(
+      Long workspaceId, Long datasetId, String jobType) {
+    return findFirstByWorkspaceIdAndDatasetIdAndJobTypeOrderByRequestedAtDesc(
+        workspaceId, datasetId, jobType);
+  }
+
+  Optional<PipelineJob> findFirstByWorkspaceIdAndDatasetIdAndJobTypeOrderByRequestedAtDesc(
+      Long workspaceId, Long datasetId, String jobType);
+
+  @Override
   @Query(
       """
       select j

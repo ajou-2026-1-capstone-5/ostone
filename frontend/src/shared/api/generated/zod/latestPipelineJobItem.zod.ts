@@ -6,7 +6,7 @@
  */
 import { z as zod } from 'zod';
 
-export const Item = zod.object({
+export const LatestPipelineJobItem = zod.object({
   "pipelineJobId": zod.number().optional(),
   "workspaceId": zod.number().optional(),
   "datasetId": zod.number().optional(),
@@ -22,5 +22,5 @@ export const Item = zod.object({
   "lastErrorMessage": zod.string().optional()
 })
 
-export type Item = zod.input<typeof Item>;
-export type ItemOutput = zod.output<typeof Item>;
+export type LatestPipelineJobItem = zod.input<typeof LatestPipelineJobItem>;
+export type LatestPipelineJobItemOutput = zod.output<typeof LatestPipelineJobItem>;

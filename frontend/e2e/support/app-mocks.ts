@@ -1066,6 +1066,27 @@ async function fulfillUploadAndReview(route: Route, method: string, path: string
     return true;
   }
 
+  if (method === "GET" && path === "/workspaces/1/datasets/77/pipeline-jobs/latest") {
+    await fulfillJson(route, {
+      pipelineJob: {
+        pipelineJobId: PIPELINE_JOB_ID,
+        workspaceId: WORKSPACE_ID,
+        datasetId: DATASET_ID,
+        domainPackId: null,
+        jobType: "INGESTION",
+        status: "WAITING_DOMAIN_CONFIRMATION",
+        airflowDagId: "domain_pack_generation",
+        airflowRunId: "pipeline_job_900",
+        requestedAt: "2026-06-05T01:00:00Z",
+        startedAt: "2026-06-05T01:00:10Z",
+        finishedAt: null,
+        runningDurationSeconds: 90,
+        lastErrorMessage: null,
+      },
+    });
+    return true;
+  }
+
   if (method === "POST" && path === "/workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation") {
     await fulfillJson(route, {
       data: { pipelineJobId: PIPELINE_JOB_ID, status: "WAITING_DOMAIN_CONFIRMATION" },

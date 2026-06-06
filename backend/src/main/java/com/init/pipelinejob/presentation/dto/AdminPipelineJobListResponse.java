@@ -1,6 +1,7 @@
 package com.init.pipelinejob.presentation.dto;
 
 import com.init.pipelinejob.application.AdminPipelineJobListResult;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -16,6 +17,7 @@ public record AdminPipelineJobListResponse(
         result.totalPages());
   }
 
+  @Schema(name = "AdminPipelineJobListItem")
   public record Item(
       Long pipelineJobId,
       Long workspaceId,

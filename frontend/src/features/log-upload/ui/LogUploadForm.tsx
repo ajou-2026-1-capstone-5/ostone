@@ -4,7 +4,11 @@ import { useNavigate } from "react-router-dom";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
-import { CTA_GO_DOMAIN_PACK, CTA_GO_REVIEW, CTA_UPLOAD_AGAIN } from "../../../shared/lib/ctaLabels";
+import {
+  CTA_GO_DOMAIN_PACK,
+  CTA_GO_REVIEW,
+  CTA_UPLOAD_AGAIN,
+} from "../../../shared/lib/ctaLabels";
 import { useTriggerDomainPackGeneration } from "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
@@ -14,8 +18,10 @@ import {
   validateRawLogUploadFile,
 } from "../../../shared/lib/rawLogUploadPolicy";
 import { useRawFileUpload } from "../model/useRawFileUpload";
+import { useLatestDatasetPipelineJob } from "../model/useLatestDatasetPipelineJob";
 
 import styles from "./log-upload-form.module.css";
+import { PipelineJobStatusPanel } from "./PipelineJobStatusPanel";
 
 type UploadStatus = "idle" | "uploading" | "success";
 
@@ -48,7 +54,10 @@ interface LogUploadFormProps {
   isEntitlementLoading?: boolean;
 }
 
-const FREE_ONBOARDING_STATUS_META: Record<FreeOnboardingStatus, { label: string; copy: string }> = {
+const FREE_ONBOARDING_STATUS_META: Record<
+  FreeOnboardingStatus,
+  { label: string; copy: string }
+> = {
   AVAILABLE: {
     label: "무료 온보딩 가능",
     copy: "첫 상담 로그 업로드와 도메인팩 초안 생성까지 무료로 진행할 수 있습니다.",
@@ -70,7 +79,9 @@ const readGenerationResponse = (
   response: unknown,
 ): Omit<GenerationStatus & { kind: "success" }, "kind"> => {
   const r =
-    typeof response === "object" && response !== null ? (response as GenerationResponseLike) : null;
+    typeof response === "object" && response !== null
+      ? (response as GenerationResponseLike)
+      : null;
 
   return {
     pipelineJobId: r?.data?.pipelineJobId ?? r?.pipelineJobId ?? null,
@@ -87,22 +98,36 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
-  const [uploadedDataset, setUploadedDataset] = useState<UploadedDataset | null>(null);
-  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({ kind: "idle" });
+  const [uploadedDataset, setUploadedDataset] =
+    useState<UploadedDataset | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({
+    kind: "idle",
+  });
   const generationRequestInFlightRef = useRef(false);
 
   const rawFileUpload = useRawFileUpload();
+  const ingestionJobQuery = useLatestDatasetPipelineJob(
+    workspaceId,
+    uploadedDataset?.datasetId,
+    "INGESTION",
+  );
 
   const generationMutation = useTriggerDomainPackGeneration({
     mutation: {
       onSuccess: (response) => {
         generationRequestInFlightRef.current = false;
-        setGenerationStatus({ kind: "success", ...readGenerationResponse(response) });
+        setGenerationStatus({
+          kind: "success",
+          ...readGenerationResponse(response),
+        });
         toast.success("도메인팩 초안 생성 요청 완료");
       },
       onError: (error) => {
         generationRequestInFlightRef.current = false;
-        const message = getErrorMessage(error, "도메인팩 초안 생성 요청에 실패했습니다.");
+        const message = getErrorMessage(
+          error,
+          "도메인팩 초안 생성 요청에 실패했습니다.",
+        );
         setGenerationStatus({ kind: "error", message });
         toast.error(message, {
           action: {
@@ -117,7 +142,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   const freeOnboardingMeta = FREE_ONBOARDING_STATUS_META[freeOnboardingStatus];
   const isConsumedWithoutSubscription =
     freeOnboardingStatus === "CONSUMED" && !hasActiveSubscription;
-  const isUploadBlocked = isConsumedWithoutSubscription && !isEntitlementLoading;
+  const isUploadBlocked =
+    isConsumedWithoutSubscription && !isEntitlementLoading;
   const isUploaderDisabled =
     isUploadBlocked || (isEntitlementLoading && isConsumedWithoutSubscription);
   const blockedMessage =
@@ -209,16 +235,31 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     generationRequestInFlightRef.current = false;
   };
 
-  const domainPacksPath = workspaceId ? `/workspaces/${workspaceId}/domain-packs` : "/workspaces";
+  const domainPacksPath = workspaceId
+    ? `/workspaces/${workspaceId}/domain-packs`
+    : "/workspaces";
   const pipelineReviewPath =
     workspaceId != null &&
     generationStatus.kind === "success" &&
     generationStatus.pipelineJobId != null
       ? `/workspaces/${workspaceId}/pipeline-jobs/${generationStatus.pipelineJobId}/review`
       : null;
+  const ingestionJob = ingestionJobQuery.data?.pipelineJob ?? null;
+  const ingestionReviewPath =
+    workspaceId != null && ingestionJob != null
+      ? `/workspaces/${workspaceId}/pipeline-jobs/${ingestionJob.pipelineJobId}/review`
+      : null;
   const canStartGeneration = Boolean(uploadedDataset?.datasetId);
   const isGenerationPending =
     generationStatus.kind === "triggering" || generationMutation.isPending;
+  const shouldShowManualGenerationFallback =
+    generationStatus.kind === "idle" &&
+    !ingestionJob &&
+    !ingestionJobQuery.isLoading &&
+    !ingestionJobQuery.isError;
+  const handleIngestionRefresh = () => {
+    ingestionJobQuery.refetch();
+  };
 
   return (
     <div className={styles.container}>
@@ -227,7 +268,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         <p>상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다.</p>
       </div>
 
-      <div className={styles.onboardingStatus} data-status={freeOnboardingStatus.toLowerCase()}>
+      <div
+        className={styles.onboardingStatus}
+        data-status={freeOnboardingStatus.toLowerCase()}
+      >
         <span className={styles.statusLabel}>
           {isEntitlementLoading ? "권한 확인 중" : freeOnboardingMeta.label}
         </span>
@@ -257,7 +301,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         <div className={styles.filePreview}>
           <div className={styles.fileInfo}>
             <span className={styles.fileName}>{file.name}</span>
-            <span className={styles.fileSize}>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+            <span className={styles.fileSize}>
+              {(file.size / 1024 / 1024).toFixed(2)} MB
+            </span>
           </div>
           <Button onClick={() => handleUpload(file)} disabled={isUploadBlocked}>
             처리 시작
@@ -277,10 +323,24 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
             </span>
           </div>
 
-          {generationStatus.kind === "idle" && (
+          <PipelineJobStatusPanel
+            queryState={{
+              isLoading: ingestionJobQuery.isLoading,
+              isError: ingestionJobQuery.isError,
+              isFetching: ingestionJobQuery.isFetching,
+            }}
+            job={ingestionJob}
+            reviewPath={ingestionReviewPath}
+            onRefresh={handleIngestionRefresh}
+            onReset={handleReset}
+            onNavigate={navigate}
+          />
+
+          {shouldShowManualGenerationFallback && (
             <div className={styles.generationPanel}>
               <p>
-                업로드한 데이터셋을 기반으로 intent, slot, policy, risk, workflow 초안을 생성할 수
+                자동 파이프라인이 생성되지 않았거나 별도 재실행이 필요한 경우,
+                업로드한 데이터셋으로 도메인팩 초안 생성을 직접 요청할 수
                 있습니다.
               </p>
               <div className={styles.successActions}>
@@ -300,7 +360,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
           {isGenerationPending && (
             <div className={styles.generationPanel}>
               <span className={styles.statusLabel}>생성 요청 중</span>
-              <p>파이프라인 생성 요청을 보내고 있습니다. 잠시만 기다려 주세요.</p>
+              <p>
+                파이프라인 생성 요청을 보내고 있습니다. 잠시만 기다려 주세요.
+              </p>
               <Button
                 variant="secondary"
                 onClick={handleReset}
@@ -334,12 +396,16 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
               <span className={styles.statusLabel}>생성 요청 완료</span>
               <p>
                 도메인팩 초안 생성 파이프라인이 등록되었습니다.
-                {generationStatus.pipelineJobId ? ` job ${generationStatus.pipelineJobId}` : ""}
+                {generationStatus.pipelineJobId
+                  ? ` job ${generationStatus.pipelineJobId}`
+                  : ""}
                 {generationStatus.status ? ` · ${generationStatus.status}` : ""}
               </p>
               <div className={styles.successActions}>
                 {pipelineReviewPath && (
-                  <Button onClick={() => navigate(pipelineReviewPath)}>{CTA_GO_REVIEW}</Button>
+                  <Button onClick={() => navigate(pipelineReviewPath)}>
+                    {CTA_GO_REVIEW}
+                  </Button>
                 )}
                 <Button
                   variant={pipelineReviewPath ? "secondary" : "primary"}
