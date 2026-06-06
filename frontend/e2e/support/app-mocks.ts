@@ -35,22 +35,21 @@ interface DomainPackMockState {
   draftDescription: string;
 }
 
+type FreeOnboardingStatus = "AVAILABLE" | "IN_PROGRESS" | "CONSUMED";
+type WorkspaceOneSubscriptionStatus =
+  | "ACTIVE"
+  | "PAST_DUE"
+  | "INCOMPLETE"
+  | "CANCELED";
+
 export interface AppApiMockOptions {
   readonly domainPackDraftApproval?: "blocked" | "ready";
   readonly uploadLatestPipelineJob?: "default" | "none";
   readonly domainPackGenerationFailureAttempts?: number;
   readonly dashboardKnowledgePackHealth?: "default" | "error";
   readonly generatedPipelineJob?: "domain-confirmation" | "running";
-  readonly workspaceOneFreeOnboardingStatus?:
-    | "AVAILABLE"
-    | "IN_PROGRESS"
-    | "CONSUMED";
-  readonly workspaceOneSubscriptionStatus?:
-    | "ACTIVE"
-    | "PAST_DUE"
-    | "INCOMPLETE"
-    | "CANCELED"
-    | null;
+  readonly workspaceOneFreeOnboardingStatus?: FreeOnboardingStatus;
+  readonly workspaceOneSubscriptionStatus?: WorkspaceOneSubscriptionStatus | null;
   readonly paidUploadCooldown?: boolean;
 }
 
@@ -488,18 +487,38 @@ function createBillingMockState(options: AppApiMockOptions = {}) {
         limit: 1,
         warning: false,
       };
+  const workspaceOneSubscription =
+    options.workspaceOneSubscriptionStatus === null
+      ? null
+      : {
+          ...subscription,
+          status: options.workspaceOneSubscriptionStatus ?? subscription.status,
+          quotaUsages: [domainPackOperationQuota],
+        };
+  const workspaceOneBillingKey =
+    workspaceOneSubscription === null ? null : { ...billingOverview.billingKey };
+  const workspaceOnePayments =
+    workspaceOneSubscription === null ? [] : [{ ...payment }];
+  const workspaceOneQuotaUsages =
+    workspaceOneSubscription === null
+      ? [
+          { resource: "DATASET_UPLOAD", used: 1, limit: 1, warning: true },
+          { resource: "PIPELINE_RUN", used: 0, limit: 0, warning: true },
+        ]
+      : [
+          ...billingOverview.quotaUsages.filter(
+            (quota) => quota.resource !== "DOMAIN_PACK_OPERATION",
+          ),
+          domainPackOperationQuota,
+        ].map((quota) => ({ ...quota }));
+
   return {
     workspaceOneOverview: {
       ...billingOverview,
-      subscription: { ...subscription, quotaUsages: [domainPackOperationQuota] },
-      billingKey: { ...billingOverview.billingKey },
-      payments: [{ ...payment }],
-      quotaUsages: [
-        ...billingOverview.quotaUsages.filter(
-          (quota) => quota.resource !== "DOMAIN_PACK_OPERATION",
-        ),
-        domainPackOperationQuota,
-      ].map((quota) => ({ ...quota })),
+      subscription: workspaceOneSubscription,
+      billingKey: workspaceOneBillingKey,
+      payments: workspaceOnePayments,
+      quotaUsages: workspaceOneQuotaUsages,
     },
     workspaceTwoOverview: {
       ...secondaryBillingOverview,
@@ -1234,8 +1253,21 @@ async function fulfillBilling(
   }
 
   if (method === "DELETE" && path === "/workspaces/1/subscription") {
+    const currentSubscription = state.workspaceOneOverview.subscription;
+    if (currentSubscription === null) {
+      await fulfillJson(
+        route,
+        {
+          code: "SubscriptionNotFound",
+          message: "구독 정보를 찾을 수 없습니다.",
+        },
+        404,
+      );
+      return true;
+    }
+
     const canceledSubscription = {
-      ...state.workspaceOneOverview.subscription,
+      ...currentSubscription,
       status: "CANCELED",
       cancelAtPeriodEnd: true,
     };
@@ -1940,15 +1972,6 @@ export async function installAppApiMocks(
   };
   const simulationState = createSimulationState();
   const billingState = createBillingMockState(options);
-  if (options.workspaceOneSubscriptionStatus) {
-    billingState.workspaceOneOverview = {
-      ...billingState.workspaceOneOverview,
-      subscription: {
-        ...billingState.workspaceOneOverview.subscription,
-        status: options.workspaceOneSubscriptionStatus,
-      },
-    };
-  }
 
   await page.route("**/e2e-upload/**", async (route) => {
     seen.push(`${route.request().method()} /e2e-upload/raw-log.zip`);
