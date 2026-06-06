@@ -41,6 +41,16 @@ export interface AppApiMockOptions {
   readonly domainPackGenerationFailureAttempts?: number;
   readonly dashboardKnowledgePackHealth?: "default" | "error";
   readonly generatedPipelineJob?: "domain-confirmation" | "running";
+  readonly workspaceOneFreeOnboardingStatus?:
+    | "AVAILABLE"
+    | "IN_PROGRESS"
+    | "CONSUMED";
+  readonly workspaceOneSubscriptionStatus?:
+    | "ACTIVE"
+    | "PAST_DUE"
+    | "INCOMPLETE"
+    | "CANCELED"
+    | null;
 }
 
 interface PipelineReviewMockState {
@@ -847,14 +857,23 @@ function filterConsultationSessions(url: URL) {
   });
 }
 
-async function fulfillWorkspaceShell(route: Route, method: string, path: string): Promise<boolean> {
+async function fulfillWorkspaceShell(
+  route: Route,
+  method: string,
+  path: string,
+  options: AppApiMockOptions,
+): Promise<boolean> {
+  const workspaceOne = options.workspaceOneFreeOnboardingStatus
+    ? { ...workspace, freeOnboardingStatus: options.workspaceOneFreeOnboardingStatus }
+    : workspace;
+
   if (method === "GET" && path === "/workspaces") {
-    await fulfillJson(route, [workspace, secondaryWorkspace]);
+    await fulfillJson(route, [workspaceOne, secondaryWorkspace]);
     return true;
   }
 
   if (method === "GET" && path === "/workspaces/1") {
-    await fulfillJson(route, workspace);
+    await fulfillJson(route, workspaceOne);
     return true;
   }
 
@@ -1121,6 +1140,7 @@ async function fulfillBilling(
   method: string,
   path: string,
   state: BillingMockState,
+  options: AppApiMockOptions,
 ): Promise<boolean> {
   if (method === "GET" && path === "/plans") {
     await fulfillJson(route, {
@@ -1144,6 +1164,18 @@ async function fulfillBilling(
   }
 
   if (method === "GET" && path === "/workspaces/1/subscription") {
+    if (options.workspaceOneSubscriptionStatus === null) {
+      await fulfillJson(
+        route,
+        {
+          code: "SubscriptionNotFound",
+          message: "구독 정보를 찾을 수 없습니다.",
+        },
+        404,
+      );
+      return true;
+    }
+
     await fulfillJson(route, { data: state.workspaceOneOverview.subscription, status: 200 });
     return true;
   }
@@ -1872,6 +1904,15 @@ export async function installAppApiMocks(
   };
   const simulationState = createSimulationState();
   const billingState = createBillingMockState();
+  if (options.workspaceOneSubscriptionStatus) {
+    billingState.workspaceOneOverview = {
+      ...billingState.workspaceOneOverview,
+      subscription: {
+        ...billingState.workspaceOneOverview.subscription,
+        status: options.workspaceOneSubscriptionStatus,
+      },
+    };
+  }
 
   await page.route("**/e2e-upload/**", async (route) => {
     seen.push(`${route.request().method()} /e2e-upload/raw-log.zip`);
@@ -1879,9 +1920,9 @@ export async function installAppApiMocks(
   });
 
   await installTrackedApiRoute(page, seen, async (route, method, path, url) => {
-    if (await fulfillWorkspaceShell(route, method, path)) return true;
+    if (await fulfillWorkspaceShell(route, method, path, options)) return true;
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
-    if (await fulfillBilling(route, method, path, billingState)) return true;
+    if (await fulfillBilling(route, method, path, billingState, options)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url, options)) return true;
     if (await fulfillUploadAndReview(route, method, path, options, pipelineReviewState))
       return true;
