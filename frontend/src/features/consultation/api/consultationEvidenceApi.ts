@@ -1,6 +1,6 @@
 import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
-import { customFetch } from "@/shared/api/mutator";
 import { requireApiData } from "@/shared/api";
+import { getMessageDomainPackElements as getGeneratedMessageDomainPackElements } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 
 export interface MessageEvidenceRouteContext {
   workspaceId: number;
@@ -27,10 +27,6 @@ export interface MessageDomainPackElements {
     level: "low" | "medium" | "high";
     detailPath?: string;
   }>;
-}
-
-interface RawMessageDomainPackElementsResponse {
-  data?: RawMessageDomainPackElements;
 }
 
 interface RawMessageDomainPackElements {
@@ -127,15 +123,7 @@ export const consultationEvidenceApi = {
     messageId: number,
     routeContext: MessageEvidenceRouteContext | null = null,
   ): Promise<MessageDomainPackElements> => {
-    // OpenAPI generated endpoints do not include this operator-only evidence endpoint yet.
-    const response = await customFetch<
-      RawMessageDomainPackElements | RawMessageDomainPackElementsResponse
-    >(
-      `/api/v1/consultation/sessions/${sessionId}/messages/${messageId}/domain-pack-elements`,
-      {
-        method: "GET",
-      },
-    );
+    const response = await getGeneratedMessageDomainPackElements(sessionId, messageId);
     return normalizeMessageDomainPackElements(
       requireApiData<RawMessageDomainPackElements>(
         response,

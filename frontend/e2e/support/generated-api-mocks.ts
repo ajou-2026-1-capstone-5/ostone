@@ -208,7 +208,16 @@ export async function installDomainPackApiMocks(page: Page, seen: string[]) {
   });
 }
 
-export async function installConsultationApiMocks(page: Page, seen: string[]) {
+interface ConsultationApiMockOptions {
+  messageEvidenceDelayMs?: () => number;
+  shouldFailMessageEvidence?: () => boolean;
+}
+
+export async function installConsultationApiMocks(
+  page: Page,
+  seen: string[],
+  options: ConsultationApiMockOptions = {},
+) {
   await trackRequest(page, seen, async (route, method, path) => {
     if (await fulfillWorkspaceShell(route, method, path)) {
       return true;
@@ -220,6 +229,36 @@ export async function installConsultationApiMocks(page: Page, seen: string[]) {
 
     if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/workflows") {
       await fulfillJson(route, { data: [workflow] });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/slots") {
+      await fulfillJson(route, { data: [slot] });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/slots/301") {
+      await fulfillJson(route, { data: slot });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/policies") {
+      await fulfillJson(route, { data: [policy] });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/policies/101") {
+      await fulfillJson(route, { data: policy });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/risks") {
+      await fulfillJson(route, { data: [risk] });
+      return true;
+    }
+
+    if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/risks/201") {
+      await fulfillJson(route, { data: risk });
       return true;
     }
 
@@ -322,6 +361,61 @@ export async function installConsultationApiMocks(page: Page, seen: string[]) {
         terminalStates: ["DONE"],
         intentCode: "INT_REFUND",
         intentName: "환불 문의",
+      });
+      return true;
+    }
+
+    if (
+      method === "GET" &&
+      path === "/consultation/sessions/601/messages/701/domain-pack-elements"
+    ) {
+      const delayMs = options.messageEvidenceDelayMs?.() ?? 0;
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      if (options.shouldFailMessageEvidence?.()) {
+        await fulfillJson(
+          route,
+          {
+            code: "E2E_MESSAGE_EVIDENCE_FAILED",
+            message: "메시지 근거 조회 실패",
+          },
+          500,
+        );
+        return true;
+      }
+
+      await fulfillJson(route, {
+        data: {
+          slots: [
+            {
+              id: slot.id,
+              code: slot.slotCode,
+              name: slot.name,
+              extracted: true,
+              value: "ORD-20260604",
+            },
+          ],
+          policies: [
+            {
+              id: policy.id,
+              code: policy.policyCode,
+              name: policy.name,
+              extracted: true,
+              matched: true,
+            },
+          ],
+          risks: [
+            {
+              id: risk.id,
+              code: risk.riskCode,
+              name: risk.name,
+              extracted: true,
+              level: risk.riskLevel,
+            },
+          ],
+        },
       });
       return true;
     }
