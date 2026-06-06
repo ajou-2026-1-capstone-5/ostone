@@ -1,20 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { customFetch } from "@/shared/api/mutator";
+import { getMessageDomainPackElements as getGeneratedMessageDomainPackElements } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { consultationEvidenceApi } from "./consultationEvidenceApi";
 
-vi.mock("@/shared/api/mutator", () => ({
-  customFetch: vi.fn(),
+vi.mock("@/shared/api/generated/endpoints/consultation-controller/consultation-controller", () => ({
+  getMessageDomainPackElements: vi.fn(),
 }));
 
-const mockedFetch = vi.mocked(customFetch);
+const mockedGetMessageDomainPackElements = vi.mocked(getGeneratedMessageDomainPackElements);
 
 describe("consultationEvidenceApi", () => {
   beforeEach(() => {
-    mockedFetch.mockReset();
+    mockedGetMessageDomainPackElements.mockReset();
   });
 
   it("normalizes message evidence and builds domain pack detail paths", async () => {
-    mockedFetch.mockResolvedValueOnce({
+    mockedGetMessageDomainPackElements.mockResolvedValueOnce({
       data: {
         slots: [
           {
@@ -44,6 +44,8 @@ describe("consultationEvidenceApi", () => {
           },
         ],
       },
+      headers: new Headers(),
+      status: 200,
     });
 
     const result = await consultationEvidenceApi.getMessageDomainPackElements(
@@ -56,10 +58,7 @@ describe("consultationEvidenceApi", () => {
       },
     );
 
-    expect(mockedFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages/100/domain-pack-elements",
-      { method: "GET" },
-    );
+    expect(mockedGetMessageDomainPackElements).toHaveBeenCalledWith(1, 100);
     expect(result).toEqual({
       slots: [
         {
@@ -89,10 +88,14 @@ describe("consultationEvidenceApi", () => {
   });
 
   it("keeps evidence unlinked when route context is incomplete", async () => {
-    mockedFetch.mockResolvedValueOnce({
-      slots: [{ code: "refundReason", extracted: false }],
-      policies: [],
-      risks: [],
+    mockedGetMessageDomainPackElements.mockResolvedValueOnce({
+      data: {
+        slots: [{ code: "refundReason", extracted: false }],
+        policies: [],
+        risks: [],
+      },
+      headers: new Headers(),
+      status: 200,
     });
 
     const result = await consultationEvidenceApi.getMessageDomainPackElements(

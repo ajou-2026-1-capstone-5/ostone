@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { captureScreen } from "./support/app-mocks";
 import { installAuth } from "./support/generated-api-auth";
@@ -7,13 +7,31 @@ import { installMockStomp } from "./support/mock-stomp";
 
 test.describe("Consultation screen", () => {
   let seen: string[];
+  let messageEvidenceDelayMs: number;
+  let shouldFailMessageEvidence: boolean;
 
   test.beforeEach(async ({ page }) => {
     seen = [];
+    messageEvidenceDelayMs = 0;
+    shouldFailMessageEvidence = false;
     await installAuth(page);
     await installMockStomp(page);
-    await installConsultationApiMocks(page, seen);
+    await installConsultationApiMocks(page, seen, {
+      messageEvidenceDelayMs: () => messageEvidenceDelayMs,
+      shouldFailMessageEvidence: () => shouldFailMessageEvidence,
+    });
   });
+
+  async function openGeneratedConsultationMessage(page: Page) {
+    await page.goto("/workspaces/1/consultation");
+    await expect(page.getByText("김민지")).toBeVisible();
+
+    await page.getByText("김민지").click();
+    await expect(page.getByText("generated 상담 메시지")).toBeVisible();
+    await expect(page.getByTestId("matched-workflow-bar")).toBeVisible();
+
+    await page.getByRole("button", { name: /generated 상담 메시지/ }).click();
+  }
 
   test.describe("Given an active consultation session from the generated queue endpoint", () => {
     test.describe("When an operator opens the session and completes it", () => {
@@ -142,6 +160,82 @@ test.describe("Consultation screen", () => {
         expect(seen).toContain(
           "GET /workspaces/1/domain-packs/1/versions/1/workflows/401",
         );
+      });
+    });
+
+    test.describe("When an operator selects a customer message with domain pack evidence", () => {
+      test("Then slot, policy, and risk evidence render and navigate to their detail routes", async ({
+        page,
+      }) => {
+        const evidenceTargets = [
+          {
+            tag: /배송 주소/,
+            url: /\/workspaces\/1\/domain-packs\/1\/slots\/301\?versionId=1/,
+            detailText: "배송지 주소",
+            seenRequest: "GET /workspaces/1/domain-packs/1/versions/1/slots/301",
+          },
+          {
+            tag: /환불 정책/,
+            url: /\/workspaces\/1\/domain-packs\/1\/policies\/101\?versionId=1/,
+            detailText: "환불 승인 조건",
+            seenRequest: "GET /workspaces/1/domain-packs/1/versions/1/policies/101",
+          },
+          {
+            tag: /사기 위험/,
+            url: /\/workspaces\/1\/domain-packs\/1\/risks\/201\?versionId=1/,
+            detailText: "부정 거래 징후",
+            seenRequest: "GET /workspaces/1/domain-packs/1/versions/1/risks/201",
+          },
+        ] as const;
+
+        messageEvidenceDelayMs = 100;
+
+        for (const target of evidenceTargets) {
+          await openGeneratedConsultationMessage(page);
+
+          await expect(page.getByTestId("message-domain-loading")).toContainText(
+            "근거를 불러오는 중입니다",
+          );
+          const evidencePanel = page.locator("aside").filter({ hasText: "확인 항목" });
+          await expect(evidencePanel).toBeVisible();
+          await expect(evidencePanel.getByText("응대 기준")).toBeVisible();
+          await expect(evidencePanel.getByText("주의 사항")).toBeVisible();
+          await expect(evidencePanel.getByText("ORD-20260604")).toBeVisible();
+          await expect(evidencePanel.getByRole("button", { name: /배송 주소/ })).toBeVisible();
+          await expect(evidencePanel.getByRole("button", { name: /환불 정책/ })).toBeVisible();
+          await expect(evidencePanel.getByRole("button", { name: /사기 위험/ })).toBeVisible();
+
+          await evidencePanel.getByRole("button", { name: target.tag }).click();
+
+          await expect(page).toHaveURL(target.url);
+          await expect(page.getByText(target.detailText)).toBeVisible();
+          expect(seen).toContain("GET /consultation/sessions/601/messages/701/domain-pack-elements");
+          expect(seen).toContain(target.seenRequest);
+        }
+      });
+    });
+
+    test.describe("When selected message evidence fails to load", () => {
+      test("Then the consultation input and close-session action remain usable", async ({
+        page,
+      }) => {
+        shouldFailMessageEvidence = true;
+
+        await openGeneratedConsultationMessage(page);
+
+        await expect(page.getByTestId("message-domain-error")).toContainText(
+          "근거를 불러오지 못했습니다",
+        );
+        await expect(page.getByTestId("message-domain-error")).toContainText(
+          "상담은 계속 진행할 수 있습니다. 잠시 후 메시지를 다시 선택해 주세요.",
+        );
+
+        const composer = page.getByPlaceholder("메시지를 입력하세요...");
+        await expect(composer).toBeEnabled();
+        await composer.fill("근거 조회 실패 후에도 상담은 계속됩니다");
+        await expect(composer).toHaveValue("근거 조회 실패 후에도 상담은 계속됩니다");
+        await expect(page.getByText("상담 종료")).toBeEnabled();
+        expect(seen).toContain("GET /consultation/sessions/601/messages/701/domain-pack-elements");
       });
     });
 
