@@ -152,18 +152,18 @@ function pipelineStatusMeta(status?: string): PipelineStatusMeta {
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) {
-    return `${seconds}s`;
+    return `${seconds}초`;
   }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   if (minutes < 60) {
     return remainingSeconds === 0
-      ? `${minutes}m`
-      : `${minutes}m ${remainingSeconds}s`;
+      ? `${minutes}분`
+      : `${minutes}분 ${remainingSeconds}초`;
   }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return remainingMinutes === 0
-    ? `${hours}h`
-    : `${hours}h ${remainingMinutes}m`;
+    ? `${hours}시간`
+    : `${hours}시간 ${remainingMinutes}분`;
 }

@@ -375,7 +375,7 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("자동 생성 파이프라인")).toBeInTheDocument();
     expect(screen.getByText(/job 77 · pipeline_job_77/)).toBeInTheDocument();
     expect(screen.getByText("DAG domain_pack_generation")).toBeInTheDocument();
-    expect(screen.getByText("실행 1m 35s")).toBeInTheDocument();
+    expect(screen.getByText("실행 1분 35초")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("상태 화면으로 이동"));
     expect(mockNavigate).toHaveBeenCalledWith(
