@@ -3,6 +3,10 @@ import { expect, test } from "@playwright/test";
 import { installAuth } from "./support/generated-api-auth";
 import { captureScreen, installAppApiMocks } from "./support/app-mocks";
 
+function expectNoRequest(seen: string[], request: string) {
+  expect(seen).not.toContain(request);
+}
+
 test.describe("Billing screens", () => {
   let seen: string[];
 
@@ -14,28 +18,60 @@ test.describe("Billing screens", () => {
 
   test.describe("Given an active workspace subscription", () => {
     test.describe("When an operator opens billing and manages payments", () => {
-      test("Then refund and cancel subscription actions call the correct endpoints", async ({
+      test("Then refund and cancel subscription actions require confirmation and update visible billing state", async ({
         page,
       }, testInfo) => {
         await page.goto("/workspaces/1/billing");
+        const refundRequest = "POST /workspaces/1/payments/pay_7001/cancel";
+        const cancelRequest = "DELETE /workspaces/1/subscription";
+
         await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
         await expect(page.getByText("신한카드")).toBeVisible();
         await expect(page.getByText("99,000원")).toBeVisible();
         await captureScreen(page, testInfo, "billing-overview");
 
         await page.getByRole("button", { name: "환불" }).click();
         await expect(page.getByRole("alertdialog")).toContainText("결제를 환불할까요?");
+        expectNoRequest(seen, refundRequest);
         await page.getByPlaceholder("환불 사유를 입력해주세요").fill("품질 검증 환불");
+        await expect(page.getByPlaceholder("환불 사유를 입력해주세요")).toHaveValue("품질 검증 환불");
+        await page.getByRole("alertdialog").getByRole("button", { name: "닫기" }).click();
+        await expect(page.getByRole("alertdialog")).toBeHidden();
+        expectNoRequest(seen, refundRequest);
+
+        await page.getByRole("button", { name: "환불" }).click();
+        await expect(page.getByPlaceholder("환불 사유를 입력해주세요")).toHaveValue(
+          "품질 검증 환불",
+        );
         await page.getByRole("alertdialog").getByRole("button", { name: "환불" }).click();
         await expect(page.getByText("환불을 요청했습니다.")).toBeVisible();
+        await expect(page.getByText("취소됨")).toBeVisible();
+        await expect(page.getByRole("button", { name: "환불" })).toBeHidden();
 
         await page.getByRole("button", { name: "구독 해지" }).click();
         await expect(page.getByRole("alertdialog")).toContainText("구독을 해지할까요?");
+        expectNoRequest(seen, cancelRequest);
         await page.getByRole("alertdialog").getByRole("button", { name: "구독 해지" }).click();
         await expect(page.getByText("구독을 해지했습니다.")).toBeVisible();
+        await expect(page.getByText("해지됨")).toBeVisible();
+        await expect(page.getByText(/현재 주기 종료일/)).toBeVisible();
+        await expect(page.getByRole("button", { name: "구독 해지" })).toBeHidden();
 
-        expect(seen).toContain("POST /workspaces/1/payments/pay_7001/cancel");
-        expect(seen).toContain("DELETE /workspaces/1/subscription");
+        expect(seen).toContain(refundRequest);
+        expect(seen).toContain(cancelRequest);
+
+        await page.getByTestId("workspace-marker").click();
+        await page.getByTestId("workspace-option-2").click();
+        await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+        await page.goto("/workspaces/2/billing");
+        await expect(page.getByTestId("workspace-marker")).toContainText("Ops Workspace");
+        await expect(page.getByText("국민카드")).toBeVisible();
+        await expect(page.getByText("49,000원")).toBeVisible();
+        await expect(page.getByText("구독 중")).toBeVisible();
+        await expect(page.getByText("해지됨")).toBeHidden();
+        await expect(page.getByText("취소됨")).toBeHidden();
+        expect(seen).toContain("GET /workspaces/2/billing/overview");
       });
     });
   });

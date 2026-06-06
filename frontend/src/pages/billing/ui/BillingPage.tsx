@@ -12,6 +12,7 @@ import {
   FREE_PLAN_KEY,
   type BillingKeyResponse,
   type PaymentResponse,
+  type SubscriptionResponse,
 } from "@/entities/billing";
 import {
   PlanComparison,
@@ -34,12 +35,44 @@ interface BillingLocationState {
   billingKey?: BillingKeyResponse;
 }
 
+interface SubscriptionOverride {
+  workspaceId: number;
+  subscription: SubscriptionResponse;
+}
+
+interface PaymentOverrides {
+  workspaceId: number;
+  payments: PaymentResponse[];
+}
+
+function isSamePayment(left: PaymentResponse, right: PaymentResponse): boolean {
+  return (
+    (left.id !== undefined && left.id === right.id) ||
+    (left.paymentKey !== undefined && left.paymentKey === right.paymentKey) ||
+    (left.orderId !== undefined && left.orderId === right.orderId)
+  );
+}
+
+function replacePayment(payments: PaymentResponse[], updated: PaymentResponse): PaymentResponse[] {
+  const hasPayment = payments.some((payment) => isSamePayment(payment, updated));
+  if (!hasPayment) {
+    return [updated, ...payments];
+  }
+  return payments.map((payment) =>
+    isSamePayment(payment, updated) ? { ...payment, ...updated } : payment,
+  );
+}
+
 export function BillingPage() {
   const { workspaceId } = useParams();
   const { setCrumbs } = useOutletContext<ShellContext>();
   const location = useLocation();
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const [showPlans, setShowPlans] = useState(false);
+  const [subscriptionOverride, setSubscriptionOverride] = useState<SubscriptionOverride | null>(
+    null,
+  );
+  const [paymentOverrides, setPaymentOverrides] = useState<PaymentOverrides | null>(null);
 
   useEffect(() => {
     setCrumbs(["워크스페이스 설정", "구독"]);
@@ -49,11 +82,47 @@ export function BillingPage() {
   const overviewQuery = useBillingOverview(parsedWorkspaceId);
   const planCatalogQuery = usePlanCatalog();
   const overview = overviewQuery.data ?? null;
-  const subscription = overview?.subscription ?? null;
+  const activeSubscriptionOverride =
+    subscriptionOverride?.workspaceId === parsedWorkspaceId
+      ? subscriptionOverride.subscription
+      : null;
+  const activePaymentOverrides =
+    paymentOverrides?.workspaceId === parsedWorkspaceId ? paymentOverrides.payments : [];
+  const subscription = activeSubscriptionOverride ?? overview?.subscription ?? null;
   const showRegister = !subscription || subscription.status === "INCOMPLETE";
   const engaged = subscription?.status === "ACTIVE" || subscription?.status === "PAST_DUE";
-  const payments = overview?.payments ?? [];
+  const canCancelSubscription = engaged && !subscription?.cancelAtPeriodEnd;
+  const payments = activePaymentOverrides.reduce(
+    (currentPayments, updated) => replacePayment(currentPayments, updated),
+    overview?.payments ?? [],
+  );
   const quotaUsages = overview?.quotaUsages ?? [];
+
+  const handleRefundedPayment = (updated: PaymentResponse | undefined) => {
+    if (!updated) {
+      return;
+    }
+    if (parsedWorkspaceId === null) {
+      return;
+    }
+    setPaymentOverrides((current) => {
+      const currentPayments = current?.workspaceId === parsedWorkspaceId ? current.payments : [];
+      return {
+        workspaceId: parsedWorkspaceId,
+        payments: replacePayment(currentPayments, updated),
+      };
+    });
+  };
+
+  const handleCanceledSubscription = (updated: SubscriptionResponse | undefined) => {
+    if (!updated) {
+      return;
+    }
+    if (parsedWorkspaceId === null) {
+      return;
+    }
+    setSubscriptionOverride({ workspaceId: parsedWorkspaceId, subscription: updated });
+  };
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -233,7 +302,13 @@ export function BillingPage() {
                 payments={payments}
                 renderActions={(payment: PaymentResponse) =>
                   payment.status === "DONE" ? (
-                    <RefundButton workspaceId={parsedWorkspaceId} payment={payment} />
+                    <RefundButton
+                      workspaceId={parsedWorkspaceId}
+                      payment={payment}
+                      onRefunded={(updated) =>
+                        handleRefundedPayment(updated ?? { ...payment, status: "CANCELED" })
+                      }
+                    />
                   ) : null
                 }
               />
@@ -243,9 +318,18 @@ export function BillingPage() {
               </div>
             )}
 
-            <div className={styles.actionsBar}>
-              <CancelSubscriptionButton workspaceId={parsedWorkspaceId} />
-            </div>
+            {canCancelSubscription ? (
+              <div className={styles.actionsBar}>
+                <CancelSubscriptionButton
+                  workspaceId={parsedWorkspaceId}
+                  onCanceled={(updated) =>
+                    handleCanceledSubscription(
+                      updated ?? { ...subscription, cancelAtPeriodEnd: true },
+                    )
+                  }
+                />
+              </div>
+            ) : null}
           </div>
         ))}
     </div>

@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useParams, useOutletContext, useLocation, Navigate } from "react-router-dom";
 import { useBillingOverview, usePlanCatalog } from "@/entities/billing";
+import { CancelSubscriptionButton, RefundButton } from "@/features/cancel-subscription";
 import { BillingPage } from "./BillingPage";
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -40,7 +42,7 @@ vi.mock("@/features/pay-once", () => ({
 }));
 
 vi.mock("@/features/cancel-subscription", () => ({
-  CancelSubscriptionButton: vi.fn().mockReturnValue(null),
+  CancelSubscriptionButton: vi.fn().mockReturnValue("구독 해지"),
   RefundButton: vi.fn().mockReturnValue(null),
 }));
 
@@ -53,6 +55,8 @@ const mockUseOutletContext = vi.mocked(useOutletContext);
 const mockUseLocation = vi.mocked(useLocation);
 const mockUseBillingOverview = vi.mocked(useBillingOverview);
 const mockUsePlanCatalog = vi.mocked(usePlanCatalog);
+const mockCancelSubscriptionButton = vi.mocked(CancelSubscriptionButton);
+const mockRefundButton = vi.mocked(RefundButton);
 
 const baseSubscription = {
   id: 1,
@@ -257,6 +261,82 @@ describe("BillingPage", () => {
     setupDefaults({ data: { ...baseOverview, payments: [donePayment] } });
     render(<BillingPage />);
     expect(screen.getByText("결제 내역")).toBeTruthy();
+  });
+
+  it("활성 구독이면 구독 해지 CTA를 표시한다", () => {
+    setupDefaults();
+    render(<BillingPage />);
+    expect(screen.getByText("구독 해지")).toBeTruthy();
+  });
+
+  it("환불 완료 콜백 이후 결제 상태와 CTA를 갱신한다", () => {
+    setupDefaults({ data: { ...baseOverview, payments: [donePayment] } });
+    render(<BillingPage />);
+
+    const refundProps = mockRefundButton.mock.calls[0][0] as ComponentProps<typeof RefundButton>;
+    const refundButtonCallsBeforeCompletion = mockRefundButton.mock.calls.length;
+    act(() => {
+      refundProps.onRefunded?.(undefined);
+    });
+
+    expect(screen.getByText("취소됨")).toBeTruthy();
+    expect(mockRefundButton.mock.calls.length).toBe(refundButtonCallsBeforeCompletion);
+  });
+
+  it("구독 해지 완료 콜백 이후 해지 상태와 CTA를 갱신한다", () => {
+    setupDefaults();
+    render(<BillingPage />);
+
+    const cancelProps = mockCancelSubscriptionButton.mock.calls[0][0] as ComponentProps<
+      typeof CancelSubscriptionButton
+    >;
+    act(() => {
+      cancelProps.onCanceled?.({
+        ...baseSubscription,
+        status: "CANCELED",
+        cancelAtPeriodEnd: true,
+      });
+    });
+
+    expect(screen.getByText("해지됨")).toBeTruthy();
+    expect(screen.queryByText("구독 해지")).toBeNull();
+  });
+
+  it("구독 해지 완료 payload가 없으면 해지 예약 상태와 CTA를 갱신한다", () => {
+    setupDefaults();
+    render(<BillingPage />);
+
+    const cancelProps = mockCancelSubscriptionButton.mock.calls[0][0] as ComponentProps<
+      typeof CancelSubscriptionButton
+    >;
+    act(() => {
+      cancelProps.onCanceled?.(undefined);
+    });
+
+    expect(screen.getByText(/현재 주기 종료일/)).toBeTruthy();
+    expect(screen.queryByText("구독 해지")).toBeNull();
+  });
+
+  it("해지 예약 구독이면 중복 해지 CTA를 숨긴다", () => {
+    setupDefaults({
+      data: {
+        ...baseOverview,
+        subscription: { ...baseSubscription, status: "ACTIVE", cancelAtPeriodEnd: true },
+      },
+    });
+    render(<BillingPage />);
+    expect(screen.queryByText("구독 해지")).toBeNull();
+  });
+
+  it("해지 완료 구독이면 중복 해지 CTA를 숨긴다", () => {
+    setupDefaults({
+      data: {
+        ...baseOverview,
+        subscription: { ...baseSubscription, status: "CANCELED", cancelAtPeriodEnd: true },
+      },
+    });
+    render(<BillingPage />);
+    expect(screen.queryByText("구독 해지")).toBeNull();
   });
 
   it("quota 사용량과 한도 경고를 표시한다", () => {
