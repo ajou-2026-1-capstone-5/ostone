@@ -19,7 +19,9 @@ const mockedUseConfirmDomain = vi.mocked(useConfirmPipelineDomain);
 const mockedUseSubmitFeedback = vi.mocked(useSubmitPipelineFeedback);
 const feedbackDraftKey = "ostone:pipeline-review:feedback-draft:1:7";
 
-function renderCard(props: { workspaceId?: number; pipelineJobId?: number } = { workspaceId: 1, pipelineJobId: 7 }) {
+function renderCard(
+  props: { workspaceId?: number; pipelineJobId?: number } = { workspaceId: 1, pipelineJobId: 7 },
+) {
   return render(
     <MemoryRouter>
       <PipelineReviewCheckpointCard {...props} />
@@ -202,7 +204,12 @@ describe("PipelineReviewCheckpointCard", () => {
 
     renderCard();
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "분리하기" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "분리하기" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
     expect(screen.getByRole("button", { name: "피드백 반영 후 replay" })).not.toBeDisabled();
   });
 
@@ -232,7 +239,9 @@ describe("PipelineReviewCheckpointCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "판단 보류" }));
 
-    await waitFor(() => expect(window.localStorage.getItem(feedbackDraftKey)).toBe(JSON.stringify({ 201: "unsure" })));
+    await waitFor(() =>
+      expect(window.localStorage.getItem(feedbackDraftKey)).toBe(JSON.stringify({ 201: "unsure" })),
+    );
 
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
@@ -254,7 +263,11 @@ describe("PipelineReviewCheckpointCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "같은 intent로 묶기" }));
     fireEvent.click(screen.getByRole("button", { name: "피드백 반영 후 replay" }));
 
-    await waitFor(() => expect(window.localStorage.getItem(feedbackDraftKey)).toBe(JSON.stringify({ 201: "must_link" })));
+    await waitFor(() =>
+      expect(window.localStorage.getItem(feedbackDraftKey)).toBe(
+        JSON.stringify({ 201: "must_link" }),
+      ),
+    );
 
     mutate.mock.calls[0]?.[1]?.onSuccess?.(undefined, [], undefined);
 
@@ -314,7 +327,9 @@ describe("PipelineReviewCheckpointCard", () => {
 
     renderCard();
 
-    expect(screen.getByText("같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다."),
+    ).toBeInTheDocument();
     expect(screen.getByText("운영자 확인이 필요한 후보입니다.")).toBeInTheDocument();
     expect(screen.getAllByText("업무 내용을 확인할 수 없습니다.")).toHaveLength(3);
   });
@@ -353,7 +368,9 @@ describe("PipelineReviewCheckpointCard", () => {
     renderCard();
 
     expect(screen.getByText("파이프라인이 실패했습니다.")).toBeInTheDocument();
-    expect(screen.getByText("업로드를 다시 시작하거나 현재 job 상태를 다시 조회할 수 있습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("업로드를 다시 시작하거나 현재 job 상태를 다시 조회할 수 있습니다."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "업로드 다시 시작" })).toHaveAttribute(
       "href",
       "/workspaces/1/upload",
@@ -375,7 +392,7 @@ describe("PipelineReviewCheckpointCard", () => {
     renderCard();
 
     expect(screen.getByText("활성 리뷰 체크포인트가 없습니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "도메인팩 목록 보기" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "도메인팩 관리로 이동" })).toHaveAttribute(
       "href",
       "/workspaces/1/domain-packs",
     );

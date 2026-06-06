@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  ArrowRightIcon,
-  ListChecksIcon,
-  RefreshCwIcon,
-  UploadIcon,
-} from "lucide-react";
+import { ArrowRightIcon, ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   type ReviewCaseContext,
@@ -13,6 +8,7 @@ import {
   useSubmitPipelineFeedback,
 } from "../api/pipelineReviewApi";
 import { domainPackListPath } from "@/shared/lib/domainPackRoutes";
+import { CTA_GO_DOMAIN_PACK, CTA_RETRY_FROM_UPLOAD } from "@/shared/lib/ctaLabels";
 import styles from "./PipelineReviewCheckpointCard.module.css";
 
 interface Props {
@@ -31,7 +27,10 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   const confirmDomain = useConfirmPipelineDomain(workspaceId, pipelineJobId);
   const submitFeedback = useSubmitPipelineFeedback(workspaceId, pipelineJobId);
   const draftStorageKey = createFeedbackDraftStorageKey(workspaceId, pipelineJobId);
-  const [feedbackDraft, setFeedbackDraft] = useState<{ storageKey: string | null; decisions: FeedbackDecisions }>({
+  const [feedbackDraft, setFeedbackDraft] = useState<{
+    storageKey: string | null;
+    decisions: FeedbackDecisions;
+  }>({
     storageKey: null,
     decisions: {},
   });
@@ -54,12 +53,19 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
     },
     openTaskIds,
   );
-  const answeredFeedbackCount = openTasks.filter((task) => activeFeedbackDecisions[task.id] !== undefined).length;
+  const answeredFeedbackCount = openTasks.filter(
+    (task) => activeFeedbackDecisions[task.id] !== undefined,
+  ).length;
   const allFeedbackResolved = openTasks.length > 0 && answeredFeedbackCount === openTasks.length;
-  const hasUnsavedFeedback = query.data?.reviewKind === "HUMAN_FEEDBACK" && answeredFeedbackCount > 0;
+  const hasUnsavedFeedback =
+    query.data?.reviewKind === "HUMAN_FEEDBACK" && answeredFeedbackCount > 0;
 
   useEffect(() => {
-    if (query.data?.reviewKind !== undefined && query.data.reviewKind !== "HUMAN_FEEDBACK" && draftStorageKey) {
+    if (
+      query.data?.reviewKind !== undefined &&
+      query.data.reviewKind !== "HUMAN_FEEDBACK" &&
+      draftStorageKey
+    ) {
       removeFeedbackDraft(draftStorageKey);
     }
   }, [draftStorageKey, query.data?.reviewKind]);
@@ -81,7 +87,10 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   const updateFeedbackDecision = (taskId: number, decision: FeedbackDecision) => {
     setFeedbackDraft((current) => {
       const currentDecisions = current.storageKey === draftStorageKey ? current.decisions : {};
-      const next = filterFeedbackDecisions({ ...currentDecisions, [taskId]: decision }, openTaskIds);
+      const next = filterFeedbackDecisions(
+        { ...currentDecisions, [taskId]: decision },
+        openTaskIds,
+      );
       if (draftStorageKey) {
         writeFeedbackDraft(draftStorageKey, next);
       }
@@ -133,7 +142,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <>
             <Link to={domainPackListPath(workspaceId)} className={styles.stateActionPrimary}>
               <ListChecksIcon aria-hidden="true" />
-              도메인팩 관리로 이동
+              {CTA_GO_DOMAIN_PACK}
             </Link>
             <button
               type="button"
@@ -149,7 +158,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <>
             <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionPrimary}>
               <UploadIcon aria-hidden="true" />
-              업로드 다시 시작
+              {CTA_RETRY_FROM_UPLOAD}
             </Link>
             <button
               type="button"
@@ -174,7 +183,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
             </button>
             <Link to={domainPackListPath(workspaceId)} className={styles.stateActionSecondary}>
               <ArrowRightIcon aria-hidden="true" />
-              도메인팩 목록 보기
+              {CTA_GO_DOMAIN_PACK}
             </Link>
           </>
         )}
@@ -210,7 +219,9 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
             <h2 id="pipeline-review-title" className={styles.title}>
               상담 도메인을 확정합니다.
             </h2>
-            <p className={styles.description}>선택한 도메인 profile이 intent clustering 입력으로 사용됩니다.</p>
+            <p className={styles.description}>
+              선택한 도메인 profile이 intent clustering 입력으로 사용됩니다.
+            </p>
           </div>
           <span className={styles.badge}>{openTasks.length} candidates</span>
         </div>
@@ -226,7 +237,9 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               <span className={styles.optionHeader}>
                 <strong>{task.payload.displayName ?? task.title}</strong>
                 {task.payload.confidence !== undefined && (
-                  <span className={styles.confidence}>{Math.round(task.payload.confidence * 100)}%</span>
+                  <span className={styles.confidence}>
+                    {Math.round(task.payload.confidence * 100)}%
+                  </span>
                 )}
               </span>
               <span className={styles.optionDescription}>{task.payload.description}</span>
@@ -252,7 +265,9 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <h2 id="pipeline-feedback-title" className={styles.title}>
             애매한 클러스터 경계를 확인합니다.
           </h2>
-          <p className={styles.description}>답변은 같은 업무/다른 업무 제약으로 replay에 반영됩니다.</p>
+          <p className={styles.description}>
+            답변은 같은 업무/다른 업무 제약으로 replay에 반영됩니다.
+          </p>
         </div>
         <span className={styles.badge}>
           {answeredFeedbackCount}/{openTasks.length} answered
@@ -262,8 +277,12 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
         {openTasks.map((task) => (
           <div key={task.id} className={styles.feedbackItem}>
             <div className={styles.questionHeader}>
-              <p className={styles.question}>{task.payload.questionText ?? "두 상담을 같은 intent로 묶어도 되나요?"}</p>
-              <span className={styles.reason}>{task.payload.reasonLabel ?? reasonLabel(task.payload.reason)}</span>
+              <p className={styles.question}>
+                {task.payload.questionText ?? "두 상담을 같은 intent로 묶어도 되나요?"}
+              </p>
+              <span className={styles.reason}>
+                {task.payload.reasonLabel ?? reasonLabel(task.payload.reason)}
+              </span>
             </div>
             <div className={styles.caseGrid}>
               <CaseContextCard
@@ -278,11 +297,13 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               />
             </div>
             <div className={styles.choiceRow}>
-              {([
-                ["must_link", "같은 intent로 묶기"],
-                ["cannot_link", "분리하기"],
-                ["unsure", "판단 보류"],
-              ] satisfies Array<[FeedbackDecision, string]>).map(([value, label]) => (
+              {(
+                [
+                  ["must_link", "같은 intent로 묶기"],
+                  ["cannot_link", "분리하기"],
+                  ["unsure", "판단 보류"],
+                ] satisfies Array<[FeedbackDecision, string]>
+              ).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
@@ -426,7 +447,10 @@ function reasonLabel(reason?: string): string {
   return "클러스터 경계 판단이 필요합니다.";
 }
 
-function createFeedbackDraftStorageKey(workspaceId?: number, pipelineJobId?: number): string | null {
+function createFeedbackDraftStorageKey(
+  workspaceId?: number,
+  pipelineJobId?: number,
+): string | null {
   if (workspaceId == null || pipelineJobId == null) {
     return null;
   }
@@ -478,7 +502,10 @@ function removeFeedbackDraft(storageKey: string) {
   }
 }
 
-function filterFeedbackDecisions(decisions: Record<string, unknown>, openTaskIds: number[]): FeedbackDecisions {
+function filterFeedbackDecisions(
+  decisions: Record<string, unknown>,
+  openTaskIds: number[],
+): FeedbackDecisions {
   const openTaskIdSet = new Set(openTaskIds);
 
   return Object.entries(decisions).reduce<FeedbackDecisions>((filtered, [taskId, decision]) => {
