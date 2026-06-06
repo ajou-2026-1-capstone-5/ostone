@@ -52,6 +52,34 @@ test.describe("Consultation screen", () => {
       });
     });
 
+    test.describe("When the viewport is narrow (≤1180px)", () => {
+      test("Then the right context opens in a non-modal drawer without blocking the composer", async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: 1024, height: 800 });
+        await page.goto("/workspaces/1/consultation");
+        await expect(page.getByText("김민지")).toBeVisible();
+
+        await page.getByText("김민지").click();
+        await expect(page.getByText("generated 상담 메시지")).toBeVisible();
+
+        // 우측 컨텍스트는 트리거로 열기 전까지 숨겨져 있다.
+        const drawer = page.getByRole("complementary", { name: "고객 컨텍스트" });
+        await page.getByTestId("open-context-drawer").click();
+        await expect(drawer).toBeVisible();
+
+        // 비모달: 패널이 열려 있어도 작성칸에 계속 입력할 수 있다.
+        const composer = page.getByPlaceholder("메시지를 입력하세요...");
+        await composer.fill("패널을 열어둔 채 작성");
+        await expect(composer).toHaveValue("패널을 열어둔 채 작성");
+
+        // 패널을 닫아도 작성 중 메시지는 보존된다.
+        await page.getByRole("button", { name: "컨텍스트 닫기" }).click();
+        await expect(drawer).toBeHidden();
+        await expect(composer).toHaveValue("패널을 열어둔 채 작성");
+      });
+    });
+
     test.describe("When an operator opens the matched workflow", () => {
       test("Then the workflow preview and domain pack detail route are connected", async ({
         page,
@@ -109,7 +137,10 @@ test.describe("Consultation screen", () => {
         await expect(page.getByText("현재 1건 표시")).toBeVisible();
         await captureScreen(page, testInfo, "consultation-queue-filter-search");
 
-        await page.getByLabel("상담 큐 필터").getByRole("button", { name: /내 상담/ }).click();
+        await page
+          .getByLabel("상담 큐 필터")
+          .getByRole("button", { name: /내 상담/ })
+          .click();
         await expect(page.getByText("검색 조건에 맞는 상담이 없습니다")).toBeVisible();
         await expect(page.getByText("현재 0건 표시")).toBeVisible();
       });

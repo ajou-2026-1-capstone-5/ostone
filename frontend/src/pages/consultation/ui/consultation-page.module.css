@@ -4,6 +4,8 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
+  /* ≤1180px 슬라이드오버(.detailDrawer)의 absolute 기준점 */
+  position: relative;
 }
 
 .queuePane {
@@ -429,13 +431,124 @@
   overflow: hidden;
 }
 
+/* ≤1180px 우측 컨텍스트 트리거 (좁은 화면에서만 노출) */
+.contextTrigger {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.contextTrigger:hover {
+  border-color: var(--ink-3);
+}
+
+.contextTrigger:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px oklch(0.18 0.012 260 / 0.14);
+}
+
+.contextTriggerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--signal);
+}
+
+/* ≤1180px 우측 컨텍스트 비모달 슬라이드오버 */
+.detailDrawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 86%);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  box-shadow: -16px 0 36px oklch(0 0 0 / 0.12);
+  transform: translateX(100%);
+  visibility: hidden;
+  z-index: 20;
+  transition:
+    transform 0.24s ease,
+    visibility 0s linear 0.24s;
+}
+
+.detailDrawerOpen {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.24s ease,
+    visibility 0s linear 0s;
+}
+
+.detailDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--paper-2);
+  flex-shrink: 0;
+}
+
+.detailDrawerTitle {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.detailDrawerClose {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.detailDrawerClose:hover {
+  border-color: var(--ink-3);
+}
+
+.detailDrawerClose:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px oklch(0.18 0.012 260 / 0.14);
+}
+
+.detailDrawerBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 @media (max-width: 1180px) {
   .conversationPane {
     min-width: 0;
   }
 
-  .detailPane {
-    display: none;
+  .contextTrigger {
+    display: inline-flex;
   }
 }
 

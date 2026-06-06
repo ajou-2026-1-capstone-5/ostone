@@ -1,101 +1,71 @@
-import React from "react";
-import type { ChatMessage as UiChatMessage } from "../../../../features/consultation/ui/ChatPanel";
-import { MessageDetailPanel } from "../../../../features/consultation/ui/MessageDetailPanel";
-import type { MessageDomainPackElements } from "../../../../features/consultation/api/consultationEvidenceApi";
-import type { MatchedWorkflow } from "../../../../features/consultation/api/llmToolWorkflowApi";
+import React, { useEffect, useRef } from "react";
 import {
-  CustomerPanel,
-  type CustomerExtractedInfo,
-  type CustomerOrderInfo,
-} from "./CustomerPanel";
-import { MatchedWorkflowBar, MatchedWorkflowBarSkeleton } from "./MatchedWorkflowBar";
-import type { QueueCustomerWithPanelData } from "../model/consultationPageState";
+  ConsultationDetailContent,
+  type ConsultationDetailContentProps,
+} from "./ConsultationDetailContent";
 import styles from "../consultation-page.module.css";
 
-type ConsultationDetailPaneProps = {
-  activeCustomer: QueueCustomerWithPanelData | null;
-  activeCustomerId: string | null;
-  activeCustomerName: string;
-  selectedMessage: UiChatMessage | null;
-  matchedWorkflow: MatchedWorkflow | null;
-  isMatchedWorkflowLoading: boolean;
-  messageDomainPackElements?: MessageDomainPackElements;
-  isMessageDomainPackElementsLoading: boolean;
-  messageDomainPackElementsError: string | null;
-  memo: string;
-  onMemoChange: (value: string) => void;
-  onMemoSave?: () => void;
-  onOpenDomainPackElement: (path: string) => void;
-  onCloseMessageDetail: () => void;
+type ConsultationDetailPaneProps = ConsultationDetailContentProps & {
+  /** ≤1180px 여부. true면 인라인 컬럼 대신 비모달 슬라이드오버로 렌더링한다. */
+  isNarrow: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
-const getCustomerPanelData = (
-  activeCustomer: QueueCustomerWithPanelData,
-  activeCustomerName: string,
-) => ({
-  name: activeCustomerName,
-  channel: activeCustomer.channel,
-  handoffRequired: activeCustomer.handoffRequired,
-  handoffReason: activeCustomer.handoffReason,
-  handoffAt: activeCustomer.handoffAt,
-  membershipTier: activeCustomer.customerInfo.membershipTier,
-  contact: activeCustomer.customerInfo.contact,
-  email: activeCustomer.customerInfo.email,
-});
-
 export const ConsultationDetailPane: React.FC<ConsultationDetailPaneProps> = ({
-  activeCustomer,
-  activeCustomerId,
-  activeCustomerName,
-  selectedMessage,
-  matchedWorkflow,
-  isMatchedWorkflowLoading,
-  messageDomainPackElements,
-  isMessageDomainPackElementsLoading,
-  messageDomainPackElementsError,
-  memo,
-  onMemoChange,
-  onMemoSave,
-  onOpenDomainPackElement,
-  onCloseMessageDetail,
+  isNarrow,
+  isOpen,
+  onClose,
+  ...content
 }) => {
-  const orderInfo: CustomerOrderInfo | null = activeCustomer?.orderInfo ?? null;
-  const extractedInfo: CustomerExtractedInfo | null = activeCustomer?.extractedInfo ?? null;
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // 슬라이드오버가 열리면 닫기 버튼으로 focus를 옮기고 Esc로 닫는다. 닫히면 직전
+  // focus(트리거 버튼)로 되돌린다. focus-trap은 두지 않아 패널이 열려도 상담사가
+  // 메시지 작성칸에 계속 입력할 수 있다 (비모달).
+  useEffect(() => {
+    if (!isNarrow || !isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isNarrow, isOpen, onClose]);
+
+  if (!isNarrow) {
+    return (
+      <div className={styles.detailPane}>
+        <ConsultationDetailContent {...content} />
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.detailPane}>
-      {activeCustomerId && (isMatchedWorkflowLoading || matchedWorkflow) && (
-        <div className={styles.detailPaneTop}>
-          {matchedWorkflow ? (
-            <MatchedWorkflowBar workflow={matchedWorkflow} />
-          ) : (
-            <MatchedWorkflowBarSkeleton />
-          )}
-        </div>
-      )}
-      <div className={styles.detailPaneBody}>
-        {selectedMessage ? (
-          <MessageDetailPanel
-            message={selectedMessage}
-            domainPackElements={messageDomainPackElements}
-            isDomainPackElementsLoading={isMessageDomainPackElementsLoading}
-            domainPackElementsError={messageDomainPackElementsError}
-            onOpenDomainPackElement={onOpenDomainPackElement}
-            onClose={onCloseMessageDetail}
-          />
-        ) : (
-          <CustomerPanel
-            customer={
-              activeCustomer ? getCustomerPanelData(activeCustomer, activeCustomerName) : null
-            }
-            orderInfo={orderInfo}
-            extractedInfo={extractedInfo}
-            memo={memo}
-            onMemoChange={onMemoChange}
-            onMemoSave={onMemoSave}
-          />
-        )}
+    <aside
+      className={`${styles.detailDrawer} ${isOpen ? styles.detailDrawerOpen : ""}`}
+      role="complementary"
+      aria-label="고객 컨텍스트"
+    >
+      <div className={styles.detailDrawerHeader}>
+        <span className={styles.detailDrawerTitle}>고객 컨텍스트</span>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          className={styles.detailDrawerClose}
+          onClick={onClose}
+          aria-label="컨텍스트 닫기"
+        >
+          ✕
+        </button>
       </div>
-    </div>
+      <div className={styles.detailDrawerBody}>
+        <ConsultationDetailContent {...content} />
+      </div>
+    </aside>
   );
 };
