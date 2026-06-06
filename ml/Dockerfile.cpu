@@ -24,4 +24,4 @@ RUN groupadd --system appgroup \
     && chown -R appuser:appgroup /app
 USER appuser
 
-ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_stage_worker"]
+ENTRYPOINT ["/app/.venv/bin/python", "-m", "pipeline.ecs_stage_worker"]
