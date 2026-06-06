@@ -10,6 +10,8 @@ const INTENT_ID = 501;
 const DATASET_ID = 77;
 const PIPELINE_JOB_ID = 900;
 const SIMULATION_SESSION_ID = 8801;
+const SIMULATION_GOLDEN_CASE_ID = 9951;
+const SIMULATION_REPLAY_SESSION_ID = 9952;
 
 export const e2eIds = {
   workspaceId: WORKSPACE_ID,
@@ -22,12 +24,7 @@ export const e2eIds = {
   simulationSessionId: SIMULATION_SESSION_ID,
 } as const;
 
-type RouteHandler = (
-  route: Route,
-  method: string,
-  path: string,
-  url: URL,
-) => Promise<boolean>;
+type RouteHandler = (route: Route, method: string, path: string, url: URL) => Promise<boolean>;
 
 const now = "2026-06-04T09:00:00+09:00";
 
@@ -112,7 +109,11 @@ const packDetail = {
       summaryJson: JSON.stringify({
         topic: "환불 자동화 팩 v2",
         generation: { source: "pipeline", clusterCount: 14 },
-        quality: { mappingRate: 0.88, outlierRate: 0.04, workflowSeparability: 0.81 },
+        quality: {
+          mappingRate: 0.88,
+          outlierRate: 0.04,
+          workflowSeparability: 0.81,
+        },
         review: { needsReviewCount: 1, topIssues: ["상담사 연결 조건 보강"] },
       }),
       description: "상담사 연결 조건을 보강한 운영 가능 버전",
@@ -287,7 +288,13 @@ function componentPreviewData(versionId: number, section: DomainPackComponentSec
     return [{ ...risk, domainPackVersionId: versionId, name: `${suffix} 위험` }];
   }
 
-  return [{ ...workflow, domainPackVersionId: versionId, name: `${suffix} 검토 워크플로우` }];
+  return [
+    {
+      ...workflow,
+      domainPackVersionId: versionId,
+      name: `${suffix} 검토 워크플로우`,
+    },
+  ];
 }
 
 const members = [
@@ -473,13 +480,68 @@ const improvementCandidate = {
   updatedAt: now,
 };
 
-function simulationDetail(messages = chatMessages) {
+const simulationReplayResult = {
+  id: 9961,
+  workspaceId: WORKSPACE_ID,
+  goldenCaseId: SIMULATION_GOLDEN_CASE_ID,
+  domainPackVersionId: 2,
+  replaySessionId: SIMULATION_REPLAY_SESSION_ID,
+  status: "PASS",
+  expectedJson: JSON.stringify({
+    intentCode: "INT_REFUND",
+    workflowCode: "WF_REFUND",
+    currentState: "환불 조건 확인",
+    actionType: "ASK_SLOT",
+    slotValues: { orderId: "ORD-20260604" },
+  }),
+  actualJson: JSON.stringify({
+    intentCode: "INT_REFUND",
+    workflowCode: "WF_REFUND",
+    currentState: "환불 조건 확인",
+    actionType: "ASK_SLOT",
+    slotValues: { orderId: "ORD-20260604" },
+  }),
+  failureSummary: null,
+  createdBy: 7,
+  createdAt: now,
+};
+
+type SimulationReplayResultMock = typeof simulationReplayResult;
+
+type SimulationGoldenCaseMock = {
+  id: number;
+  workspaceId: number;
+  sourceSessionId: number;
+  sourceDomainPackVersionId: number;
+  name: string;
+  inputMessagesJson: string;
+  expectedJson: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  latestReplayResult: SimulationReplayResultMock | null;
+};
+
+type SimulationMockState = {
+  messages: typeof chatMessages;
+  goldenCases: SimulationGoldenCaseMock[];
+};
+
+function createSimulationState(): SimulationMockState {
+  return {
+    messages: chatMessages,
+    goldenCases: [],
+  };
+}
+
+function simulationDetail(messages: typeof chatMessages = chatMessages) {
   return {
     session: simulationSession,
     messages,
     matchedWorkflow: {
       intentCode: "INT_REFUND",
       intentName: "환불 문의",
+      domainPackVersionId: VERSION_ID,
       workflowCode: "WF_REFUND",
       workflowName: "환불 처리",
       currentState: "환불 조건 확인",
@@ -491,6 +553,16 @@ function simulationDetail(messages = chatMessages) {
       items: [simulationFeedback],
       messageFeedbackCounts: { "702": 1 },
     },
+  };
+}
+
+function goldenCasePage(content: SimulationGoldenCaseMock[]) {
+  return {
+    content,
+    page: 0,
+    size: 20,
+    totalElements: content.length,
+    totalPages: content.length > 0 ? 1 : 0,
   };
 }
 
@@ -518,7 +590,7 @@ function installTrackedApiRoute(page: Page, seen: string[], handler: RouteHandle
   });
 }
 
-function parseSessionMeta(session: typeof consultationSessions[number]) {
+function parseSessionMeta(session: (typeof consultationSessions)[number]) {
   try {
     return JSON.parse(session.metaJson) as Record<string, unknown>;
   } catch {
@@ -556,11 +628,7 @@ function filterConsultationSessions(url: URL) {
       : true;
 
     return (
-      matchesStatus &&
-      matchesKeyword &&
-      matchesStartedFrom &&
-      matchesStartedTo &&
-      matchesCounselor
+      matchesStatus && matchesKeyword && matchesStartedFrom && matchesStartedTo && matchesCounselor
     );
   });
 }
@@ -585,12 +653,11 @@ async function fulfillWorkspaceShell(route: Route, method: string, path: string)
 }
 
 async function fulfillDomainPackRead(route: Route, method: string, path: string): Promise<boolean> {
-  const domainPackWorkspacePrefix =
-    path.startsWith("/workspaces/1/domain-packs")
-      ? "/workspaces/1"
-      : path.startsWith("/workspaces/2/domain-packs")
-        ? "/workspaces/2"
-        : null;
+  const domainPackWorkspacePrefix = path.startsWith("/workspaces/1/domain-packs")
+    ? "/workspaces/1"
+    : path.startsWith("/workspaces/2/domain-packs")
+      ? "/workspaces/2"
+      : null;
 
   if (method === "GET" && path === `${domainPackWorkspacePrefix}/domain-packs`) {
     const summaries =
@@ -684,7 +751,10 @@ async function fulfillDomainPackRead(route: Route, method: string, path: string)
   if (method === "GET" && componentListMatch) {
     const versionId = Number(componentListMatch[1]);
     const section = componentListMatch[2] as DomainPackComponentSection;
-    await fulfillJson(route, { data: componentPreviewData(versionId, section), status: 200 });
+    await fulfillJson(route, {
+      data: componentPreviewData(versionId, section),
+      status: 200,
+    });
     return true;
   }
 
@@ -698,7 +768,10 @@ async function fulfillDomainPackRead(route: Route, method: string, path: string)
     return true;
   }
 
-  if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1/intents/501/workflows") {
+  if (
+    method === "GET" &&
+    path === "/workspaces/1/domain-packs/1/versions/1/intents/501/workflows"
+  ) {
     await fulfillJson(route, { data: [workflow], status: 200 });
     return true;
   }
@@ -775,10 +848,7 @@ async function fulfillDomainPackRead(route: Route, method: string, path: string)
     return true;
   }
 
-  if (
-    method === "PATCH" &&
-    path === "/workspaces/1/domain-packs/1/versions/1/risks/201/status"
-  ) {
+  if (method === "PATCH" && path === "/workspaces/1/domain-packs/1/versions/1/risks/201/status") {
     const body = route.request().postDataJSON() as { status?: string };
     await fulfillJson(route, {
       data: {
@@ -825,9 +895,7 @@ async function fulfillWorkspaceOperations(
     const q = url.searchParams.get("q")?.toLowerCase() ?? "";
     const role = url.searchParams.get("role") ?? "";
     const filtered = members.filter((member) => {
-      const matchesSearch = q
-        ? `${member.name} ${member.email}`.toLowerCase().includes(q)
-        : true;
+      const matchesSearch = q ? `${member.name} ${member.email}`.toLowerCase().includes(q) : true;
       const matchesRole = role ? member.workspaceRole === role : true;
       return matchesSearch && matchesRole;
     });
@@ -862,7 +930,14 @@ async function fulfillWorkspaceOperations(
         llmOnlyProcessingRate: 0.64,
         measurementStatus: "READY",
         measurementMessage: "측정 가능",
-        trend: [{ date: "2026-06-04", totalConsultationCount: 8, workflowMatchedCount: 6, workflowMatchRate: 0.75 }],
+        trend: [
+          {
+            date: "2026-06-04",
+            totalConsultationCount: 8,
+            workflowMatchedCount: 6,
+            workflowMatchRate: 0.75,
+          },
+        ],
       },
       handledTodayCount: 8,
       llmHandledTodayCount: 6,
@@ -998,8 +1073,13 @@ async function fulfillWorkspaceOperations(
   }
 
   if (method === "POST" && path === "/workspaces/1/payments/pay_7001/cancel") {
-    expect(route.request().postDataJSON()).toMatchObject({ cancelReason: "품질 검증 환불" });
-    await fulfillJson(route, { data: { ...payment, status: "CANCELED" }, status: 200 });
+    expect(route.request().postDataJSON()).toMatchObject({
+      cancelReason: "품질 검증 환불",
+    });
+    await fulfillJson(route, {
+      data: { ...payment, status: "CANCELED" },
+      status: 200,
+    });
     return true;
   }
 
@@ -1039,7 +1119,11 @@ async function fulfillWorkspaceOperations(
   return false;
 }
 
-async function fulfillUploadAndReview(route: Route, method: string, path: string): Promise<boolean> {
+async function fulfillUploadAndReview(
+  route: Route,
+  method: string,
+  path: string,
+): Promise<boolean> {
   if (method === "POST" && path === "/workspaces/1/datasets/uploads:init") {
     await fulfillJson(route, {
       datasetId: DATASET_ID,
@@ -1087,9 +1171,15 @@ async function fulfillUploadAndReview(route: Route, method: string, path: string
     return true;
   }
 
-  if (method === "POST" && path === "/workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation") {
+  if (
+    method === "POST" &&
+    path === "/workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation"
+  ) {
     await fulfillJson(route, {
-      data: { pipelineJobId: PIPELINE_JOB_ID, status: "WAITING_DOMAIN_CONFIRMATION" },
+      data: {
+        pipelineJobId: PIPELINE_JOB_ID,
+        status: "WAITING_DOMAIN_CONFIRMATION",
+      },
       status: 200,
     });
     return true;
@@ -1157,13 +1247,19 @@ async function fulfillUploadAndReview(route: Route, method: string, path: string
     return true;
   }
 
-  if (method === "POST" && path === "/workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation") {
+  if (
+    method === "POST" &&
+    path === "/workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation"
+  ) {
     expect(route.request().postDataJSON()).toEqual({ reviewTaskId: 9101 });
     await fulfillJson(route, { data: { accepted: true }, status: 200 });
     return true;
   }
 
-  if (method === "POST" && path === "/workspaces/1/pipeline-jobs/901/review-checkpoint/human-feedback") {
+  if (
+    method === "POST" &&
+    path === "/workspaces/1/pipeline-jobs/901/review-checkpoint/human-feedback"
+  ) {
     expect(route.request().postDataJSON()).toEqual({
       decisions: [{ reviewTaskId: 9201, decisionType: "cannot_link" }],
     });
@@ -1174,7 +1270,12 @@ async function fulfillUploadAndReview(route: Route, method: string, path: string
   return false;
 }
 
-async function fulfillSimulation(route: Route, method: string, path: string): Promise<boolean> {
+async function fulfillSimulation(
+  route: Route,
+  method: string,
+  path: string,
+  state: SimulationMockState,
+): Promise<boolean> {
   if (method === "GET" && path === "/workspaces/1/simulation/sessions") {
     await fulfillJson(route, {
       content: [simulationSession],
@@ -1187,19 +1288,25 @@ async function fulfillSimulation(route: Route, method: string, path: string): Pr
   }
 
   if (method === "POST" && path === "/workspaces/1/simulation/sessions") {
-    expect(route.request().postDataJSON()).toMatchObject({ customerName: "최시뮬" });
-    await fulfillJson(route, simulationDetail([]));
+    expect(route.request().postDataJSON()).toMatchObject({
+      customerName: "최시뮬",
+    });
+    state.messages = [];
+    await fulfillJson(route, simulationDetail(state.messages));
     return true;
   }
 
   if (method === "GET" && path === "/workspaces/1/simulation/sessions/8801") {
-    await fulfillJson(route, simulationDetail());
+    await fulfillJson(route, simulationDetail(state.messages));
     return true;
   }
 
   if (method === "POST" && path === "/workspaces/1/simulation/sessions/8801/messages") {
-    expect(route.request().postDataJSON()).toEqual({ content: "환불 가능한가요?" });
-    await fulfillJson(route, simulationDetail(chatMessages));
+    expect(route.request().postDataJSON()).toEqual({
+      content: "환불 가능한가요?",
+    });
+    state.messages = chatMessages;
+    await fulfillJson(route, simulationDetail(state.messages));
     return true;
   }
 
@@ -1211,7 +1318,68 @@ async function fulfillSimulation(route: Route, method: string, path: string): Pr
       expectedBehavior: "환불 문의로 고정해야 합니다.",
       severity: "HIGH",
     });
-    await fulfillJson(route, simulationDetail(chatMessages));
+    await fulfillJson(route, simulationDetail(state.messages));
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/1/simulation/golden-cases") {
+    await fulfillJson(route, goldenCasePage(state.goldenCases));
+    return true;
+  }
+
+  if (method === "POST" && path === "/workspaces/1/simulation/sessions/8801/golden-cases") {
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    expect(body).toEqual({
+      name: "환불 주문번호 검증",
+      expectedIntentCode: "INT_REFUND",
+      expectedWorkflowCode: "WF_REFUND",
+      expectedCurrentState: "환불 조건 확인",
+      expectedActionType: "ASK_SLOT",
+      expectedSlotValues: { orderId: "ORD-20260604" },
+    });
+    const created: SimulationGoldenCaseMock = {
+      id: SIMULATION_GOLDEN_CASE_ID,
+      workspaceId: WORKSPACE_ID,
+      sourceSessionId: SIMULATION_SESSION_ID,
+      sourceDomainPackVersionId: VERSION_ID,
+      name: String(body.name),
+      inputMessagesJson: JSON.stringify(
+        state.messages
+          .filter((message) => message.senderRole === "USER" || message.senderRole === "CUSTOMER")
+          .map((message) => ({ content: message.content })),
+      ),
+      expectedJson: JSON.stringify({
+        intentCode: body.expectedIntentCode,
+        workflowCode: body.expectedWorkflowCode,
+        currentState: body.expectedCurrentState,
+        actionType: body.expectedActionType,
+        slotValues: body.expectedSlotValues,
+      }),
+      createdBy: 7,
+      createdAt: now,
+      updatedAt: now,
+      latestReplayResult: null,
+    };
+    state.goldenCases = [created];
+    await fulfillJson(route, created);
+    return true;
+  }
+
+  if (
+    method === "POST" &&
+    path === `/workspaces/1/simulation/golden-cases/${SIMULATION_GOLDEN_CASE_ID}/replays`
+  ) {
+    expect(route.request().postDataJSON()).toEqual({ domainPackVersionId: 2 });
+    const result = {
+      ...simulationReplayResult,
+      expectedJson: state.goldenCases[0]?.expectedJson ?? simulationReplayResult.expectedJson,
+    };
+    state.goldenCases = state.goldenCases.map((goldenCase) =>
+      goldenCase.id === SIMULATION_GOLDEN_CASE_ID
+        ? { ...goldenCase, latestReplayResult: result }
+        : goldenCase,
+    );
+    await fulfillJson(route, result);
     return true;
   }
 
@@ -1245,9 +1413,17 @@ async function fulfillSimulation(route: Route, method: string, path: string): Pr
     return true;
   }
 
-  if (method === "PATCH" && path === "/workspaces/1/simulation/improvement-candidates/9911/status") {
-    expect(route.request().postDataJSON()).toEqual({ status: "READY_FOR_REVIEW" });
-    await fulfillJson(route, { ...improvementCandidate, status: "READY_FOR_REVIEW" });
+  if (
+    method === "PATCH" &&
+    path === "/workspaces/1/simulation/improvement-candidates/9911/status"
+  ) {
+    expect(route.request().postDataJSON()).toEqual({
+      status: "READY_FOR_REVIEW",
+    });
+    await fulfillJson(route, {
+      ...improvementCandidate,
+      status: "READY_FOR_REVIEW",
+    });
     return true;
   }
 
@@ -1255,6 +1431,8 @@ async function fulfillSimulation(route: Route, method: string, path: string): Pr
 }
 
 export async function installAppApiMocks(page: Page, seen: string[]) {
+  const simulationState = createSimulationState();
+
   await page.route("**/e2e-upload/**", async (route) => {
     seen.push(`${route.request().method()} /e2e-upload/raw-log.zip`);
     await route.fulfill({ status: 200, body: "" });
@@ -1265,7 +1443,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
     if (await fulfillDomainPackRead(route, method, path)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
     if (await fulfillUploadAndReview(route, method, path)) return true;
-    if (await fulfillSimulation(route, method, path)) return true;
+    if (await fulfillSimulation(route, method, path, simulationState)) return true;
     return false;
   });
 }
@@ -1328,7 +1506,12 @@ const adminPipelineJob = {
 export async function installAdminApiMocks(page: Page, seen: string[]) {
   await installTrackedApiRoute(page, seen, async (route, method, path) => {
     if (method === "GET" && path === "/admin/customers") {
-      await fulfillJson(route, { content: [adminCustomerSummary], page: 0, size: 20, hasNext: false });
+      await fulfillJson(route, {
+        content: [adminCustomerSummary],
+        page: 0,
+        size: 20,
+        hasNext: false,
+      });
       return true;
     }
 
@@ -1384,7 +1567,9 @@ export async function installAdminApiMocks(page: Page, seen: string[]) {
     }
 
     if (method === "POST" && path === "/admin/billing/payments/7001/refunds") {
-      expect(route.request().postDataJSON()).toEqual({ reason: "관리자 검증 환불" });
+      expect(route.request().postDataJSON()).toEqual({
+        reason: "관리자 검증 환불",
+      });
       await fulfillJson(route, {
         paymentId: payment.id,
         workspaceId: WORKSPACE_ID,
