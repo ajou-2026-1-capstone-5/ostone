@@ -292,7 +292,7 @@ test.describe("Consultation screen", () => {
     });
 
     test.describe("When an operator loads history and writes an internal note", () => {
-      test("Then older messages render and the note is sent over the counselor socket", async ({
+      test("[@critical] Then older messages render and the note is recorded as an internal note", async ({
         page,
       }) => {
         await page.goto("/workspaces/1/consultation");
@@ -307,14 +307,35 @@ test.describe("Consultation screen", () => {
         ).toBeVisible();
 
         await page.getByTitle("내부 메모로 남기기").click();
+        await expect(
+          page.getByPlaceholder(
+            "내부 메모로 타임라인에 남길 내용을 입력하세요...",
+          ),
+        ).toBeVisible();
         await page
           .getByPlaceholder("내부 메모로 타임라인에 남길 내용을 입력하세요...")
           .fill("배송사 확인 필요 내부 메모");
         await page.getByRole("button", { name: "내부 메모 남기기" }).click();
 
+        const timeline = page.getByTestId("chat-message-list");
+        const internalNote = timeline
+          .locator("div")
+          .filter({ hasText: /내부 메모[\s\S]*배송사 확인 필요 내부 메모/ })
+          .first();
+        await expect(internalNote).toBeVisible();
         await expect(
-          page.getByText("배송사 확인 필요 내부 메모"),
-        ).toBeVisible();
+          timeline.getByRole("button", { name: /배송사 확인 필요 내부 메모/ }),
+        ).toHaveCount(0);
+        await expect(
+          timeline.getByRole("button", {
+            name: /고객[\s\S]*배송사 확인 필요 내부 메모/,
+          }),
+        ).toHaveCount(0);
+        await expect(
+          timeline.getByRole("button", {
+            name: /상담사[\s\S]*배송사 확인 필요 내부 메모/,
+          }),
+        ).toHaveCount(0);
         expect(seen).toContain(
           "GET /consultation/sessions/601/messages?page=1&size=50",
         );
@@ -323,16 +344,16 @@ test.describe("Consultation screen", () => {
           const state = window as Window & { __e2eWsFrames?: string[] };
           return state.__e2eWsFrames ?? [];
         });
-        expect(
-          frames.some(
-            (frame) =>
-              frame.includes("SEND") &&
-              frame.includes("/app/chat.counselor.send") &&
-              frame.includes('"sessionId":601') &&
-              frame.includes('"isNote":true') &&
-              frame.includes("배송사 확인 필요 내부 메모"),
-          ),
-        ).toBe(true);
+        const noteFrames = frames.filter(
+          (frame) =>
+            frame.includes("SEND") &&
+            frame.includes("/app/chat.counselor.send") &&
+            frame.includes('"sessionId":601') &&
+            frame.includes("배송사 확인 필요 내부 메모"),
+        );
+        expect(noteFrames).toHaveLength(1);
+        expect(noteFrames[0]).toContain('"isNote":true');
+        expect(noteFrames[0]).not.toContain('"isNote":false');
       });
     });
   });
