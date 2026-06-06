@@ -53,7 +53,12 @@ export function PipelineReviewPage() {
         </div>
         <div className={styles.contextItem}>
           <span className={styles.contextLabel}>초안 승인</span>
-          <strong>Domain Pack 승인 화면에서 진행</strong>
+          <strong>
+            {approvalAvailabilityLabel(
+              checkpointQuery.data?.pipelineStatus,
+              checkpointQuery.data?.reviewKind,
+            )}
+          </strong>
         </div>
       </section>
 
@@ -82,6 +87,9 @@ function statusLabel(
   if (pipelineStatus === "FAILED") {
     return "파이프라인 실패";
   }
+  if (pipelineStatus === "CANCELLED") {
+    return "파이프라인 취소";
+  }
   if (pipelineStatus) {
     return pipelineStatus;
   }
@@ -93,4 +101,23 @@ function modeLabel(reviewKind?: string | null, isError = false): string {
     return "현재 job 상태 확인 불가";
   }
   return reviewKind ? "결정 후 replay" : "활성 체크포인트 없음";
+}
+
+function approvalAvailabilityLabel(
+  pipelineStatus?: string,
+  reviewKind?: string | null,
+): string {
+  if (reviewKind) {
+    return "체크포인트 완료 후 진행";
+  }
+  if (pipelineStatus === "SUCCEEDED") {
+    return "Domain Pack 승인 화면에서 진행";
+  }
+  if (pipelineStatus === "FAILED") {
+    return "실패 상태에서는 승인 불가";
+  }
+  if (pipelineStatus === "CANCELLED") {
+    return "취소 상태에서는 승인 불가";
+  }
+  return "완료 후 Domain Pack 화면에서 진행";
 }

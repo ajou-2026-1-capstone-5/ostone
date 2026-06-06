@@ -207,6 +207,69 @@ test.describe("Upload completed Domain Pack draft generation", () => {
         ),
       ).toHaveLength(1);
     });
+
+    test.describe(
+      "When the requested generation job is still running",
+      { tag: "@critical" },
+      () => {
+        test("Then the review screen shows progress and keeps approval actions unavailable", async ({
+          page,
+        }) => {
+          await installUploadGenerationMocks(page, {
+            generatedPipelineJob: "running",
+          });
+          const generationButton = await completeUpload(page);
+
+          await generationButton.click();
+
+          await expect(
+            page.getByText("생성 요청 완료", { exact: true }),
+          ).toBeVisible();
+          await expect(page.getByText(/job 905 · RUNNING/)).toBeVisible();
+
+          await page
+            .getByRole("button", { name: "검토 화면으로 이동" })
+            .click();
+
+          await expect(page).toHaveURL(
+            /\/workspaces\/1\/pipeline-jobs\/905\/review/,
+          );
+          const context = page.getByLabel("파이프라인 리뷰 맥락");
+          await expect(context).toContainText("RUNNING");
+          await expect(context).toContainText("활성 체크포인트 없음");
+          await expect(context).toContainText(
+            "완료 후 Domain Pack 화면에서 진행",
+          );
+          await expect(
+            page.getByText("활성 리뷰 체크포인트가 없습니다."),
+          ).toBeVisible();
+          await expect(
+            page.getByRole("button", { name: "상태 새로고침" }),
+          ).toBeVisible();
+          await expect(
+            page.getByRole("link", { name: "도메인팩 관리로 이동" }),
+          ).toHaveCount(0);
+          await expect(
+            page.getByRole("button", { name: /승인|적용|배포/ }),
+          ).toHaveCount(0);
+          expect(seen).toContain("POST /workspaces/1/datasets/uploads:init");
+          expect(seen).toContain(
+            "POST /workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation",
+          );
+          expect(seen).toContain(
+            "GET /workspaces/1/pipeline-jobs/905/review-checkpoint",
+          );
+          expect(seen).not.toContain(
+            "GET /workspaces/1/pipeline-jobs/900/review-checkpoint",
+          );
+          expect(
+            seen.some((entry) =>
+              entry.startsWith("GET /workspaces/2/pipeline-jobs/905"),
+            ),
+          ).toBe(false);
+        });
+      },
+    );
   });
 
   test.describe("Given a paid workspace upload cooldown has a known period boundary", () => {

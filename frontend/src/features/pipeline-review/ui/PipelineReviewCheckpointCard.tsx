@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRightIcon, ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
+import { ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   type ReviewCaseContext,
@@ -159,7 +159,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               상태 새로고침
             </button>
           </>
-        ) : query.data?.pipelineStatus === "FAILED" ? (
+        ) : query.data?.pipelineStatus === "FAILED" || query.data?.pipelineStatus === "CANCELLED" ? (
           <>
             <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionPrimary}>
               <UploadIcon aria-hidden="true" />
@@ -176,21 +176,15 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
             </button>
           </>
         ) : (
-          <>
-            <button
-              type="button"
-              className={styles.stateActionPrimary}
-              disabled={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              <RefreshCwIcon aria-hidden="true" />
-              상태 새로고침
-            </button>
-            <Link to={domainPackListPath(workspaceId)} className={styles.stateActionSecondary}>
-              <ArrowRightIcon aria-hidden="true" />
-              {CTA_GO_DOMAIN_PACK}
-            </Link>
-          </>
+          <button
+            type="button"
+            className={styles.stateActionPrimary}
+            disabled={query.isFetching}
+            onClick={() => void query.refetch()}
+          >
+            <RefreshCwIcon aria-hidden="true" />
+            상태 새로고침
+          </button>
         )}
       </StateActionCard>
     );
@@ -535,6 +529,9 @@ function checkpointStateTitle(pipelineStatus?: string): string {
   if (pipelineStatus === "FAILED") {
     return "파이프라인이 실패했습니다.";
   }
+  if (pipelineStatus === "CANCELLED") {
+    return "파이프라인이 취소되었습니다.";
+  }
   return "활성 리뷰 체크포인트가 없습니다.";
 }
 
@@ -545,5 +542,8 @@ function checkpointStateDescription(pipelineStatus?: string): string {
   if (pipelineStatus === "FAILED") {
     return "업로드를 다시 시작하거나 현재 job 상태를 다시 조회할 수 있습니다.";
   }
-  return "파이프라인이 검토 입력을 기다리는 상태가 되면 이 화면에 작업이 표시됩니다.";
+  if (pipelineStatus === "CANCELLED") {
+    return "업로드를 다시 시작하거나 취소된 job 상태를 다시 조회할 수 있습니다.";
+  }
+  return "파이프라인이 검토 입력을 기다리는 상태가 되면 이 화면에 작업이 표시됩니다. 완료 전 승인/적용은 시작하지 않습니다.";
 }
