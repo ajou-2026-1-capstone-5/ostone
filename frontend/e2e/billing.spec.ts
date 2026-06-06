@@ -65,6 +65,33 @@ test.describe("Billing screens", () => {
         await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
         expect(seen).toContain("POST /workspaces/1/payments/confirm");
       });
+
+      test("Then a repeated orderId does not confirm the payment again", async ({ page }) => {
+        const successUrl =
+          "/billing/success?workspaceId=1&flow=widget&paymentKey=payment-e2e&orderId=order-e2e&amount=99000";
+
+        await page.goto(successUrl);
+        await expect(page).toHaveURL(/\/workspaces\/1\/billing/);
+
+        const confirmCallsAfterFirstEntry = seen.filter(
+          (entry) => entry === "POST /workspaces/1/payments/confirm",
+        );
+        expect(confirmCallsAfterFirstEntry).toHaveLength(1);
+
+        await page.goto(successUrl);
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/billing/);
+        await expect(page.getByRole("heading", { name: "구독", level: 1 })).toBeVisible();
+        await expect(page.getByText("이미 처리된 결제입니다.")).toBeVisible();
+        expect(page.url()).not.toContain("paymentKey=");
+        expect(page.url()).not.toContain("orderId=");
+        expect(page.url()).not.toContain("amount=");
+
+        const confirmCallsAfterSecondEntry = seen.filter(
+          (entry) => entry === "POST /workspaces/1/payments/confirm",
+        );
+        expect(confirmCallsAfterSecondEntry).toHaveLength(1);
+      });
     });
   });
 
