@@ -26,6 +26,11 @@ export const e2eIds = {
 
 type RouteHandler = (route: Route, method: string, path: string, url: URL) => Promise<boolean>;
 
+interface DomainPackMockState {
+  currentVersionId: number;
+  currentVersionNo: number;
+}
+
 const now = "2026-06-04T09:00:00+09:00";
 
 const workspace = {
@@ -160,6 +165,26 @@ const draftVersionDetail = {
   ...packDetail.versions[2],
   finalMessage: "고액 환불 검토 흐름을 정리했습니다.",
 };
+
+function buildWorkspacePackSummary(state: DomainPackMockState) {
+  return {
+    ...packSummary,
+    currentVersionId: state.currentVersionId,
+    currentVersionNo: state.currentVersionNo,
+    currentVersionPublishedAt:
+      state.currentVersionId === VERSION_ID ? packSummary.currentVersionPublishedAt : now,
+    updatedAt: state.currentVersionId === VERSION_ID ? packSummary.updatedAt : now,
+  };
+}
+
+function buildWorkspacePackDetail(state: DomainPackMockState) {
+  return {
+    ...packDetail,
+    ...buildWorkspacePackSummary(state),
+    code: packDetail.code,
+    versions: packDetail.versions,
+  };
+}
 
 const intent = {
   id: INTENT_ID,
@@ -652,17 +677,23 @@ async function fulfillWorkspaceShell(route: Route, method: string, path: string)
   return false;
 }
 
-async function fulfillDomainPackRead(route: Route, method: string, path: string): Promise<boolean> {
-  const domainPackWorkspacePrefix = path.startsWith("/workspaces/1/domain-packs")
-    ? "/workspaces/1"
-    : path.startsWith("/workspaces/2/domain-packs")
-      ? "/workspaces/2"
-      : null;
+async function fulfillDomainPackRead(
+  route: Route,
+  method: string,
+  path: string,
+  state: DomainPackMockState,
+): Promise<boolean> {
+  const domainPackWorkspacePrefix =
+    path.startsWith("/workspaces/1/domain-packs")
+      ? "/workspaces/1"
+      : path.startsWith("/workspaces/2/domain-packs")
+        ? "/workspaces/2"
+        : null;
 
   if (method === "GET" && path === `${domainPackWorkspacePrefix}/domain-packs`) {
     const summaries =
       domainPackWorkspacePrefix === "/workspaces/1"
-        ? [packSummary, idlePackSummary]
+        ? [buildWorkspacePackSummary(state), idlePackSummary]
         : [{ ...packSummary, workspaceId: 2, name: "Ops Workflow Pack" }];
     await fulfillJson(route, { data: summaries, status: 200 });
     return true;
@@ -672,7 +703,7 @@ async function fulfillDomainPackRead(route: Route, method: string, path: string)
     await fulfillJson(route, {
       data:
         domainPackWorkspacePrefix === "/workspaces/1"
-          ? packDetail
+          ? buildWorkspacePackDetail(state)
           : { ...packDetail, workspaceId: 2, name: "Ops Workflow Pack" },
       status: 200,
     });
@@ -707,6 +738,8 @@ async function fulfillDomainPackRead(route: Route, method: string, path: string)
   }
 
   if (method === "POST" && path === "/workspaces/1/domain-packs/1/versions/2/deploy") {
+    state.currentVersionId = 2;
+    state.currentVersionNo = 2;
     await fulfillJson(route, {
       data: {
         id: 2,
@@ -1431,6 +1464,10 @@ async function fulfillSimulation(
 }
 
 export async function installAppApiMocks(page: Page, seen: string[]) {
+  const domainPackState: DomainPackMockState = {
+    currentVersionId: VERSION_ID,
+    currentVersionNo: 1,
+  };
   const simulationState = createSimulationState();
 
   await page.route("**/e2e-upload/**", async (route) => {
@@ -1440,7 +1477,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
 
   await installTrackedApiRoute(page, seen, async (route, method, path, url) => {
     if (await fulfillWorkspaceShell(route, method, path)) return true;
-    if (await fulfillDomainPackRead(route, method, path)) return true;
+    if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
     if (await fulfillUploadAndReview(route, method, path)) return true;
     if (await fulfillSimulation(route, method, path, simulationState)) return true;
