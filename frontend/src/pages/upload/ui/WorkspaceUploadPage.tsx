@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { isSubscriptionEngaged, useSubscription } from "@/entities/billing";
 import {
@@ -12,6 +13,29 @@ interface WorkspaceWithFreeOnboarding {
   freeOnboardingStatus?: FreeOnboardingStatus;
 }
 
+const ENTITLEMENT_REFETCH_BUFFER_MS = 500;
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+function getEntitlementRefetchDelay(
+  periodEnd: string | undefined,
+): number | null {
+  if (!periodEnd) {
+    return null;
+  }
+
+  const periodEndMs = new Date(periodEnd).getTime();
+  if (!Number.isFinite(periodEndMs)) {
+    return null;
+  }
+
+  const delay = periodEndMs - Date.now() + ENTITLEMENT_REFETCH_BUFFER_MS;
+  if (delay <= 0) {
+    return null;
+  }
+
+  return Math.min(delay, MAX_TIMEOUT_MS);
+}
+
 export function WorkspaceUploadPage() {
   const { workspaceId } = useParams();
   const [searchParams] = useSearchParams();
@@ -22,14 +46,52 @@ export function WorkspaceUploadPage() {
   });
   const subscriptionQuery = useSubscription(parsedWorkspaceId);
 
-  if (parsedWorkspaceId !== null && pipelineJobId !== null) {
-    return <Navigate to={`/workspaces/${parsedWorkspaceId}/pipeline-jobs/${pipelineJobId}/review`} replace />;
-  }
-
   const workspace =
-    (selectApiData(workspaceQuery.data) as WorkspaceWithFreeOnboarding | undefined) ?? null;
+    (selectApiData(workspaceQuery.data) as
+      | WorkspaceWithFreeOnboarding
+      | undefined) ?? null;
   const subscription = subscriptionQuery.data ?? null;
   const hasActiveSubscription = isSubscriptionEngaged(subscription?.status);
+  const refetchWorkspace = workspaceQuery.refetch;
+  const refetchSubscription = subscriptionQuery.refetch;
+  const isEntitlementLoading = Boolean(
+    workspaceQuery.isLoading ||
+    workspaceQuery.isFetching ||
+    subscriptionQuery.isLoading ||
+    subscriptionQuery.isFetching,
+  );
+
+  useEffect(() => {
+    if (parsedWorkspaceId === null) {
+      return undefined;
+    }
+
+    const delay = getEntitlementRefetchDelay(subscription?.currentPeriodEnd);
+    if (delay === null) {
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      void refetchWorkspace();
+      void refetchSubscription();
+    }, delay);
+
+    return () => window.clearTimeout(timerId);
+  }, [
+    parsedWorkspaceId,
+    refetchSubscription,
+    refetchWorkspace,
+    subscription?.currentPeriodEnd,
+  ]);
+
+  if (parsedWorkspaceId !== null && pipelineJobId !== null) {
+    return (
+      <Navigate
+        to={`/workspaces/${parsedWorkspaceId}/pipeline-jobs/${pipelineJobId}/review`}
+        replace
+      />
+    );
+  }
 
   return (
     <div style={{ padding: "var(--s-6) var(--s-8) var(--s-10)" }}>
@@ -37,7 +99,7 @@ export function WorkspaceUploadPage() {
         workspaceId={parsedWorkspaceId ?? undefined}
         freeOnboardingStatus={workspace?.freeOnboardingStatus ?? "AVAILABLE"}
         hasActiveSubscription={hasActiveSubscription}
-        isEntitlementLoading={workspaceQuery.isLoading || subscriptionQuery.isLoading}
+        isEntitlementLoading={isEntitlementLoading}
       />
     </div>
   );
