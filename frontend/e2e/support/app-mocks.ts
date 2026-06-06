@@ -302,7 +302,14 @@ function componentPreviewData(versionId: number, section: DomainPackComponentSec
   const suffix = versionId === 3 ? "고액 환불" : "상담사 연결";
 
   if (section === "intents") {
-    return [{ ...intent, domainPackVersionId: versionId, name: `${suffix} 문의` }];
+    return [
+      {
+        ...intent,
+        domainPackVersionId: versionId,
+        name: `${suffix} 문의`,
+        status: versionId === 3 ? "DRAFT" : intent.status,
+      },
+    ];
   }
 
   if (section === "slots") {

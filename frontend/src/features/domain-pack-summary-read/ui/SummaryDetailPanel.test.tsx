@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider, type UseQueryResult } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import { ApiRequestError } from "@/shared/api";
 import { SummaryDetailPanel } from "./SummaryDetailPanel";
@@ -66,7 +67,11 @@ const publishedDetail: DomainPackVersionDetail = {
 
 function renderSummaryDetailPanel(ui: React.ReactElement) {
   const queryClient = new QueryClient();
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 describe("SummaryDetailPanel", () => {
@@ -375,6 +380,29 @@ describe("SummaryDetailPanel", () => {
     expect(screen.getByRole("button", { name: "적용" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "배포" })).not.toBeInTheDocument();
+  });
+
+  it("승인 준비 gate가 활성화된 DRAFT 버전은 적용 버튼 대신 승인 준비 상태를 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: stubDetail })}
+        wsId={1}
+        packId={2}
+        versions={[
+          { versionId: 3, versionNo: 1, lifecycleStatus: "DRAFT" },
+          { versionId: 4, versionNo: 2, lifecycleStatus: "DRAFT" },
+        ]}
+        approvalReadinessEnabled
+        onApplyDraft={vi.fn()}
+        onDiscardDraft={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("승인 준비 상태")).toBeInTheDocument();
+    expect(screen.getByText("최신 버전만 승인할 수 있습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "적용" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
   });
 
   it("DRAFT 버전에서는 제공된 action callback의 버튼만 표시한다", () => {
