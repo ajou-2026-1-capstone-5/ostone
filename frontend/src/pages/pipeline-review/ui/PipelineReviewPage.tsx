@@ -39,11 +39,17 @@ export function PipelineReviewPage() {
       <section className={styles.contextPanel} aria-label="파이프라인 리뷰 맥락">
         <div className={styles.contextItem}>
           <span className={styles.contextLabel}>현재 단계</span>
-          <strong>{statusLabel(checkpointQuery.data?.pipelineStatus, checkpointQuery.data?.reviewKind)}</strong>
+          <strong>
+            {statusLabel(
+              checkpointQuery.data?.pipelineStatus,
+              checkpointQuery.data?.reviewKind,
+              checkpointQuery.isError,
+            )}
+          </strong>
         </div>
         <div className={styles.contextItem}>
           <span className={styles.contextLabel}>반영 방식</span>
-          <strong>{checkpointQuery.data?.reviewKind ? "결정 후 replay" : "활성 체크포인트 없음"}</strong>
+          <strong>{modeLabel(checkpointQuery.data?.reviewKind, checkpointQuery.isError)}</strong>
         </div>
         <div className={styles.contextItem}>
           <span className={styles.contextLabel}>초안 승인</span>
@@ -56,7 +62,14 @@ export function PipelineReviewPage() {
   );
 }
 
-function statusLabel(pipelineStatus?: string, reviewKind?: string | null): string {
+function statusLabel(
+  pipelineStatus?: string,
+  reviewKind?: string | null,
+  isError = false,
+): string {
+  if (isError) {
+    return "상태 조회 실패";
+  }
   if (reviewKind === "DOMAIN_CONFIRMATION") {
     return "도메인 확정 대기";
   }
@@ -73,4 +86,11 @@ function statusLabel(pipelineStatus?: string, reviewKind?: string | null): strin
     return pipelineStatus;
   }
   return "확인 중";
+}
+
+function modeLabel(reviewKind?: string | null, isError = false): string {
+  if (isError) {
+    return "현재 job 상태 확인 불가";
+  }
+  return reviewKind ? "결정 후 replay" : "활성 체크포인트 없음";
 }

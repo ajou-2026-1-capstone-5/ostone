@@ -90,6 +90,19 @@ describe("PipelineReviewPage", () => {
     },
   );
 
+  it("shows status lookup failure in the route context without implying completion", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isError: true,
+      data: undefined,
+    } as never);
+
+    renderPage("/workspaces/1/pipeline-jobs/7/review");
+
+    expect(screen.getByText("상태 조회 실패")).toBeInTheDocument();
+    expect(screen.getByText("현재 job 상태 확인 불가")).toBeInTheDocument();
+    expect(screen.queryByText("파이프라인 완료")).not.toBeInTheDocument();
+  });
+
   it("redirects invalid route ids back to workspace list", () => {
     renderPage("/workspaces/not-a-number/pipeline-jobs/7/review");
 

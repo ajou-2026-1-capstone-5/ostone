@@ -1511,6 +1511,12 @@ async function fulfillUploadAndReview(
     return true;
   }
 
+  if (method === "GET" && path === "/workspaces/1/pipeline-jobs/904/review-checkpoint") {
+    const checkpoint = failOnceThenCheckpoint(state, 904, "SUCCEEDED");
+    await fulfillJson(route, checkpoint.body, checkpoint.status);
+    return true;
+  }
+
   if (
     method === "POST" &&
     path === "/workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation"
@@ -1547,6 +1553,35 @@ function transitionCheckpoint(
     pipelineStatus: seenCount === 0 ? "RUNNING" : finalStatus,
     reviewKind: null,
     tasks: [],
+  };
+}
+
+function failOnceThenCheckpoint(
+  state: PipelineReviewMockState,
+  pipelineJobId: number,
+  finalStatus: "SUCCEEDED" | "FAILED",
+) {
+  const seenCount = state.pipelineReviewStatusRequests[pipelineJobId] ?? 0;
+  state.pipelineReviewStatusRequests[pipelineJobId] = seenCount + 1;
+
+  if (seenCount === 0) {
+    return {
+      status: 503,
+      body: {
+        code: "PIPELINE_REVIEW_STATUS_UNAVAILABLE",
+        message: "파이프라인 상태를 확인할 수 없습니다.",
+      },
+    };
+  }
+
+  return {
+    status: 200,
+    body: {
+      pipelineJobId,
+      pipelineStatus: finalStatus,
+      reviewKind: null,
+      tasks: [],
+    },
   };
 }
 
