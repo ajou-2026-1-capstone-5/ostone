@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { listWorkspaces } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import type { WorkspaceResponse } from "@/shared/api/generated/zod";
 import { DEFAULT_POST_LOGIN_PATH } from "./resolvePostLoginDestination";
-import { resolveDefaultPostLoginDestination } from "./resolveDefaultPostLoginDestination";
+import {
+  resolveAuthenticatedPostLoginDestination,
+  resolveDefaultPostLoginDestination,
+} from "./resolveDefaultPostLoginDestination";
 
 vi.mock("@/shared/api/generated/endpoints/workspace-controller/workspace-controller", () => ({
   listWorkspaces: vi.fn(),
@@ -57,5 +60,58 @@ describe("resolveDefaultPostLoginDestination", () => {
     mockedListWorkspaces.mockRejectedValueOnce(new Error("network error"));
 
     await expect(resolveDefaultPostLoginDestination()).resolves.toBe(DEFAULT_POST_LOGIN_PATH);
+  });
+
+  it("현재 계정에 소속된 workspace return-to는 query string과 함께 유지한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(
+      listResponse([{ id: 4, name: "Current", status: "ACTIVE" }]),
+    );
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/workspaces/4/upload", search: "?tab=logs" },
+      }),
+    ).resolves.toBe("/workspaces/4/upload?tab=logs");
+  });
+
+  it("workspace가 없는 계정의 stale workspace return-to는 /workspaces fallback으로 보낸다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(listResponse([]));
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/workspaces/1/upload" },
+      }),
+    ).resolves.toBe(DEFAULT_POST_LOGIN_PATH);
+  });
+
+  it("다른 계정 workspace return-to는 현재 계정 기본 workspace로 대체한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(
+      listResponse([{ id: 7, name: "Current", status: "ACTIVE" }]),
+    );
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/workspaces/4/upload" },
+      }),
+    ).resolves.toBe("/workspaces/7/workflows");
+  });
+
+  it("demo return-to는 workspace 조회 없이 유지한다", async () => {
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/demo/chat/1", search: "?preview=true" },
+      }),
+    ).resolves.toBe("/demo/chat/1?preview=true");
+    expect(mockedListWorkspaces).not.toHaveBeenCalled();
+  });
+
+  it("일반 사용자의 admin return-to는 role 기준 기본 목적지로 대체한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(listResponse([]));
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/admin/super-admins" },
+      }),
+    ).resolves.toBe(DEFAULT_POST_LOGIN_PATH);
   });
 });

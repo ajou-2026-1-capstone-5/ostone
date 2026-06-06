@@ -5,9 +5,8 @@ import { toast } from "sonner";
 import { Input } from "../../../../shared/ui/input/Input";
 import { Button } from "../../../../shared/ui/button/Button";
 import { loginApi } from "../../api/authApi";
-import { resolveDefaultPostLoginDestination } from "../../model/resolveDefaultPostLoginDestination";
-import { resolveReturnToPostLoginDestination } from "../../model/resolvePostLoginDestination";
-import { isSuperAdminRole, saveAuthSession } from "../../../../shared/lib/auth";
+import { resolveAuthenticatedPostLoginDestination } from "../../model/resolveDefaultPostLoginDestination";
+import { saveAuthSession } from "../../../../shared/lib/auth";
 import { ApiRequestError } from "../../../../shared/api";
 import styles from "./login-form.module.css";
 
@@ -66,13 +65,7 @@ export const LoginForm: React.FC = () => {
         },
       );
 
-      const returnToDestination = resolveReturnToPostLoginDestination(location.state);
-      const requiresDefaultDestination =
-        returnToDestination === null ||
-        (!isSuperAdminRole(role) && returnToDestination.startsWith("/admin"));
-      const destination = requiresDefaultDestination
-        ? await resolveDefaultPostLoginDestination(role)
-        : returnToDestination;
+      const destination = await resolveAuthenticatedPostLoginDestination(location.state, role);
       navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ApiRequestError) {
