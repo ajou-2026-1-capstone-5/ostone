@@ -65,6 +65,9 @@ GitHub repository 또는 `prod` environment에 다음 secrets를 설정한다.
 | `PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD` | Airflow admin password |
 | `PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD` | Airflow viewer password |
 | `PROD_LLM_RUNTIME_API_KEY` | 내부 LLM endpoint API key, 필요 시 |
+| `PROD_TOSS_SECRET_KEY` | Toss Payments v2 API secret key (`TF_VAR_toss_secret_key`) |
+| `PROD_TOSS_WEBHOOK_SECRET` | Toss Payments webhook 서명 검증 secret (`TF_VAR_toss_webhook_secret`) |
+| `PROD_TOSS_BILLING_KEY_ENCRYPTION_KEY` | Toss 빌링 키 암호화 key (`TF_VAR_toss_billing_key_encryption_key`) |
 
 ### 3.2 Required Variables
 
@@ -78,7 +81,7 @@ GitHub repository 또는 `prod` environment에 다음 secrets를 설정한다.
 | `PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP` | `false`; `TF_VAR_airflow_api_allow_insecure_http`로 전달 |
 | `PROD_API_BASE_URL` | `https://api.<domain>/api/v1` |
 | `PROD_WS_URL` | `wss://api.<domain>` |
-| `PROD_BACKEND_DESIRED_COUNT` | `1` |
+| `PROD_BACKEND_DESIRED_COUNT` | `0` (최초 apply 기본값; 앱 이미지 배포 후 `1` 이상 권장) |
 | `PROD_BACKEND_AUTOSCALING_MIN_CAPACITY` | `1` |
 | `PROD_BACKEND_AUTOSCALING_MAX_CAPACITY` | `3` |
 | `PROD_GPU_INSTANCE_TYPE` | `g6.2xlarge` |
@@ -89,6 +92,7 @@ GitHub repository 또는 `prod` environment에 다음 secrets를 설정한다.
 | `PROD_LLM_MODEL_NAME` | `Qwen/Qwen3-14B` |
 | `PROD_LLM_MODEL_PATH` | `/models/model.gguf` |
 | `PROD_LLM_SERVICE_DESIRED_COUNT` | `0` |
+| `PROD_TOSS_CLIENT_KEY` | Toss Payments client key; frontend build에 `VITE_TOSS_CLIENT_KEY`로 주입 |
 
 ## 4. 인프라 배포
 
@@ -110,7 +114,18 @@ terraform output frontend_bucket_name
 terraform output cloudfront_distribution_id
 terraform output ecs_cluster_name
 terraform output backend_service_name
+terraform output backend_task_definition_arn
 terraform output rds_address
+# 배포 workflow가 Airflow 서비스/태스크 갱신과 네트워킹에 사용하는 output
+terraform output airflow_apiserver_service_name
+terraform output airflow_scheduler_service_name
+terraform output airflow_dag_processor_service_name
+terraform output airflow_init_task_definition_arn
+terraform output airflow_apiserver_task_definition_arn
+terraform output airflow_scheduler_task_definition_arn
+terraform output airflow_dag_processor_task_definition_arn
+terraform output private_subnet_ids
+terraform output ecs_airflow_security_group_id
 ```
 
 ## 5. 자동 배포
@@ -138,10 +153,18 @@ Backend ECS task definition은 Terraform이 다음 값을 주입한다.
 | `CORS_ALLOWED_ORIGINS` | `https://app.<domain>` |
 | `STORAGE_S3_BUCKET`, `STORAGE_S3_REGION` | Terraform S3 resources |
 | `AIRFLOW_API_BASE_URL` | private Cloud Map endpoint by default |
+| `AIRFLOW_API_ALLOW_INSECURE_HTTP` | `TF_VAR_airflow_api_allow_insecure_http` |
 | `AIRFLOW_API_USERNAME`, `AIRFLOW_API_PASSWORD` | Secrets Manager |
 | `AIRFLOW_WEBHOOK_SECRET` | Secrets Manager |
+| `AWS_REGION` | Terraform environment |
+| `STORAGE_S3_SSE_ENABLED` | Terraform environment (`"true"`) |
+| `AI_EMBEDDING_*` (provider/model/bedrock region/enabled/timeout 및 threshold·floor·margin 다수) | Terraform environment |
+| `AI_CHAT_PROVIDER`, `AI_CHAT_BEDROCK_REGION`, `AI_CHAT_BEDROCK_MODEL` | Terraform environment (Bedrock Converse) |
+| `TOSS_SECRET_KEY`, `TOSS_WEBHOOK_SECRET`, `TOSS_BILLING_KEY_ENCRYPTION_KEY` | Secrets Manager |
 
-Frontend build는 GitHub Actions variables `PROD_API_BASE_URL`, `PROD_WS_URL`을 사용한다.
+> `AI_EMBEDDING_*` 전체 키 목록과 기본값은 [`infra/terraform/ecs-cluster.tf`](../../infra/terraform/ecs-cluster.tf)의 backend container `environment` 블록을 기준으로 한다. Backend ECS service는 CPU 사용률 70% target의 auto scaling이 적용된다(min/max는 `PROD_BACKEND_AUTOSCALING_*` 변수).
+
+Frontend build는 GitHub Actions variables `PROD_API_BASE_URL`, `PROD_WS_URL`, `PROD_TOSS_CLIENT_KEY`를 사용한다(각각 `VITE_API_BASE_URL`, `VITE_WS_URL`, `VITE_TOSS_CLIENT_KEY`로 주입).
 
 ## 7. S3 / IAM
 
