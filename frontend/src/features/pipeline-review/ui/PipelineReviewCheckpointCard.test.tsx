@@ -55,7 +55,7 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(screen.getByText("리뷰 체크포인트를 불러오는 중입니다.")).toBeInTheDocument();
   });
 
-  it("retries checkpoint loading from the error state", () => {
+  it("retries checkpoint loading from the error state and exposes a safe workspace action", () => {
     const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
@@ -66,7 +66,15 @@ describe("PipelineReviewCheckpointCard", () => {
 
     renderCard();
 
-    expect(screen.getByText("리뷰 체크포인트를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("현재 job 상태를 확인할 수 없습니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "완료나 초안 생성 성공으로 처리하지 않고 같은 job을 다시 조회합니다.",
+    );
+    expect(screen.getByRole("link", { name: "업로드 화면으로 돌아가기" })).toHaveAttribute(
+      "href",
+      "/workspaces/1/upload",
+    );
+    expect(screen.queryByRole("link", { name: "도메인팩 관리로 이동" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });

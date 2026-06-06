@@ -116,8 +116,9 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   if (query.isError) {
     return (
       <StateActionCard
-        title="리뷰 체크포인트를 불러오지 못했습니다."
-        description="네트워크 상태를 확인한 뒤 같은 화면에서 다시 조회할 수 있습니다."
+        role="alert"
+        title="현재 job 상태를 확인할 수 없습니다."
+        description="상태 조회에 실패했습니다. 완료나 초안 생성 성공으로 처리하지 않고 같은 job을 다시 조회합니다."
       >
         <button
           type="button"
@@ -128,6 +129,10 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <RefreshCwIcon aria-hidden="true" />
           다시 시도
         </button>
+        <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionSecondary}>
+          <UploadIcon aria-hidden="true" />
+          업로드 화면으로 돌아가기
+        </Link>
       </StateActionCard>
     );
   }
@@ -342,13 +347,15 @@ function StateActionCard({
   title,
   description,
   children,
+  role,
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  role?: "alert" | "status";
 }) {
   return (
-    <section className={styles.stateCard}>
+    <section className={styles.stateCard} role={role}>
       <div className={styles.stateCopy}>
         <strong className={styles.stateTitle}>{title}</strong>
         <span>{description}</span>

@@ -344,6 +344,37 @@ test.describe("Workspace core operator screens", () => {
     });
 
     test.describe("When they refresh pipeline review progress", () => {
+      test("Then lookup failures show safe recovery and retry updates the same job", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/pipeline-jobs/904/review");
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("상태 조회 실패");
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText(
+          "현재 job 상태 확인 불가",
+        );
+        await expect(page.getByRole("alert")).toContainText("현재 job 상태를 확인할 수 없습니다.");
+        await expect(page.getByRole("link", { name: "업로드 화면으로 돌아가기" })).toHaveAttribute(
+          "href",
+          "/workspaces/1/upload",
+        );
+        await expect(page.getByRole("link", { name: "도메인팩 관리로 이동" })).toHaveCount(0);
+
+        await page.getByRole("button", { name: "다시 시도" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/904\/review/);
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("파이프라인 완료");
+        await expect(page.getByText("리뷰 체크포인트가 완료되었습니다.")).toBeVisible();
+        await expect(page.getByRole("link", { name: "도메인팩 관리로 이동" })).toBeVisible();
+        await expect
+          .poll(
+            () =>
+              seen.filter(
+                (entry) => entry === "GET /workspaces/1/pipeline-jobs/904/review-checkpoint",
+              ).length,
+          )
+          .toBeGreaterThanOrEqual(2);
+      });
+
       test("Then the latest completion and failure actions replace the stale running state", async ({
         page,
       }) => {
