@@ -53,13 +53,9 @@ test.describe("Workspace core operator screens", () => {
 
         const range = dashboardRangeQuery("7d");
         expect(seen).toContain(`GET /workspaces/1/consultation/metrics?${range}`);
-        expect(seen).toContain(
-          `GET /workspaces/1/dashboard/action-recommendations?${range}`,
-        );
+        expect(seen).toContain(`GET /workspaces/1/dashboard/action-recommendations?${range}`);
         expect(seen).toContain("GET /workspaces/1/dashboard/knowledge-pack-health");
-        expect(seen).toContain(
-          `GET /workspaces/1/dashboard/workflow-rankings?${range}`,
-        );
+        expect(seen).toContain(`GET /workspaces/1/dashboard/workflow-rankings?${range}`);
       });
 
       test("Then compact filter controls update summaries, date queries, and action navigation", async ({
@@ -71,9 +67,7 @@ test.describe("Workspace core operator screens", () => {
         await expect(page.getByLabel("대시보드 필터 요약")).toContainText("오늘");
         await expect
           .poll(() =>
-            seen.includes(
-              `GET /workspaces/1/consultation/metrics?${dashboardRangeQuery("today")}`,
-            ),
+            seen.includes(`GET /workspaces/1/consultation/metrics?${dashboardRangeQuery("today")}`),
           )
           .toBe(true);
 
@@ -111,7 +105,9 @@ test.describe("Workspace core operator screens", () => {
 
         await page.getByTestId("workspace-workflows-search-input").fill("환불");
         await page.getByTestId("workspace-workflows-search-item-401").click();
-        await expect(page.getByTestId("workspace-workflows-filter-chip")).toContainText("환불 처리");
+        await expect(page.getByTestId("workspace-workflows-filter-chip")).toContainText(
+          "환불 처리",
+        );
 
         await page.getByTestId("workspace-workflows-settings-toggle").click();
         await expect(page.getByTestId("workspace-workflows-settings")).toBeVisible();
@@ -255,7 +251,9 @@ test.describe("Workspace core operator screens", () => {
 
         await page.getByRole("button", { name: /김민지/ }).click();
         await expect(page).toHaveURL(/\/workspaces\/1\/consultation\/history\/601\?/);
-        await expect(page.getByLabel("채팅 메시지 내역")).toContainText("환불 가능한지 확인해주세요.");
+        await expect(page.getByLabel("채팅 메시지 내역")).toContainText(
+          "환불 가능한지 확인해주세요.",
+        );
         await expect(page.getByText("2/3개 메시지")).toBeVisible();
 
         await page.getByRole("button", { name: "이전 메시지 불러오기" }).click();
@@ -334,10 +332,41 @@ test.describe("Workspace core operator screens", () => {
         await expect(page.getByLabel("시뮬레이션 대화")).toContainText(
           "환불 처리 기준으로 응답합니다.",
         );
+        await expect(page.getByText("고객 메시지를 입력하면 응답이 생성됩니다.")).toBeVisible();
+
+        await page.getByRole("button", { name: "등록" }).click();
+        await expect(
+          page.getByText("고객 메시지가 있어야 검증 케이스로 저장할 수 있습니다."),
+        ).toBeVisible();
+        expect(
+          seen.some(
+            (entry) => entry === "POST /workspaces/1/simulation/sessions/8801/golden-cases",
+          ),
+        ).toBe(false);
 
         await page.getByPlaceholder("고객 역할 메시지 입력").fill("환불 가능한가요?");
         await page.getByRole("button", { name: "전송" }).click();
         await expect(page.getByText("주문번호를 알려주시면 환불 가능 여부")).toBeVisible();
+
+        await page.getByLabel("검증 케이스 이름").fill("환불 주문번호 검증");
+        await page.getByLabel("기대 action").selectOption("ASK_SLOT");
+        await page.getByRole("button", { name: "등록" }).click();
+        await expect(page.getByText("검증 케이스를 저장했습니다.")).toBeVisible();
+        await expect(page.getByText("환불 주문번호 검증")).toBeVisible();
+        expect(seen).toContain("POST /workspaces/1/simulation/sessions/8801/golden-cases");
+
+        await page.getByLabel("Replay version").fill("");
+        await page.getByRole("button", { name: "환불 주문번호 검증 replay" }).click();
+        await expect(page.getByText("Replay version을 입력하세요.")).toBeVisible();
+        expect(
+          seen.some((entry) => entry === "POST /workspaces/1/simulation/golden-cases/9951/replays"),
+        ).toBe(false);
+
+        await page.getByLabel("Replay version").fill("2");
+        await page.getByRole("button", { name: "환불 주문번호 검증 replay" }).click();
+        await expect(page.getByText("검증 케이스 replay가 통과했습니다.")).toBeVisible();
+        await expect(page.getByText("PASS")).toBeVisible();
+        expect(seen).toContain("POST /workspaces/1/simulation/golden-cases/9951/replays");
 
         await page.getByLabel("Turn 2 피드백 대상 선택").click();
         await page.getByLabel("피드백 유형 선택").selectOption("MISSING_SLOT_QUESTION");
@@ -346,17 +375,15 @@ test.describe("Workspace core operator screens", () => {
         await page.getByLabel("기대 응답/행동").fill("환불 문의로 고정해야 합니다.");
         await page.getByRole("button", { name: "피드백 저장" }).click();
         await expect(page.getByText("시뮬레이션 피드백을 남겼습니다.")).toBeVisible();
-        expect(seen).toContain(
-          "POST /workspaces/1/simulation/sessions/8801/feedback",
-        );
+        expect(seen).toContain("POST /workspaces/1/simulation/sessions/8801/feedback");
 
         await page.getByRole("button", { name: "후보" }).click();
         await expect(page.getByText("intent 설명/예시")).toBeVisible();
         await page.getByRole("button", { name: "리뷰 요청" }).click();
         await expect(page.getByText("개선 후보 상태를 변경했습니다.")).toBeVisible();
-        expect(latestSeen(seen, "PATCH /workspaces/1/simulation/improvement-candidates/9911/status")).toBe(
-          "PATCH /workspaces/1/simulation/improvement-candidates/9911/status",
-        );
+        expect(
+          latestSeen(seen, "PATCH /workspaces/1/simulation/improvement-candidates/9911/status"),
+        ).toBe("PATCH /workspaces/1/simulation/improvement-candidates/9911/status");
         await captureScreen(page, testInfo, "workspace-simulation");
       });
     });
