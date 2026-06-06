@@ -15,6 +15,7 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: () => ({ data: undefined }),
+  VersionSafetyBanner: () => null,
 }));
 
 vi.mock("@/features/policy-draft-read/ui", () => ({

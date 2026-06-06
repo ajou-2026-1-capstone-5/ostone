@@ -19,6 +19,7 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: (...args: unknown[]) => mockUsePackDetail(...args),
   formatLifecycleStatus: (status?: string | null) =>
     status === "PUBLISHED" ? "운영 가능" : status === "DRAFT" ? "검토 중" : "상태 없음",
+  VersionSafetyBanner: () => null,
 }));
 
 vi.mock("@/features/consultation/api/consultationApi", () => ({

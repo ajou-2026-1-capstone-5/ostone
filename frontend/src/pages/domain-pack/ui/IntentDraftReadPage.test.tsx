@@ -92,6 +92,7 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
     data: mocks.versionData,
     refetch: mocks.versionRefetch,
   }),
+  VersionSafetyBanner: () => null,
 }));
 
 vi.mock("@/features/intent-draft-read/model/useIntentList", () => ({

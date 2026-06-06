@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { IntentDetailPanel, type IntentDetail, type IntentListState } from "@/entities/intent";
-import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
 import { IntentTreePanel, MatchedWorkflowSection } from "@/features/intent-draft-read/ui";
 import { useIntentList } from "@/features/intent-draft-read/model/useIntentList";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
@@ -116,6 +116,7 @@ function IntentDraftReadContent({
   return (
     <OstoneShell active="intent" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
+        <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         <IntentDraftTwoPane
           controller={controller}
           hasSelection={iId !== null}

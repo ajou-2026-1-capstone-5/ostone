@@ -1,0 +1,143 @@
+.banner {
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  overflow: hidden;
+  background: var(--paper);
+  /* page 컨테이너(.page/.pageWrapper)는 좌우 padding이 없으므로 배너가 자체
+     margin으로 모든 화면에서 동일한 inset을 갖는다. */
+  margin: var(--s-4) var(--s-5) var(--s-5);
+  flex-shrink: 0;
+}
+
+.banner[data-tone="operating"] {
+  border-color: color-mix(in oklch, var(--signal) 35%, var(--line));
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  padding: var(--s-3) var(--s-4);
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.versionNo {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.transition {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 3px 11px;
+}
+
+.description {
+  margin: 0;
+  padding: var(--s-2) var(--s-4);
+  font-size: 13px;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.impact {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  padding: var(--s-3) var(--s-4);
+}
+
+.impactLabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  background: var(--paper);
+  font-size: 11.5px;
+}
+
+.chipLabel {
+  color: var(--ink-3);
+}
+
+.chipValue {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.reason {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  font-size: 13px;
+  border-top: 1px solid var(--line-2);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.banner[data-tone="review"] .reason {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.banner[data-tone="blocked"] .reason {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.banner[data-tone="operating"] .reason {
+  background: var(--signal-bg);
+  color: var(--signal-ink);
+}
+
+.skeleton {
+  margin: var(--s-4) var(--s-5) var(--s-5);
+  flex-shrink: 0;
+}
+
+.skeletonBar {
+  height: 96px;
+  border-radius: var(--r-3);
+  background: linear-gradient(90deg, var(--paper-2), var(--paper-3), var(--paper-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -1,7 +1,11 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { formatLifecycleStatus, usePackDetail } from "@/features/domain-pack-summary-read";
+import {
+  formatLifecycleStatus,
+  usePackDetail,
+  VersionSafetyBanner,
+} from "@/features/domain-pack-summary-read";
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type {
   WorkflowHitMetric,
@@ -564,6 +568,7 @@ export function WorkflowDraftReadPage() {
   return (
     <OstoneShell active="workflows" crumbs={crumbs}>
       <div className={styles.detailPage}>
+        <VersionSafetyBanner wsId={wsId ?? 0} packId={pId ?? 0} versionId={vId} />
         <div className={styles.detailHeader}>
           <div className={styles.titleGroup}>
             <div className={styles.titleStack}>

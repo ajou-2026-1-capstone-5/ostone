@@ -6,7 +6,7 @@ import {
   shouldReplaceDomainPackChildRoute,
 } from "../../../shared/lib/domainPackRoutes";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
-import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
 import { Pill } from "@/shared/ui/ostone/atoms";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { OstoneShell } from "@/widgets/ostone-shell";
@@ -65,6 +65,7 @@ export function SlotDraftReadPage() {
   return (
     <OstoneShell active="slot" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
+        <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
           <div className={styles.listSlot}>
             <SlotListPanel

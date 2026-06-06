@@ -54,6 +54,7 @@ vi.mock("@/shared/ui/ostone/atoms/ErrorState", () => ({
 vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: vi.fn(),
   useVersionDetail: vi.fn(),
+  VersionSafetyBanner: () => null,
   VersionListPanel: ({
     selectedId,
     onSelect,
@@ -492,17 +493,20 @@ describe("DomainPackSummaryPage", () => {
 
   it("버전 배포 실패 시 기본 실패 toast를 띄운다", () => {
     // useDeploy is mocked here, so mutate triggers the onError callback supplied by the page.
-    vi.mocked(useDeploy).mockImplementation((options) => ({
-      mutate: vi.fn(() =>
-        options?.mutation?.onError?.(
-          new Error("deploy failed"),
-          { workspaceId: 1, packId: 2, versionId: 4 },
-          undefined,
-        ),
-      ),
-      isPending: false,
-      variables: undefined,
-    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(useDeploy).mockImplementation(
+      (options) =>
+        ({
+          mutate: vi.fn(() =>
+            options?.mutation?.onError?.(
+              new Error("deploy failed"),
+              { workspaceId: 1, packId: 2, versionId: 4 },
+              undefined,
+            ),
+          ),
+          isPending: false,
+          variables: undefined,
+        }) as unknown as ReturnType<typeof useDeploy>,
+    );
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -522,17 +526,20 @@ describe("DomainPackSummaryPage", () => {
 
   it("버전 배포 실패 시 API 에러 메시지를 toast에 사용한다", () => {
     // Keep this tied to useDeploy's option shape: the mock mutate simulates a failed mutation.
-    vi.mocked(useDeploy).mockImplementation((options) => ({
-      mutate: vi.fn(() =>
-        options?.mutation?.onError?.(
-          new ApiRequestError(409, "CONFLICT", "이미 배포된 버전입니다."),
-          { workspaceId: 1, packId: 2, versionId: 4 },
-          undefined,
-        ),
-      ),
-      isPending: false,
-      variables: undefined,
-    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(useDeploy).mockImplementation(
+      (options) =>
+        ({
+          mutate: vi.fn(() =>
+            options?.mutation?.onError?.(
+              new ApiRequestError(409, "CONFLICT", "이미 배포된 버전입니다."),
+              { workspaceId: 1, packId: 2, versionId: 4 },
+              undefined,
+            ),
+          ),
+          isPending: false,
+          variables: undefined,
+        }) as unknown as ReturnType<typeof useDeploy>,
+    );
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
