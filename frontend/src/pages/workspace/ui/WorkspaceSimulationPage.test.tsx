@@ -834,6 +834,30 @@ describe("WorkspaceSimulationPage", () => {
     });
   });
 
+  it("반려 사유가 없으면 READY_FOR_REVIEW 개선 후보를 반려하지 않는다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    fireEvent.click(await screen.findByRole("button", { name: "반려" }));
+
+    expect(toast.error).toHaveBeenCalledWith("반려 사유를 입력하세요.");
+    expect(mockedSimulationApi.rejectImprovementCandidate).not.toHaveBeenCalled();
+  });
+
   it("READY_FOR_REVIEW 개선 후보를 반려하고 사유를 전달한다", async () => {
     mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
       content: [
