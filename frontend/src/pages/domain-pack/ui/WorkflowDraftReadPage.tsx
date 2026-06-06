@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { formatLifecycleStatus, usePackDetail } from "@/features/domain-pack-summary-read";
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type {
   WorkflowHitMetric,
@@ -125,7 +125,10 @@ function WorkflowBottleneckAnalysisPanel({
   if (state === "error") {
     return (
       <section className={styles.analysisPanel} data-testid="workflow-analysis-error">
-        <ErrorState message={error ?? "워크플로우 병목 분석을 불러오지 못했습니다."} onRetry={onRetry} />
+        <ErrorState
+          message={error ?? "워크플로우 병목 분석을 불러오지 못했습니다."}
+          onRetry={onRetry}
+        />
       </section>
     );
   }
@@ -151,8 +154,7 @@ function WorkflowBottleneckAnalysisPanel({
           <span className={styles.analysisEyebrow}>Bottleneck Analysis</span>
           <h3>운영 실행 병목 분석</h3>
           <p>
-            상태 전이와 runtime decision 로그를 기준으로 slot, policy, risk 개선 지점을
-            요약합니다.
+            상태 전이와 runtime decision 로그를 기준으로 slot, policy, risk 개선 지점을 요약합니다.
           </p>
         </div>
         <span className={styles.analysisPeriod}>
@@ -697,12 +699,6 @@ function readWorkflowReturnTo(state: unknown): string | null {
   if (typeof state !== "object" || state === null) return null;
   const value = (state as { workflowReturnTo?: unknown }).workflowReturnTo;
   return typeof value === "string" && value.startsWith("/") ? value : null;
-}
-
-function formatLifecycleStatus(status: string): string {
-  if (status === "PUBLISHED") return "운영 가능";
-  if (status === "DRAFT") return "검토 중";
-  return status;
 }
 
 function resolveWorkflowActionErrorMessage(error: unknown, fallback: string): string {

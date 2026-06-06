@@ -1,5 +1,6 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackDetail, DomainPackVersionSummary } from "@/entities/domain-pack";
+import { formatLifecycleStatus } from "../model/versionFormat";
 import styles from "./VersionListPanel.module.css";
 
 function formatDate(iso: string): string {
@@ -128,10 +129,4 @@ function VersionListItem({
       </button>
     </li>
   );
-}
-
-function formatLifecycleStatus(status?: string | null): string {
-  if (status === "PUBLISHED") return "운영 가능";
-  if (status === "DRAFT") return "검토 중";
-  return "상태 없음";
 }

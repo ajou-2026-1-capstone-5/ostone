@@ -1,4 +1,5 @@
 export { usePackDetail, useVersionDetail, parseSummaryJson } from "./model";
+export { formatLifecycleStatus } from "./model";
 export type { ParsedSummary } from "./model";
 export {
   useIntentPreview,

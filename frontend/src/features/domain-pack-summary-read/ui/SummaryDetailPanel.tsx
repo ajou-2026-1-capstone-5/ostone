@@ -15,6 +15,14 @@ import {
 import { SummaryJsonCard } from "./SummaryJsonCard";
 import { ComponentCountGrid } from "./ComponentCountGrid";
 import { useDomainPackRevisionSummary } from "../model/useDomainPackRevisionSummary";
+import {
+  buildActionSummary,
+  formatCurrentVersionLabel,
+  formatDateTime,
+  formatLifecycleStatus,
+  formatVersionNo,
+  normalizeDescription,
+} from "../model/versionFormat";
 import styles from "./SummaryDetailPanel.module.css";
 
 interface SummaryDetailPanelProps {
@@ -137,7 +145,7 @@ export function SummaryDetailPanel({
           </div>
           <div className={styles.metaGrid}>
             <span className={styles.metaKey}>생성</span>
-            <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
+            <span className={styles.metaValue}>{formatDateTime(v.createdAt ?? "")}</span>
           </div>
         </div>
         <div className={styles.metaSide}>
@@ -380,31 +388,6 @@ export function SummaryDetailPanel({
   );
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("ko-KR");
-}
-
-function formatVersionNo(versionNo?: number | null): string {
-  return versionNo == null ? "선택한 버전" : `v${versionNo}`;
-}
-
-function formatCurrentVersionLabel(
-  currentVersionNo?: number | null,
-  currentVersionId?: number | null,
-): string {
-  if (currentVersionNo != null) return `현재 v${currentVersionNo}`;
-  if (currentVersionId != null) return "현재 운영 버전";
-  return "운영 버전 없음";
-}
-
-function formatLifecycleStatus(status?: string | null): string {
-  if (status === "PUBLISHED") return "운영 가능";
-  if (status === "DRAFT") return "검토 중";
-  return status ?? "상태 없음";
-}
-
 function VersionActionContext({
   version,
   transitionLabel,
@@ -433,7 +416,7 @@ function VersionActionContext({
       </div>
       <div className={styles.versionActionRow}>
         <dt>생성</dt>
-        <dd>{formatDate(version.createdAt ?? "") || "생성일 없음"}</dd>
+        <dd>{formatDateTime(version.createdAt ?? "") || "생성일 없음"}</dd>
       </div>
       {summary && (
         <div className={styles.versionActionRow}>
@@ -443,55 +426,4 @@ function VersionActionContext({
       )}
     </dl>
   );
-}
-
-function buildActionSummary(summaryJson?: string | null): string | null {
-  if (!summaryJson) return null;
-
-  try {
-    const parsed: unknown = JSON.parse(summaryJson);
-    if (!isRecord(parsed)) return null;
-    return (
-      readTrimmedString(parsed.topic) ??
-      readNestedString(parsed, ["draftSource", "reason"]) ??
-      readNestedString(parsed, ["generation", "description"]) ??
-      readFirstString(parsed, ["review", "topIssues"]) ??
-      readFirstString(parsed, ["review", "issues"])
-    );
-  } catch {
-    return null;
-  }
-}
-
-function readNestedString(data: Record<string, unknown>, path: string[]): string | null {
-  const value = path.reduce<unknown>((acc, key) => (isRecord(acc) ? acc[key] : undefined), data);
-  return readTrimmedString(value);
-}
-
-function readFirstString(data: Record<string, unknown>, path: string[]): string | null {
-  const value = path.reduce<unknown>((acc, key) => (isRecord(acc) ? acc[key] : undefined), data);
-  if (!Array.isArray(value)) return null;
-  for (const item of value) {
-    const text = readTrimmedString(item);
-    if (text) return text;
-    if (isRecord(item)) {
-      const message = readTrimmedString(item.message) ?? readTrimmedString(item.title);
-      if (message) return message;
-    }
-  }
-  return null;
-}
-
-function readTrimmedString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed || null;
-}
-
-function normalizeDescription(value: string): string {
-  return value.trim();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
