@@ -7,6 +7,8 @@ import {
 } from "./support/app-mocks";
 import { installMockStomp } from "./support/mock-stomp";
 
+const uploadInitRequest = "POST /workspaces/1/datasets/uploads:init";
+const uploadCompleteRequest = "POST /workspaces/1/datasets/uploads/77:complete";
 const generationRequest =
   "POST /workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation";
 const workspaceRequest = "GET /workspaces/1";
@@ -70,6 +72,68 @@ async function installUploadCooldownMocks(
     },
   };
 }
+
+test.describe("Free plan upload quota block", () => {
+  let seen: string[];
+
+  test.beforeEach(async ({ page }) => {
+    seen = [];
+    await installAuth(page);
+    await installMockStomp(page);
+    await installAppApiMocks(page, seen, {
+      workspaceOneFreeOnboardingStatus: "CONSUMED",
+      workspaceOneSubscriptionStatus: null,
+    });
+  });
+
+  test.describe("Given a free workspace has exhausted its upload allowance", () => {
+    test("When the operator opens upload, Then upload is blocked and billing for the same workspace is available", async ({
+      page,
+    }) => {
+      await page.goto("/workspaces/1/upload");
+
+      await expect(
+        page.getByRole("heading", { name: "상담 로그 업로드" }),
+      ).toBeVisible();
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "QA Workspace",
+      );
+      await expect(page.getByText("무료 온보딩 사용 완료")).toBeVisible();
+      await expect(
+        page.getByText("무료 온보딩 권리가 사용 완료되었습니다."),
+      ).toBeVisible();
+      await expect(page.locator('input[type="file"]')).toBeDisabled();
+      await expect(
+        page.getByRole("button", { name: "처리 시작" }),
+      ).toBeDisabled();
+      await expect(page.getByText("업로드 완료")).toBeHidden();
+
+      expect(seen).not.toContain(uploadInitRequest);
+      expect(seen).not.toContain(uploadCompleteRequest);
+      expect(seen).not.toContain(generationRequest);
+
+      await page
+        .getByRole("button", { name: "구독/결제 화면으로 이동" })
+        .click();
+
+      await expect(page).toHaveURL(/\/workspaces\/1\/billing/);
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "QA Workspace",
+      );
+      await expect(
+        page.getByRole("heading", { name: "구독", level: 1 }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: "Free 요금제" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Pro 요금제" })).toBeVisible();
+
+      expect(seen).toContain("GET /workspaces/1/billing/overview");
+      expect(seen).not.toContain("GET /workspaces/2/billing/overview");
+      expect(seen).not.toContain(uploadInitRequest);
+      expect(seen).not.toContain(uploadCompleteRequest);
+      expect(seen).not.toContain(generationRequest);
+    });
+  });
+});
 
 test.describe("Upload completed Domain Pack draft generation", () => {
   let seen: string[];

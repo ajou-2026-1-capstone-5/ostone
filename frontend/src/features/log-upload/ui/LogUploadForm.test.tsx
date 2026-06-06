@@ -218,6 +218,26 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("무료 온보딩 사용 완료")).toBeInTheDocument();
     expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("true");
     expect(screen.getByTestId("file-input")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "구독/결제 화면으로 이동" }),
+    ).toBeInTheDocument();
+  });
+
+  it("navigates blocked free onboarding workspaces to workspace billing", () => {
+    render(
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="CONSUMED"
+        hasActiveSubscription={false}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "구독/결제 화면으로 이동" }),
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/billing");
   });
 
   it("shows a toast when a blocked workspace still receives a selected file", () => {
@@ -295,6 +315,9 @@ describe("LogUploadForm", () => {
     expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("true");
     expect(screen.getByTestId("file-input")).toBeDisabled();
     expect(screen.getByRole("button", { name: "처리 시작" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "구독/결제 화면으로 이동" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("force-file-select"));
 

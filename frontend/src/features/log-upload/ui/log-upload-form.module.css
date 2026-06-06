@@ -47,6 +47,11 @@
   margin: 0;
 }
 
+.blockedActions {
+  display: flex;
+  margin-top: 4px;
+}
+
 .uploadArea {
   margin-bottom: 24px;
 }
@@ -177,5 +182,8 @@
   }
   .successActions {
     flex-direction: column;
+  }
+  .blockedActions button {
+    width: 100%;
   }
 }

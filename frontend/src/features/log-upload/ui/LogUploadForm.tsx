@@ -9,6 +9,7 @@ import {
   CTA_GO_REVIEW,
   CTA_UPLOAD_AGAIN,
 } from "../../../shared/lib/ctaLabels";
+import { buildWorkspaceBillingPath } from "../../../shared/lib/billingRoutes";
 import { useTriggerDomainPackGeneration } from "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
@@ -180,6 +181,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     isPaidCooldownBlocked
       ? paidCooldownMessage
       : "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.";
+  const billingPath =
+    workspaceId != null ? buildWorkspaceBillingPath(workspaceId) : "/workspaces";
 
   const handleFileSelect = (selectedFile: File) => {
     if (isUploaderDisabled) {
@@ -324,6 +327,13 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
             ? "활성 구독이 적용되어 새 업로드와 도메인팩 생성 요청을 계속 사용할 수 있습니다."
             : freeOnboardingMeta.copy}
         </p>
+        {isUploadBlocked && isConsumedWithoutSubscription && (
+          <div className={styles.blockedActions}>
+            <Button variant="secondary" onClick={() => navigate(billingPath)}>
+              구독/결제 화면으로 이동
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className={styles.uploadArea}>
