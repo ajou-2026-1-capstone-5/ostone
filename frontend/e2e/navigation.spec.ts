@@ -1,9 +1,10 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { installAuth, makeJwt } from "./support/generated-api-auth";
-import { captureScreen, installAdminApiMocks, installAppApiMocks } from "./support/app-mocks";
+import { captureScreen, installAppApiMocks } from "./support/app-mocks";
 
 type AccountScope = "previous" | "current";
+type E2eRole = "OPERATOR" | "ADMIN" | "SUPER_ADMIN";
 
 const previousWorkspace = {
   id: 1,
@@ -226,6 +227,47 @@ async function installCrossAccountWorkspaceMocks(
   });
 
   return { seen, releaseCurrentWorkspaceLoading };
+}
+
+async function replaceAuthSession(page: Page, role: E2eRole): Promise<void> {
+  const token = makeJwt(role);
+  const user = {
+    id: role === "SUPER_ADMIN" ? 1 : 7,
+    email: role === "SUPER_ADMIN" ? "admin@example.com" : "agent@example.com",
+    name: role === "SUPER_ADMIN" ? "관리자" : "상담사",
+    role,
+  };
+
+  await page.evaluate(
+    ({ accessToken, user }) => {
+      window.localStorage.setItem("accessToken", accessToken);
+      window.localStorage.setItem("refreshToken", "e2e-refresh-token");
+      window.localStorage.setItem("user", JSON.stringify(user));
+      window.dispatchEvent(new Event("ostone:auth-session-changed"));
+    },
+    { accessToken: token, user },
+  );
+}
+
+async function expectWorkspaceDashboard(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+  await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+}
+
+async function expectAdminConsoleHidden(page: Page): Promise<void> {
+  await expect(page.getByText("CStone Admin Console")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "고객사 현황" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "결제 관리" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Airflow 운영" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "관리자 계정" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "SUPER_ADMIN 생성" })).toHaveCount(0);
+  await expect(page.getByText("멤버 요약")).toHaveCount(0);
+  await expect(page.getByText("draft generation timeout")).toHaveCount(0);
+}
+
+function hasAdminApiRequest(seen: string[]): boolean {
+  return seen.some((entry) => /^GET \/admin|^POST \/admin|^PATCH \/admin|^DELETE \/admin/.test(entry));
 }
 
 test.describe("Application navigation boundaries", () => {
@@ -594,13 +636,17 @@ test.describe("Application navigation boundaries", () => {
       expect(seen).toContain("GET /workspaces/1");
     });
 
-    test("When they open an admin URL without SUPER_ADMIN role, Then they return to workspace home", async ({
-      page,
-    }) => {
-      await page.goto("/admin/customers");
+    test.describe("When they enter admin URLs without SUPER_ADMIN role", { tag: "@critical" }, () => {
+      test("Then they return to workspace home without seeing admin data", async ({ page }) => {
+        for (const adminPath of ["/admin", "/admin/super-admins"] as const) {
+          await page.goto(adminPath);
 
-      await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
-      await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
+          await expectWorkspaceDashboard(page);
+          await expectAdminConsoleHidden(page);
+        }
+
+        expect(hasAdminApiRequest(seen)).toBe(false);
+      });
     });
 
     test("When they use the 404 page actions, Then previous and home navigation remain usable", async ({
@@ -623,24 +669,32 @@ test.describe("Application navigation boundaries", () => {
     });
   });
 
-  test.describe("Given a SUPER_ADMIN session", () => {
-    test("When they open the admin root, Then the default console section is selected", async ({
+  test.describe("Given a SUPER_ADMIN session", { tag: "@critical" }, () => {
+    test("When admin URLs are opened and the role changes, Then the console follows the active role", async ({
       page,
     }) => {
       const seen: string[] = [];
-      await installAuth(page, {
-        role: "SUPER_ADMIN",
-        name: "관리자",
-        email: "admin@example.com",
-      });
-      await installAdminApiMocks(page, seen);
+      await installAppApiMocks(page, seen);
+      await page.goto("/login");
+      await replaceAuthSession(page, "SUPER_ADMIN");
 
       await page.goto("/admin");
 
       await expect(page).toHaveURL(/\/admin\/super-admins$/);
       await expect(page.getByRole("heading", { name: "관리자 계정" })).toBeVisible();
       await expect(page.getByRole("button", { name: "SUPER_ADMIN 생성" })).toBeVisible();
-      expect(seen).toEqual([]);
+
+      await page.goto("/admin/super-admins");
+      await expect(page).toHaveURL(/\/admin\/super-admins$/);
+      await expect(page.getByRole("heading", { name: "관리자 계정" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "SUPER_ADMIN 생성" })).toBeVisible();
+
+      await replaceAuthSession(page, "OPERATOR");
+      await page.goto("/admin/super-admins?role=operator");
+
+      await expectWorkspaceDashboard(page);
+      await expectAdminConsoleHidden(page);
+      expect(hasAdminApiRequest(seen)).toBe(false);
     });
   });
 });
