@@ -8,6 +8,7 @@ import {
   submitFeedback,
 } from "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller";
 import {
+  shouldPollPipelineReviewCheckpoint,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
   useSubmitPipelineFeedback,
@@ -40,6 +41,33 @@ beforeEach(() => {
 });
 
 describe("pipelineReviewApi", () => {
+  it.each([
+    ["RUNNING", null, true],
+    ["QUEUED", null, true],
+    ["WAITING_DOMAIN_CONFIRMATION", null, true],
+    ["WAITING_DOMAIN_CONFIRMATION", "DOMAIN_CONFIRMATION", false],
+    ["WAITING_HUMAN_FEEDBACK", "HUMAN_FEEDBACK", false],
+    ["SUCCEEDED", null, false],
+    ["FAILED", null, false],
+    ["CANCELLED", null, false],
+  ] as const)(
+    "returns the polling decision for status %s and review kind %s",
+    (pipelineStatus, reviewKind, expected) => {
+      expect(
+        shouldPollPipelineReviewCheckpoint({
+          pipelineJobId: 7,
+          pipelineStatus,
+          reviewKind,
+          tasks: [],
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it("polls until the first checkpoint payload is available when auto refresh is enabled", () => {
+    expect(shouldPollPipelineReviewCheckpoint()).toBe(true);
+  });
+
   it("delegates checkpoint query to generated getCheckpoint and unwraps data", async () => {
     const checkpoint = {
       pipelineJobId: 7,
@@ -57,6 +85,39 @@ describe("pipelineReviewApi", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedGetCheckpoint).toHaveBeenCalledWith(1, 7);
     expect(result.current.data).toEqual(checkpoint);
+  });
+
+  it("keeps polling active pipeline progress when auto refresh is enabled", async () => {
+    const runningCheckpoint = {
+      pipelineJobId: 7,
+      pipelineStatus: "RUNNING",
+      reviewKind: null,
+      tasks: [],
+    };
+    const succeededCheckpoint = {
+      pipelineJobId: 7,
+      pipelineStatus: "SUCCEEDED",
+      reviewKind: null,
+      tasks: [],
+    };
+    mockedGetCheckpoint
+      .mockResolvedValueOnce({
+        data: runningCheckpoint,
+        status: 200,
+      } as unknown as Awaited<ReturnType<typeof getCheckpoint>>)
+      .mockResolvedValueOnce({
+        data: succeededCheckpoint,
+        status: 200,
+      } as unknown as Awaited<ReturnType<typeof getCheckpoint>>);
+
+    const { result } = renderHook(
+      () => usePipelineReviewCheckpoint(1, 7, { autoRefresh: true, refetchIntervalMs: 100 }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(runningCheckpoint));
+    await waitFor(() => expect(result.current.data).toEqual(succeededCheckpoint));
+    expect(mockedGetCheckpoint).toHaveBeenCalledTimes(2);
   });
 
   it("does not fetch checkpoint until ids are available", () => {

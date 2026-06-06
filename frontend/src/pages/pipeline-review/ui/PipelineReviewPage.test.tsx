@@ -61,6 +61,7 @@ describe("PipelineReviewPage", () => {
     expect(screen.getByText("초안 생성 전에 파이프라인 입력을 확정합니다.")).toBeInTheDocument();
     expect(screen.getByText("사람 피드백 대기")).toBeInTheDocument();
     expect(screen.getByTestId("checkpoint-card")).toHaveTextContent("1:7");
+    expect(mockedUseCheckpoint).toHaveBeenCalledWith(1, 7, { autoRefresh: true });
     await waitFor(() => expect(screen.getByTestId("crumbs")).toHaveTextContent("Pipeline review"));
   });
 
