@@ -46,6 +46,7 @@
     "format:frontend": "pnpm --dir frontend format",
     "deps:frontend": "pnpm --dir frontend install --frozen-lockfile",
     "e2e:frontend:install": "pnpm --dir frontend exec playwright install --with-deps chromium",
+    "e2e:frontend:critical": "pnpm --dir frontend e2e:critical",
     "e2e:frontend": "pnpm --dir frontend e2e",
     "ci:frontend": "pnpm run test:frontend:coverage && pnpm run build:frontend",
     "codegen:openapi": "cd backend && ./gradlew generateOpenApiDocs",

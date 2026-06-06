@@ -53,7 +53,7 @@ test.describe("Admin console screens", () => {
       });
     });
 
-    test.describe("When they retry a failed pipeline job", () => {
+    test.describe("When they retry a failed pipeline job", { tag: "@critical" }, () => {
       test("Then Airflow filters are normalized into the list query and can be reset", async ({
         page,
       }) => {
