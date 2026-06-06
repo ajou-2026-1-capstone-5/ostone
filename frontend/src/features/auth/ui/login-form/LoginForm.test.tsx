@@ -89,7 +89,11 @@ describe("LoginForm", () => {
     expect(localStorage.getItem("refreshToken")).toBeNull();
   });
 
-  it("허용된 return-to 경로가 있으면 워크스페이스 조회 없이 해당 경로를 우선한다", async () => {
+  it("현재 계정 workspace return-to 경로가 있으면 해당 경로를 우선한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(
+      listResponse([{ id: 4, name: "Current", status: "ACTIVE" }]),
+    );
+
     renderLoginForm({
       from: { pathname: "/workspaces/4/upload", search: "?tab=logs" },
     });
@@ -98,7 +102,21 @@ describe("LoginForm", () => {
     await waitFor(() => {
       expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/4/upload?tab=logs");
     });
-    expect(mockedListWorkspaces).not.toHaveBeenCalled();
+    expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
+  });
+
+  it("workspace가 없는 신규 사용자의 stale workspace return-to는 /workspaces로 보낸다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(listResponse([]));
+
+    renderLoginForm({
+      from: { pathname: "/workspaces/4/upload" },
+    });
+    await submitLoginForm();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces");
+    });
+    expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
   });
 
   it("기본 워크스페이스를 확인할 수 없으면 /workspaces fallback으로 이동한다", async () => {
