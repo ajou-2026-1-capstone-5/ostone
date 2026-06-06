@@ -35,6 +35,7 @@ interface Deferred {
 
 interface CrossAccountWorkspaceMockOptions {
   delayCurrentWorkspaceLoading?: boolean;
+  failFirstCurrentWorkspaceList?: boolean;
   initialAccount?: AccountScope;
 }
 
@@ -112,6 +113,20 @@ async function installCrossAccountWorkspaceMocks(
     if (method === "GET" && path === "/workspaces") {
       if (account === "current") {
         currentWorkspaceListCount += 1;
+        if (
+          options.failFirstCurrentWorkspaceList &&
+          currentWorkspaceListCount === 1
+        ) {
+          await fulfillJson(
+            route,
+            {
+              code: "WORKSPACE_LOOKUP_UNAVAILABLE",
+              message: "워크스페이스 목록을 일시적으로 불러오지 못했습니다.",
+            },
+            503,
+          );
+          return;
+        }
         if (currentWorkspaceListCount > 1) {
           await currentWorkspaceListLoading?.promise;
         }
@@ -144,6 +159,74 @@ async function installCrossAccountWorkspaceMocks(
 
     if (method === "GET" && path === "/workspaces/2/domain-packs") {
       await fulfillJson(route, { data: [], status: 200 });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2/consultation/metrics") {
+      await fulfillJson(route, {
+        workspaceId: 2,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        totalConsultationCount: 0,
+        completedConsultationCount: 0,
+        averageFirstResponseSeconds: null,
+        averageLlmFirstResponseSeconds: null,
+        averageHumanFirstResponseSeconds: null,
+        llmHandledCount: 0,
+        humanInterventionCount: 0,
+        unresolvedSessionCount: 0,
+        comparison: null,
+        coverage: {
+          workflowMatchedCount: 0,
+          workflowMatchRate: 0,
+          intentClassificationSuccessCount: 0,
+          intentClassificationSuccessRate: 0,
+          lowConfidenceCount: 0,
+          lowConfidenceRate: 0,
+          unmatchedSessionCount: 0,
+          autoCompletedWorkflowCount: 0,
+          humanHandoffRate: 0,
+          llmOnlyProcessingRate: 0,
+          measurementStatus: "INSUFFICIENT_DATA",
+          measurementMessage: "측정 데이터 없음",
+          trend: [],
+        },
+        handledTodayCount: 0,
+        llmHandledTodayCount: 0,
+        humanHandledTodayCount: 0,
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2/dashboard/workflow-rankings") {
+      await fulfillJson(route, {
+        workspaceId: 2,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        totalConsultationCount: 0,
+        rankings: [],
+        topRankings: [],
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2/dashboard/knowledge-pack-health") {
+      await fulfillJson(route, {
+        activeKnowledgePack: null,
+        lastLogUpload: null,
+        lastKnowledgePackGeneration: null,
+        pendingReviewCount: 0,
+      });
+      return;
+    }
+
+    if (method === "GET" && path === "/workspaces/2/dashboard/action-recommendations") {
+      await fulfillJson(route, {
+        workspaceId: 2,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-04T09:00:00+09:00",
+        recommendations: [],
+      });
       return;
     }
 
@@ -601,6 +684,44 @@ test.describe("Application navigation boundaries", () => {
       ).toBeVisible();
       await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
       await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+    });
+
+    test("When workspace lookup can be retried, Then current workspace entry recovers without stale data @critical", async ({
+      page,
+    }) => {
+      const { seen } = await installCrossAccountWorkspaceMocks(page, {
+        failFirstCurrentWorkspaceList: true,
+        initialAccount: "current",
+      });
+      await installAuth(page, {
+        name: "현재 상담사",
+        email: "current@example.com",
+      });
+
+      await page.goto("/workspaces");
+
+      await expect(page).toHaveURL(/\/workspaces$/);
+      await expect(page.getByRole("alert")).toContainText(
+        "워크스페이스 정보를 불러오지 못했습니다.",
+      );
+      await expect(page.getByRole("button", { name: "다시 시도" })).toBeVisible();
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+      await expect(page.getByText("이전 상담사")).toHaveCount(0);
+
+      await page.getByRole("button", { name: "다시 시도" }).click();
+
+      await expect(page).toHaveURL(/\/workspaces\/2\/dashboard$/);
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+      await expect(
+        page.getByRole("heading", { name: "대시보드", exact: true }),
+      ).toBeVisible();
+      expect(
+        seen.filter((entry) => entry === "current GET /workspaces").length,
+      ).toBeGreaterThanOrEqual(2);
+      expect(seen).toContain("current GET /workspaces/2");
     });
   });
 
