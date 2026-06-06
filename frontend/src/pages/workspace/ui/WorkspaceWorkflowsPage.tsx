@@ -1,8 +1,12 @@
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, FileUpIcon } from "lucide-react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
-import { domainPackListPath, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
+import {
+  domainPackListPath,
+  domainPackSectionPath,
+} from "@/shared/lib/domainPackRoutes";
+import { CTA_UPLOAD_LOGS } from "@/shared/lib/ctaLabels";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -25,7 +29,11 @@ export function WorkspaceWorkflowsPage() {
     return <Navigate to="/workspaces" replace />;
   }
 
-  const handleOpen = (entry: { packId: number; versionId: number; workflowId: number }) => {
+  const handleOpen = (entry: {
+    packId: number;
+    versionId: number;
+    workflowId: number;
+  }) => {
     navigate(
       domainPackSectionPath(
         parsedWorkspaceId,
@@ -41,6 +49,10 @@ export function WorkspaceWorkflowsPage() {
     navigate(domainPackListPath(parsedWorkspaceId));
   };
 
+  const handleOpenUpload = () => {
+    navigate(`/workspaces/${parsedWorkspaceId}/upload`);
+  };
+
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
@@ -52,9 +64,14 @@ export function WorkspaceWorkflowsPage() {
       </div>
 
       {loading && (
-        <div className={styles.statePanel} data-testid="workspace-workflows-loading">
+        <div
+          className={styles.statePanel}
+          data-testid="workspace-workflows-loading"
+        >
           <LoadingSpinner />
-          <p className={styles.stateText}>워크플로우 목록을 불러오는 중입니다.</p>
+          <p className={styles.stateText}>
+            워크플로우 목록을 불러오는 중입니다.
+          </p>
         </div>
       )}
 
@@ -65,12 +82,21 @@ export function WorkspaceWorkflowsPage() {
       )}
 
       {!loading && !error && entries.length === 0 && (
-        <div className={styles.statePanel} data-testid="workspace-workflows-empty">
+        <div
+          className={styles.statePanel}
+          data-testid="workspace-workflows-empty"
+        >
           <EmptyState message="아직 등록된 워크플로우가 없습니다. 워크플로우는 도메인팩에서 생성하고 관리합니다." />
-          <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
-            <span>도메인팩으로 이동</span>
-            <ArrowRightIcon className={styles.pageHeaderIcon} />
-          </Button>
+          <div className={styles.stateActions}>
+            <Button size="sm" onClick={handleOpenUpload}>
+              <FileUpIcon className={styles.pageHeaderIcon} />
+              <span>{CTA_UPLOAD_LOGS}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
+              <span>도메인팩으로 이동</span>
+              <ArrowRightIcon className={styles.pageHeaderIcon} />
+            </Button>
+          </div>
         </div>
       )}
 

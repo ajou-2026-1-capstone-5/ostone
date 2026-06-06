@@ -41,6 +41,13 @@
   background: var(--paper-2);
 }
 
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+}
+
 .stateText {
   color: var(--ink-2);
   line-height: 1.6;
