@@ -1,7 +1,46 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { installAuth } from "./support/generated-api-auth";
 import { captureScreen, installAppApiMocks } from "./support/app-mocks";
+
+const POLICY_UPDATE_ENTRY =
+  "PATCH /workspaces/1/domain-packs/1/versions/1/policies/101";
+const POLICY_STATUS_ENTRY =
+  "PATCH /workspaces/1/domain-packs/1/versions/1/policies/101/status";
+const RISK_UPDATE_ENTRY =
+  "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201";
+const RISK_STATUS_ENTRY =
+  "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201/status";
+
+interface JsonValidationCase {
+  label: string;
+  invalidValue: string;
+  validValue: string;
+  message: string;
+}
+
+async function expectJsonValidationBlocksUpdate(
+  page: Page,
+  seen: string[],
+  updateEntry: string,
+  cases: JsonValidationCase[],
+) {
+  for (const fieldCase of cases) {
+    const updateCountBefore = seen.filter(
+      (entry) => entry === updateEntry,
+    ).length;
+
+    await page.getByLabel(fieldCase.label).fill(fieldCase.invalidValue);
+    await page.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText(fieldCase.message)).toBeVisible();
+    expect(seen.filter((entry) => entry === updateEntry)).toHaveLength(
+      updateCountBefore,
+    );
+
+    await page.getByLabel(fieldCase.label).fill(fieldCase.validValue);
+  }
+}
 
 test.describe("Domain pack core read flows", () => {
   let seen: string[];
@@ -148,183 +187,307 @@ test.describe("Domain pack core read flows", () => {
       });
     });
 
-    test.describe("When they edit a policy from the detail panel", () => {
-      test("Then invalid JSON is blocked before the policy update request", async ({ page }) => {
-        await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
-        await page.getByRole("button", { name: /POL_REFUND/ }).click();
-        await expect(page.getByLabel("응대 기준 상세")).toContainText("환불 정책");
+    test.describe("[@critical] Policy/risk JSON edit safeguards", () => {
+      test.describe("When they edit a policy from the detail panel", () => {
+        test("Then invalid JSON is blocked before the policy update request", async ({
+          page,
+        }) => {
+          await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
+          await page.getByRole("button", { name: /POL_REFUND/ }).click();
+          await expect(page.getByLabel("응대 기준 상세")).toContainText(
+            "환불 정책",
+          );
 
-        await page.getByRole("button", { name: /POL_REFUND 응대 기준 수정/ }).click();
-        await expect(page.getByLabel("응대 기준 수정")).toBeVisible();
+          await page
+            .getByRole("button", { name: /POL_REFUND 응대 기준 수정/ })
+            .click();
+          await expect(page.getByLabel("응대 기준 수정")).toBeVisible();
 
-        await page.getByLabel("조건 JSON").fill("[]");
-        await page.getByRole("button", { name: "저장" }).click();
-        await expect(page.getByText("적용 조건 JSON은 객체여야 합니다.")).toBeVisible();
-        expect(
-          seen.some(
-            (entry) => entry === "PATCH /workspaces/1/domain-packs/1/versions/1/policies/101",
-          ),
-        ).toBe(false);
+          await expectJsonValidationBlocksUpdate(
+            page,
+            seen,
+            POLICY_UPDATE_ENTRY,
+            [
+              {
+                label: "조건 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "적용 조건 JSON은 객체여야 합니다.",
+              },
+              {
+                label: "액션 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "응대 방법 JSON은 객체여야 합니다.",
+              },
+              {
+                label: "근거 JSON",
+                invalidValue: "{}",
+                validValue: "[]",
+                message: "근거 JSON은 배열이어야 합니다.",
+              },
+              {
+                label: "메타 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "추가 정보 JSON은 객체여야 합니다.",
+              },
+            ],
+          );
+        });
+
+        test("Then a valid save updates the policy detail", async ({
+          page,
+        }, testInfo) => {
+          await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
+          await page.getByRole("button", { name: /POL_REFUND/ }).click();
+
+          await page
+            .getByRole("button", { name: /POL_REFUND 응대 기준 수정/ })
+            .click();
+          await expect(page.getByLabel("응대 기준 수정")).toBeVisible();
+          await captureScreen(page, testInfo, "policy-edit-panel");
+
+          await page.getByLabel("이름 *").fill("고액 환불 정책");
+          await page.getByLabel("설명").fill("고액 환불은 검토 후 안내합니다.");
+          await page
+            .getByLabel("조건 JSON")
+            .fill(JSON.stringify({ amount: { gte: 100000 } }, null, 2));
+          await page
+            .getByLabel("액션 JSON")
+            .fill(JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2));
+          await page
+            .getByLabel("근거 JSON")
+            .fill(JSON.stringify([{ segmentId: "seg-99" }], null, 2));
+          await page
+            .getByLabel("메타 JSON")
+            .fill(JSON.stringify({ source: "e2e" }, null, 2));
+          const updateRequest = page.waitForRequest(
+            (request) =>
+              request.method() === "PATCH" &&
+              request
+                .url()
+                .includes(
+                  "/workspaces/1/domain-packs/1/versions/1/policies/101",
+                ),
+          );
+          await page.getByRole("button", { name: "저장" }).click();
+          const requestBody = (await updateRequest).postDataJSON();
+
+          expect(requestBody).toEqual(
+            expect.objectContaining({
+              name: "고액 환불 정책",
+              description: "고액 환불은 검토 후 안내합니다.",
+              conditionJson: JSON.stringify(
+                { amount: { gte: 100000 } },
+                null,
+                2,
+              ),
+              actionJson: JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2),
+              evidenceJson: JSON.stringify([{ segmentId: "seg-99" }], null, 2),
+              metaJson: JSON.stringify({ source: "e2e" }, null, 2),
+            }),
+          );
+
+          await expect(
+            page.getByText("응대 기준이 수정되었습니다."),
+          ).toBeVisible();
+          await expect(page.getByLabel("응대 기준 상세")).toContainText(
+            "고액 환불 정책",
+          );
+          expect(seen).toContain(POLICY_UPDATE_ENTRY);
+        });
+
+        test("Then the status switch updates request body and detail state", async ({
+          page,
+        }) => {
+          await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
+          await page.getByRole("button", { name: /POL_REFUND/ }).click();
+
+          await page
+            .getByRole("button", { name: /POL_REFUND 응대 기준 수정/ })
+            .click();
+          const statusSwitch = page.getByRole("switch", {
+            name: "응대 기준 상태",
+          });
+          await expect(statusSwitch).toBeChecked();
+
+          const statusRequest = page.waitForRequest(
+            (request) =>
+              request.method() === "PATCH" &&
+              request
+                .url()
+                .includes(
+                  "/workspaces/1/domain-packs/1/versions/1/policies/101/status",
+                ),
+          );
+          await statusSwitch.click();
+          const requestBody = (await statusRequest).postDataJSON();
+
+          expect(requestBody).toEqual({ status: "INACTIVE" });
+          await expect(statusSwitch).not.toBeChecked();
+          await page.getByRole("button", { name: "취소" }).click();
+          await expect(page.getByLabel("응대 기준 상세")).toContainText(
+            "사용 안 함",
+          );
+          expect(seen).toContain(POLICY_STATUS_ENTRY);
+          expect(seen).not.toContain(RISK_STATUS_ENTRY);
+        });
       });
 
-      test("Then a valid save updates the policy detail", async ({ page }, testInfo) => {
-        await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
-        await page.getByRole("button", { name: /POL_REFUND/ }).click();
+      test.describe("When they edit a risk from the detail panel", () => {
+        test("Then invalid JSON is blocked before the risk update request", async ({
+          page,
+        }) => {
+          await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
+          await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
+          await expect(page.getByLabel("주의 사항 상세")).toContainText(
+            "부정 환불 위험",
+          );
 
-        await page.getByRole("button", { name: /POL_REFUND 응대 기준 수정/ }).click();
-        await expect(page.getByLabel("응대 기준 수정")).toBeVisible();
-        await captureScreen(page, testInfo, "policy-edit-panel");
+          await page
+            .getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ })
+            .click();
+          await expect(page.getByLabel("주의 사항 수정")).toBeVisible();
 
-        await page.getByLabel("이름 *").fill("고액 환불 정책");
-        await page.getByLabel("설명").fill("고액 환불은 검토 후 안내합니다.");
-        await page
-          .getByLabel("조건 JSON")
-          .fill(JSON.stringify({ amount: { gte: 100000 } }, null, 2));
-        await page
-          .getByLabel("액션 JSON")
-          .fill(JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2));
-        await page
-          .getByLabel("근거 JSON")
-          .fill(JSON.stringify([{ segmentId: "seg-99" }], null, 2));
-        await page.getByLabel("메타 JSON").fill(JSON.stringify({ source: "e2e" }, null, 2));
-        const updateRequest = page.waitForRequest(
-          (request) =>
-            request.method() === "PATCH" &&
-            request.url().includes("/workspaces/1/domain-packs/1/versions/1/policies/101"),
-        );
-        await page.getByRole("button", { name: "저장" }).click();
-        const requestBody = (await updateRequest).postDataJSON();
+          await expectJsonValidationBlocksUpdate(
+            page,
+            seen,
+            RISK_UPDATE_ENTRY,
+            [
+              {
+                label: "트리거 조건 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "감지 조건 JSON은 객체여야 합니다.",
+              },
+              {
+                label: "처리 액션 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "응대 방법 JSON은 객체여야 합니다.",
+              },
+              {
+                label: "근거 JSON",
+                invalidValue: "{}",
+                validValue: "[]",
+                message: "근거 JSON은 배열이어야 합니다.",
+              },
+              {
+                label: "메타 JSON",
+                invalidValue: "[]",
+                validValue: "{}",
+                message: "추가 정보 JSON은 객체여야 합니다.",
+              },
+            ],
+          );
+        });
 
-        expect(requestBody).toEqual(
-          expect.objectContaining({
-            name: "고액 환불 정책",
-            description: "고액 환불은 검토 후 안내합니다.",
-            conditionJson: JSON.stringify({ amount: { gte: 100000 } }, null, 2),
-            actionJson: JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2),
-            evidenceJson: JSON.stringify([{ segmentId: "seg-99" }], null, 2),
-            metaJson: JSON.stringify({ source: "e2e" }, null, 2),
-          }),
-        );
+        test("Then a valid save updates the risk detail", async ({
+          page,
+        }, testInfo) => {
+          await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
+          await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
 
-        await expect(page.getByText("응대 기준이 수정되었습니다.")).toBeVisible();
-        await expect(page.getByLabel("응대 기준 상세")).toContainText("고액 환불 정책");
-        expect(seen).toContain("PATCH /workspaces/1/domain-packs/1/versions/1/policies/101");
-      });
+          await page
+            .getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ })
+            .click();
+          await expect(page.getByLabel("주의 사항 수정")).toBeVisible();
+          await captureScreen(page, testInfo, "risk-edit-panel");
 
-      test("Then the status switch updates request body and detail state", async ({ page }) => {
-        await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
-        await page.getByRole("button", { name: /POL_REFUND/ }).click();
+          await page.getByLabel("이름 *").fill("고액 환불 위험");
+          await page
+            .getByLabel("설명")
+            .fill("고액 환불은 상담사 검토로 전환합니다.");
+          await page
+            .getByLabel("트리거 조건 JSON")
+            .fill(JSON.stringify({ amount: { gte: 100000 } }, null, 2));
+          await page
+            .getByLabel("처리 액션 JSON")
+            .fill(JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2));
+          await page
+            .getByLabel("근거 JSON")
+            .fill(JSON.stringify([{ segmentId: "risk-seg-99" }], null, 2));
+          await page
+            .getByLabel("메타 JSON")
+            .fill(JSON.stringify({ source: "e2e" }, null, 2));
+          const updateRequest = page.waitForRequest(
+            (request) =>
+              request.method() === "PATCH" &&
+              request
+                .url()
+                .includes("/workspaces/1/domain-packs/1/versions/1/risks/201"),
+          );
+          await page.getByRole("button", { name: "저장" }).click();
+          const requestBody = (await updateRequest).postDataJSON();
 
-        await page.getByRole("button", { name: /POL_REFUND 응대 기준 수정/ }).click();
-        const statusSwitch = page.getByRole("switch", { name: "응대 기준 상태" });
-        await expect(statusSwitch).toBeChecked();
+          expect(requestBody).toEqual(
+            expect.objectContaining({
+              name: "고액 환불 위험",
+              description: "고액 환불은 상담사 검토로 전환합니다.",
+              triggerConditionJson: JSON.stringify(
+                { amount: { gte: 100000 } },
+                null,
+                2,
+              ),
+              handlingActionJson: JSON.stringify(
+                { type: "MANUAL_REVIEW" },
+                null,
+                2,
+              ),
+              evidenceJson: JSON.stringify(
+                [{ segmentId: "risk-seg-99" }],
+                null,
+                2,
+              ),
+              metaJson: JSON.stringify({ source: "e2e" }, null, 2),
+            }),
+          );
 
-        const statusRequest = page.waitForRequest(
-          (request) =>
-            request.method() === "PATCH" &&
-            request
-              .url()
-              .includes("/workspaces/1/domain-packs/1/versions/1/policies/101/status"),
-        );
-        await statusSwitch.click();
-        const requestBody = (await statusRequest).postDataJSON();
+          await expect(
+            page.getByText("주의 사항이 수정되었습니다."),
+          ).toBeVisible();
+          await expect(page.getByLabel("주의 사항 상세")).toContainText(
+            "고액 환불 위험",
+          );
+          expect(seen).toContain(RISK_UPDATE_ENTRY);
+        });
 
-        expect(requestBody).toEqual({ status: "INACTIVE" });
-        await expect(statusSwitch).not.toBeChecked();
-        await page.getByRole("button", { name: "취소" }).click();
-        await expect(page.getByLabel("응대 기준 상세")).toContainText("사용 안 함");
-        expect(seen).toContain(
-          "PATCH /workspaces/1/domain-packs/1/versions/1/policies/101/status",
-        );
-      });
-    });
+        test("Then the status switch updates request body and detail state", async ({
+          page,
+        }) => {
+          await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
+          await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
 
-    test.describe("When they edit a risk from the detail panel", () => {
-      test("Then invalid JSON is blocked before the risk update request", async ({ page }) => {
-        await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
-        await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
-        await expect(page.getByLabel("주의 사항 상세")).toContainText("부정 환불 위험");
+          await page
+            .getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ })
+            .click();
+          const statusSwitch = page.getByRole("switch", {
+            name: "주의 사항 상태",
+          });
+          await expect(statusSwitch).toBeChecked();
 
-        await page.getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ }).click();
-        await expect(page.getByLabel("주의 사항 수정")).toBeVisible();
+          const statusRequest = page.waitForRequest(
+            (request) =>
+              request.method() === "PATCH" &&
+              request
+                .url()
+                .includes(
+                  "/workspaces/1/domain-packs/1/versions/1/risks/201/status",
+                ),
+          );
+          await statusSwitch.click();
+          const requestBody = (await statusRequest).postDataJSON();
 
-        await page.getByLabel("트리거 조건 JSON").fill("[]");
-        await page.getByRole("button", { name: "저장" }).click();
-        await expect(page.getByText("감지 조건 JSON은 객체여야 합니다.")).toBeVisible();
-        expect(
-          seen.some(
-            (entry) => entry === "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201",
-          ),
-        ).toBe(false);
-      });
-
-      test("Then a valid save updates the risk detail", async ({ page }, testInfo) => {
-        await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
-        await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
-
-        await page.getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ }).click();
-        await expect(page.getByLabel("주의 사항 수정")).toBeVisible();
-        await captureScreen(page, testInfo, "risk-edit-panel");
-
-        await page.getByLabel("이름 *").fill("고액 환불 위험");
-        await page.getByLabel("설명").fill("고액 환불은 상담사 검토로 전환합니다.");
-        await page
-          .getByLabel("트리거 조건 JSON")
-          .fill(JSON.stringify({ amount: { gte: 100000 } }, null, 2));
-        await page
-          .getByLabel("처리 액션 JSON")
-          .fill(JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2));
-        await page
-          .getByLabel("근거 JSON")
-          .fill(JSON.stringify([{ segmentId: "risk-seg-99" }], null, 2));
-        await page.getByLabel("메타 JSON").fill(JSON.stringify({ source: "e2e" }, null, 2));
-        const updateRequest = page.waitForRequest(
-          (request) =>
-            request.method() === "PATCH" &&
-            request.url().includes("/workspaces/1/domain-packs/1/versions/1/risks/201"),
-        );
-        await page.getByRole("button", { name: "저장" }).click();
-        const requestBody = (await updateRequest).postDataJSON();
-
-        expect(requestBody).toEqual(
-          expect.objectContaining({
-            name: "고액 환불 위험",
-            description: "고액 환불은 상담사 검토로 전환합니다.",
-            triggerConditionJson: JSON.stringify({ amount: { gte: 100000 } }, null, 2),
-            handlingActionJson: JSON.stringify({ type: "MANUAL_REVIEW" }, null, 2),
-            evidenceJson: JSON.stringify([{ segmentId: "risk-seg-99" }], null, 2),
-            metaJson: JSON.stringify({ source: "e2e" }, null, 2),
-          }),
-        );
-
-        await expect(page.getByText("주의 사항이 수정되었습니다.")).toBeVisible();
-        await expect(page.getByLabel("주의 사항 상세")).toContainText("고액 환불 위험");
-        expect(seen).toContain("PATCH /workspaces/1/domain-packs/1/versions/1/risks/201");
-      });
-
-      test("Then the status switch updates request body and detail state", async ({ page }) => {
-        await page.goto("/workspaces/1/domain-packs/1/risks?versionId=1");
-        await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
-
-        await page.getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ }).click();
-        const statusSwitch = page.getByRole("switch", { name: "주의 사항 상태" });
-        await expect(statusSwitch).toBeChecked();
-
-        const statusRequest = page.waitForRequest(
-          (request) =>
-            request.method() === "PATCH" &&
-            request.url().includes("/workspaces/1/domain-packs/1/versions/1/risks/201/status"),
-        );
-        await statusSwitch.click();
-        const requestBody = (await statusRequest).postDataJSON();
-
-        expect(requestBody).toEqual({ status: "INACTIVE" });
-        await expect(statusSwitch).not.toBeChecked();
-        await page.getByRole("button", { name: "취소" }).click();
-        await expect(page.getByLabel("주의 사항 상세")).toContainText("사용 안 함");
-        expect(seen).toContain(
-          "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201/status",
-        );
+          expect(requestBody).toEqual({ status: "INACTIVE" });
+          await expect(statusSwitch).not.toBeChecked();
+          await page.getByRole("button", { name: "취소" }).click();
+          await expect(page.getByLabel("주의 사항 상세")).toContainText(
+            "사용 안 함",
+          );
+          expect(seen).toContain(RISK_STATUS_ENTRY);
+          expect(seen).not.toContain(POLICY_STATUS_ENTRY);
+        });
       });
     });
 
