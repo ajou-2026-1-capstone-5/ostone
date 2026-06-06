@@ -29,9 +29,13 @@ type RouteHandler = (route: Route, method: string, path: string, url: URL) => Pr
 interface DomainPackMockState {
   currentVersionId: number;
   currentVersionNo: number;
+  draftApproval: "blocked" | "ready";
+  draftLifecycleStatus: "DRAFT" | "PUBLISHED";
+  draftDescription: string;
 }
 
 export interface AppApiMockOptions {
+  readonly domainPackDraftApproval?: "blocked" | "ready";
   readonly uploadLatestPipelineJob?: "default" | "none";
 }
 
@@ -185,12 +189,27 @@ function buildWorkspacePackSummary(state: DomainPackMockState) {
   };
 }
 
+function buildDraftVersionSummary(state: DomainPackMockState) {
+  return {
+    ...packDetail.versions[2],
+    lifecycleStatus: state.draftLifecycleStatus,
+    description: state.draftDescription,
+  };
+}
+
+function buildDraftVersionDetail(state: DomainPackMockState) {
+  return {
+    ...draftVersionDetail,
+    ...buildDraftVersionSummary(state),
+  };
+}
+
 function buildWorkspacePackDetail(state: DomainPackMockState) {
   return {
     ...packDetail,
     ...buildWorkspacePackSummary(state),
     code: packDetail.code,
-    versions: packDetail.versions,
+    versions: [packDetail.versions[0], packDetail.versions[1], buildDraftVersionSummary(state)],
   };
 }
 
@@ -302,7 +321,11 @@ const workflow = {
 
 type DomainPackComponentSection = "intents" | "slots" | "policies" | "risks" | "workflows";
 
-function componentPreviewData(versionId: number, section: DomainPackComponentSection) {
+function componentPreviewData(
+  state: DomainPackMockState,
+  versionId: number,
+  section: DomainPackComponentSection,
+) {
   const suffix = versionId === 3 ? "고액 환불" : "상담사 연결";
 
   if (section === "intents") {
@@ -311,7 +334,7 @@ function componentPreviewData(versionId: number, section: DomainPackComponentSec
         ...intent,
         domainPackVersionId: versionId,
         name: `${suffix} 문의`,
-        status: versionId === 3 ? "DRAFT" : intent.status,
+        status: versionId === 3 && state.draftApproval === "blocked" ? "DRAFT" : intent.status,
       },
     ];
   }
@@ -894,7 +917,7 @@ async function fulfillDomainPackRead(
   }
 
   if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/3") {
-    await fulfillJson(route, { data: draftVersionDetail, status: 200 });
+    await fulfillJson(route, { data: buildDraftVersionDetail(state), status: 200 });
     return true;
   }
 
@@ -916,16 +939,25 @@ async function fulfillDomainPackRead(
   }
 
   if (method === "POST" && path === "/workspaces/1/domain-packs/1/versions/3/activate") {
-    expect(route.request().postDataJSON()).toEqual({
-      description: "검토본 적용 메모",
-    });
+    const postData = route.request().postData();
+    const requestBody = postData ? (JSON.parse(postData) as { description?: string }) : undefined;
+    if (requestBody) {
+      expect(requestBody).toEqual({
+        description: expect.any(String),
+      });
+    }
+    const description = requestBody?.description ?? state.draftDescription;
+    state.currentVersionId = 3;
+    state.currentVersionNo = 3;
+    state.draftLifecycleStatus = "PUBLISHED";
+    state.draftDescription = description;
     await fulfillJson(route, {
       data: {
         id: 3,
         domainPackId: PACK_ID,
         versionNo: 3,
         lifecycleStatus: "PUBLISHED",
-        description: "검토본 적용 메모",
+        description,
         publishedAt: now,
         updatedAt: now,
       },
@@ -946,7 +978,7 @@ async function fulfillDomainPackRead(
     const versionId = Number(componentListMatch[1]);
     const section = componentListMatch[2] as DomainPackComponentSection;
     await fulfillJson(route, {
-      data: componentPreviewData(versionId, section),
+      data: componentPreviewData(state, versionId, section),
       status: 200,
     });
     return true;
@@ -1751,6 +1783,9 @@ export async function installAppApiMocks(
   const domainPackState: DomainPackMockState = {
     currentVersionId: VERSION_ID,
     currentVersionNo: 1,
+    draftApproval: options.domainPackDraftApproval ?? "blocked",
+    draftLifecycleStatus: "DRAFT",
+    draftDescription: "고액 환불 검토 흐름을 정리한 수정 검토본",
   };
   const pipelineReviewState: PipelineReviewMockState = { pipelineReviewStatusRequests: {} };
   const simulationState = createSimulationState();
