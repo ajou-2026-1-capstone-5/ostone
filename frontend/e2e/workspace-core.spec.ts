@@ -267,6 +267,30 @@ test.describe("Workspace core operator screens", () => {
     });
 
     test.describe("When they upload consultation logs and enter pipeline review", () => {
+      test("Then processing stays disabled and no upload request is sent without a file", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/upload");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+
+        const startButton = page.getByRole("button", { name: "처리 시작" });
+        await expect(startButton).toBeDisabled();
+        await expect(page.getByText("파일을 먼저 선택해 주세요.")).toBeVisible();
+        await expect(
+          page.getByText("처리 시작 전에 ZIP 상담 로그 파일이 필요합니다."),
+        ).toBeVisible();
+        await expect(page.locator('input[type="file"]')).toBeEnabled();
+        await expect(page).toHaveURL(/\/workspaces\/1\/upload$/);
+
+        expect(seen).not.toContain("POST /workspaces/1/datasets/uploads:init");
+        expect(seen).not.toContain("PUT /e2e-upload/raw-log.zip");
+        expect(
+          seen.some((entry) =>
+            entry.includes("/pipeline-jobs/domain-pack-generation"),
+          ),
+        ).toBe(false);
+      });
+
       test("Then upload, generation, review navigation, and domain confirmation are verified", async ({
         page,
       }, testInfo) => {
