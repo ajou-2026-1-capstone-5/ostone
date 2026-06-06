@@ -7,6 +7,7 @@
     "dev": "vp dev",
     "build": "tsc -b && vp build",
     "e2e": "playwright test",
+    "e2e:critical": "playwright test --grep @critical",
     "e2e:live": "playwright test --config=playwright.live.config.ts --grep-invert @pollutes",
     "e2e:live:pollutes": "playwright test --config=playwright.live.config.ts --grep @pollutes",
     "test": "pnpm audit:api && pnpm audit:fsd && vp test",
