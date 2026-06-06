@@ -8,6 +8,8 @@ interface InstallAuthOptions {
   email?: string;
 }
 
+const AUTH_SEEDED_KEY = "e2e-auth-seeded";
+
 function encodeBase64Url(value: unknown): string {
   return Buffer.from(JSON.stringify(value))
     .toString("base64")
@@ -39,11 +41,15 @@ export async function installAuth(page: Page, options: InstallAuthOptions = {}) 
   };
 
   await page.addInitScript(
-    ({ accessToken, user }) => {
+    ({ accessToken, seededKey, user }) => {
+      if (window.sessionStorage.getItem(seededKey) === "true") {
+        return;
+      }
+      window.sessionStorage.setItem(seededKey, "true");
       window.localStorage.setItem("accessToken", accessToken);
       window.localStorage.setItem("refreshToken", "e2e-refresh-token");
       window.localStorage.setItem("user", JSON.stringify(user));
     },
-    { accessToken: token, user },
+    { accessToken: token, seededKey: AUTH_SEEDED_KEY, user },
   );
 }
