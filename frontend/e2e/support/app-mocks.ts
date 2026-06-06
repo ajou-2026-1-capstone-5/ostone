@@ -31,6 +31,10 @@ interface DomainPackMockState {
   currentVersionNo: number;
 }
 
+export interface AppApiMockOptions {
+  readonly uploadLatestPipelineJob?: "default" | "none";
+}
+
 const now = "2026-06-04T09:00:00+09:00";
 
 const workspace = {
@@ -1249,6 +1253,7 @@ async function fulfillUploadAndReview(
   route: Route,
   method: string,
   path: string,
+  options: AppApiMockOptions,
 ): Promise<boolean> {
   if (method === "POST" && path === "/workspaces/1/datasets/uploads:init") {
     await fulfillJson(route, {
@@ -1277,6 +1282,11 @@ async function fulfillUploadAndReview(
   }
 
   if (method === "GET" && path === "/workspaces/1/datasets/77/pipeline-jobs/latest") {
+    if (options.uploadLatestPipelineJob === "none") {
+      await fulfillJson(route, { pipelineJob: null });
+      return true;
+    }
+
     await fulfillJson(route, {
       pipelineJob: {
         pipelineJobId: PIPELINE_JOB_ID,
@@ -1605,7 +1615,11 @@ async function fulfillSimulation(
   return false;
 }
 
-export async function installAppApiMocks(page: Page, seen: string[]) {
+export async function installAppApiMocks(
+  page: Page,
+  seen: string[],
+  options: AppApiMockOptions = {},
+) {
   const domainPackState: DomainPackMockState = {
     currentVersionId: VERSION_ID,
     currentVersionNo: 1,
@@ -1621,7 +1635,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
     if (await fulfillWorkspaceShell(route, method, path)) return true;
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
-    if (await fulfillUploadAndReview(route, method, path)) return true;
+    if (await fulfillUploadAndReview(route, method, path, options)) return true;
     if (await fulfillSimulation(route, method, path, url, simulationState)) return true;
     return false;
   });
