@@ -289,6 +289,77 @@ test.describe("Workspace core operator screens", () => {
         ).toBe(false);
       });
 
+      test("Then ZIP이 아닌 상담 로그 파일은 업로드 전에 차단되고 ZIP 재선택은 가능하다", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/upload");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+
+        const fileInput = page.locator('input[type="file"]');
+        const startButton = page.getByRole("button", { name: "처리 시작" });
+        const zipOnlyMessages = page.getByText("ZIP 파일만 업로드할 수 있습니다.");
+
+        await fileInput.setInputFiles({
+          name: "notes.txt",
+          mimeType: "text/plain",
+          buffer: Buffer.from("plain text log"),
+        });
+
+        await expect(zipOnlyMessages).toHaveCount(1);
+        await expect(startButton).toBeDisabled();
+        await expect(page.getByText("파일을 먼저 선택해 주세요.")).toBeVisible();
+        await expect(page.getByText("notes.txt")).not.toBeVisible();
+        expect(seen).not.toContain("POST /workspaces/1/datasets/uploads:init");
+        expect(seen).not.toContain("PUT /e2e-upload/raw-log.zip");
+        expect(seen).not.toContain("POST /workspaces/1/datasets/uploads/77:complete");
+
+        const dataTransfer = await page.evaluateHandle(() => {
+          const transfer = new DataTransfer();
+          transfer.items.add(
+            new File(["conversation_id,message\n1,hello"], "call-log.csv", {
+              type: "text/csv",
+            }),
+          );
+          return transfer;
+        });
+        const dropZone = page
+          .getByRole("heading", { name: "파일을 클릭하거나 끌어다 놓으세요" })
+          .locator("xpath=..");
+
+        await dropZone.dispatchEvent("drop", { dataTransfer });
+        await dataTransfer.dispose();
+
+        await expect(zipOnlyMessages).toHaveCount(2);
+        await expect(startButton).toBeDisabled();
+        await expect(page.getByText("call-log.csv")).not.toBeVisible();
+        expect(seen).not.toContain("POST /workspaces/1/datasets/uploads:init");
+        expect(seen).not.toContain("PUT /e2e-upload/raw-log.zip");
+        expect(seen).not.toContain("POST /workspaces/1/datasets/uploads/77:complete");
+        expect(
+          seen.some((entry) =>
+            entry.includes("/pipeline-jobs/domain-pack-generation"),
+          ),
+        ).toBe(false);
+
+        await fileInput.setInputFiles({
+          name: "refund-log.zip",
+          mimeType: "application/zip",
+          buffer: Buffer.from("PK\u0003\u0004-e2e"),
+        });
+        await expect(page.getByText("refund-log.zip")).toBeVisible();
+        await expect(startButton).toBeEnabled();
+
+        await startButton.click();
+        await expect(page.getByText("업로드 완료").first()).toBeVisible();
+        await expect(page.getByText("자동 생성 파이프라인")).toBeVisible();
+        expect(seen).toContain("POST /workspaces/1/datasets/uploads:init");
+        expect(seen).toContain("PUT /e2e-upload/raw-log.zip");
+        expect(seen).toContain("POST /workspaces/1/datasets/uploads/77:complete");
+        expect(seen).toContain(
+          "GET /workspaces/1/datasets/77/pipeline-jobs/latest?jobType=INGESTION",
+        );
+      });
+
       test("Then upload, generation, review navigation, and domain confirmation are verified", async ({
         page,
       }, testInfo) => {
