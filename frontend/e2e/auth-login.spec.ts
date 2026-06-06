@@ -150,7 +150,11 @@ test.describe("Login screen", () => {
           }
 
           if (method === "GET" && path === "/workspaces") {
-            await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+            await route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify([]),
+            });
             return;
           }
 
