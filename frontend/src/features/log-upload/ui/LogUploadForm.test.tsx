@@ -277,12 +277,28 @@ describe("LogUploadForm", () => {
     expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("false");
   });
 
+  it("keeps processing disabled until a file is selected", () => {
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+
+    expect(screen.getByText("파일을 먼저 선택해 주세요.")).toBeInTheDocument();
+    expect(
+      screen.getByText("처리 시작 전에 ZIP 상담 로그 파일이 필요합니다."),
+    ).toBeInTheDocument();
+
+    const startButton = screen.getByRole("button", { name: "처리 시작" });
+    expect(startButton).toBeDisabled();
+
+    fireEvent.click(startButton);
+
+    expect(mockUploadStart).not.toHaveBeenCalled();
+  });
+
   it("shows file preview and Start Processing button after selecting a file", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["test"], "test.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(screen.getByText("처리 시작")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "처리 시작" })).toBeEnabled();
     expect(screen.getByText("test.zip")).toBeInTheDocument();
   });
 

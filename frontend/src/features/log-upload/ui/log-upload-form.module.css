@@ -55,6 +55,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 16px 20px;
   background: rgba(0, 0, 0, 0.02);
   border-radius: var(--radius-md);
@@ -62,10 +63,16 @@
   animation: fade-in 0.3s ease;
 }
 
+.emptyFilePreview {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
 .fileInfo {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .fileName {

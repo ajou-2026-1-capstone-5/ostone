@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -96,6 +96,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   isEntitlementLoading = false,
 }) => {
   const navigate = useNavigate();
+  const fileRequiredMessageId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [uploadedDataset, setUploadedDataset] =
@@ -297,15 +298,34 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         />
       </div>
 
-      {status === "idle" && file && (
-        <div className={styles.filePreview}>
-          <div className={styles.fileInfo}>
-            <span className={styles.fileName}>{file.name}</span>
-            <span className={styles.fileSize}>
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </span>
-          </div>
-          <Button onClick={() => handleUpload(file)} disabled={isUploadBlocked}>
+      {status === "idle" && (
+        <div
+          className={`${styles.filePreview} ${file ? "" : styles.emptyFilePreview}`}
+        >
+          {file ? (
+            <div className={styles.fileInfo}>
+              <span className={styles.fileName}>{file.name}</span>
+              <span className={styles.fileSize}>
+                {(file.size / 1024 / 1024).toFixed(2)} MB
+              </span>
+            </div>
+          ) : (
+            <div className={styles.fileInfo}>
+              <span className={styles.fileName}>
+                파일을 먼저 선택해 주세요.
+              </span>
+              <span className={styles.fileSize} id={fileRequiredMessageId}>
+                처리 시작 전에 ZIP 상담 로그 파일이 필요합니다.
+              </span>
+            </div>
+          )}
+          <Button
+            onClick={() => {
+              if (file) handleUpload(file);
+            }}
+            disabled={!file || isUploadBlocked}
+            aria-describedby={file ? undefined : fileRequiredMessageId}
+          >
             처리 시작
           </Button>
         </div>
