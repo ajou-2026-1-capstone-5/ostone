@@ -2,6 +2,7 @@ package com.init.payment.infrastructure;
 
 import com.init.payment.application.WorkspaceQuotaUsagePort;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -89,6 +90,38 @@ public class JdbcWorkspaceQuotaUsageRepository implements WorkspaceQuotaUsagePor
         .param("toExclusive", toExclusive)
         .query(Long.class)
         .single();
+  }
+
+  @Override
+  public Optional<OffsetDateTime> findOldestDomainPackOperationAt(
+      Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive) {
+    return jdbcClient
+        .sql(
+            """
+            SELECT occurred_at
+              FROM (
+                    SELECT requested_at AS occurred_at
+                      FROM pipeline.pipeline_job
+                     WHERE workspace_id = :workspaceId
+                       AND job_type = 'DOMAIN_PACK_GENERATION'
+                       AND requested_at >= :fromInclusive
+                       AND requested_at < :toExclusive
+                    UNION ALL
+                    SELECT rd.decided_at AS occurred_at
+                      FROM review.review_decision rd
+                      JOIN review.review_session rs ON rs.id = rd.review_session_id
+                     WHERE rs.workspace_id = :workspaceId
+                       AND rd.decided_at >= :fromInclusive
+                       AND rd.decided_at < :toExclusive
+                   ) operations
+             ORDER BY occurred_at ASC
+             LIMIT 1
+            """)
+        .param("workspaceId", workspaceId)
+        .param("fromInclusive", fromInclusive)
+        .param("toExclusive", toExclusive)
+        .query(OffsetDateTime.class)
+        .optional();
   }
 
   @Override

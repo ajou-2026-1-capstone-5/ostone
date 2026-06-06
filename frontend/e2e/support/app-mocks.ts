@@ -51,6 +51,7 @@ export interface AppApiMockOptions {
     | "INCOMPLETE"
     | "CANCELED"
     | null;
+  readonly paidUploadCooldown?: boolean;
 }
 
 interface PipelineReviewMockState {
@@ -435,6 +436,7 @@ const billingOverview = {
   quotaUsages: [
     { resource: "DATASET_UPLOAD", used: 4, limit: 100 },
     { resource: "PIPELINE_RUN", used: 9, limit: 50 },
+    { resource: "DOMAIN_PACK_OPERATION", used: 0, limit: 1, warning: false },
   ],
 };
 
@@ -467,21 +469,51 @@ const secondaryBillingOverview = {
   quotaUsages: [
     { resource: "DATASET_UPLOAD", used: 1, limit: 100 },
     { resource: "PIPELINE_RUN", used: 2, limit: 50 },
+    { resource: "DOMAIN_PACK_OPERATION", used: 0, limit: 1, warning: false },
   ],
 };
 
-function createBillingMockState() {
+function createBillingMockState(options: AppApiMockOptions = {}) {
+  const domainPackOperationQuota = options.paidUploadCooldown
+    ? {
+        resource: "DOMAIN_PACK_OPERATION",
+        used: 1,
+        limit: 1,
+        warning: true,
+        nextAvailableAt: "2026-06-04T10:30:00+09:00",
+      }
+    : {
+        resource: "DOMAIN_PACK_OPERATION",
+        used: 0,
+        limit: 1,
+        warning: false,
+      };
   return {
     workspaceOneOverview: {
       ...billingOverview,
-      subscription: { ...subscription },
+      subscription: { ...subscription, quotaUsages: [domainPackOperationQuota] },
       billingKey: { ...billingOverview.billingKey },
       payments: [{ ...payment }],
-      quotaUsages: billingOverview.quotaUsages.map((quota) => ({ ...quota })),
+      quotaUsages: [
+        ...billingOverview.quotaUsages.filter(
+          (quota) => quota.resource !== "DOMAIN_PACK_OPERATION",
+        ),
+        domainPackOperationQuota,
+      ].map((quota) => ({ ...quota })),
     },
     workspaceTwoOverview: {
       ...secondaryBillingOverview,
-      subscription: { ...secondarySubscription },
+      subscription: {
+        ...secondarySubscription,
+        quotaUsages: [
+          {
+            resource: "DOMAIN_PACK_OPERATION",
+            used: 0,
+            limit: 1,
+            warning: false,
+          },
+        ],
+      },
       billingKey: { ...secondaryBillingOverview.billingKey },
       payments: [{ ...secondaryPayment }],
       quotaUsages: secondaryBillingOverview.quotaUsages.map((quota) => ({ ...quota })),
@@ -1202,7 +1234,11 @@ async function fulfillBilling(
   }
 
   if (method === "DELETE" && path === "/workspaces/1/subscription") {
-    const canceledSubscription = { ...subscription, status: "CANCELED", cancelAtPeriodEnd: true };
+    const canceledSubscription = {
+      ...state.workspaceOneOverview.subscription,
+      status: "CANCELED",
+      cancelAtPeriodEnd: true,
+    };
     state.workspaceOneOverview = {
       ...state.workspaceOneOverview,
       subscription: canceledSubscription,
@@ -1903,7 +1939,7 @@ export async function installAppApiMocks(
       options.domainPackGenerationFailureAttempts ?? 0,
   };
   const simulationState = createSimulationState();
-  const billingState = createBillingMockState();
+  const billingState = createBillingMockState(options);
   if (options.workspaceOneSubscriptionStatus) {
     billingState.workspaceOneOverview = {
       ...billingState.workspaceOneOverview,

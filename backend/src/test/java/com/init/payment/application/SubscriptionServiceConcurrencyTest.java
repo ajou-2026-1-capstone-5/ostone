@@ -77,6 +77,7 @@ class SubscriptionServiceConcurrencyTest {
   @MockitoBean private PaymentAccessGuard accessGuard;
   @MockitoBean private TossPaymentPort tossPaymentPort;
   @MockitoBean private BillingKeyCipher billingKeyCipher;
+  @MockitoBean private WorkspaceQuotaUsagePort usagePort;
 
   @Test
   @Transactional(propagation = Propagation.NOT_SUPPORTED)

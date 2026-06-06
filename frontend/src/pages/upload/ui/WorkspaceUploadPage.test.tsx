@@ -14,15 +14,20 @@ vi.mock("../../../features/log-upload/ui/LogUploadForm", () => ({
     freeOnboardingStatus,
     hasActiveSubscription,
     isEntitlementLoading,
+    paidUploadCooldown,
   }: {
     workspaceId?: number;
     freeOnboardingStatus?: string;
     hasActiveSubscription?: boolean;
     isEntitlementLoading?: boolean;
+    paidUploadCooldown?: { isBlocked?: boolean; nextAvailableAt?: string | null };
   }) => (
     <div data-testid="upload-form">
       workspace:{workspaceId} onboarding:{freeOnboardingStatus} active:
-      {String(hasActiveSubscription)} loading:{String(isEntitlementLoading)}
+      {String(hasActiveSubscription)} loading:{String(isEntitlementLoading)}{" "}
+      cooldown:
+      {String(paidUploadCooldown?.isBlocked)} next:
+      {paidUploadCooldown?.nextAvailableAt ?? "none"}
     </div>
   ),
 }));
@@ -88,7 +93,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:AVAILABLE active:false loading:false",
+      "workspace:1 onboarding:AVAILABLE active:false loading:false cooldown:false next:none",
     );
   });
 
@@ -107,7 +112,31 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:true loading:false",
+      "workspace:1 onboarding:CONSUMED active:true loading:false cooldown:false next:none",
+    );
+  });
+
+  it("passes paid domain pack operation cooldown state to the form", () => {
+    mockUseSubscription.mockReturnValue({
+      data: {
+        status: "ACTIVE",
+        quotaUsages: [
+          {
+            resource: "DOMAIN_PACK_OPERATION",
+            used: 1,
+            limit: 1,
+            warning: true,
+            nextAvailableAt: "2026-06-04T10:30:00+09:00",
+          },
+        ],
+      },
+      isLoading: false,
+    });
+
+    renderRoute("/workspaces/1/upload");
+
+    expect(screen.getByTestId("upload-form")).toHaveTextContent(
+      "workspace:1 onboarding:AVAILABLE active:true loading:false cooldown:true next:2026-06-04T10:30:00+09:00",
     );
   });
 
@@ -131,7 +160,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:false loading:false",
+      "workspace:1 onboarding:CONSUMED active:false loading:false cooldown:false next:none",
     );
 
     act(() => {

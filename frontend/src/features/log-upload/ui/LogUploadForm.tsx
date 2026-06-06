@@ -47,11 +47,17 @@ interface GenerationResponseLike {
 
 export type FreeOnboardingStatus = "AVAILABLE" | "IN_PROGRESS" | "CONSUMED";
 
+export interface PaidUploadCooldown {
+  readonly isBlocked: boolean;
+  readonly nextAvailableAt?: string | null;
+}
+
 interface LogUploadFormProps {
   workspaceId?: number;
   freeOnboardingStatus?: FreeOnboardingStatus;
   hasActiveSubscription?: boolean;
   isEntitlementLoading?: boolean;
+  paidUploadCooldown?: PaidUploadCooldown;
 }
 
 const FREE_ONBOARDING_STATUS_META: Record<
@@ -75,6 +81,22 @@ const FREE_ONBOARDING_STATUS_META: Record<
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
+const formatCooldownMessage = (nextAvailableAt?: string | null) => {
+  if (!nextAvailableAt) {
+    return "도메인팩 생성·검토 시간당 한도가 회복되면 새 상담 로그 업로드를 다시 시작할 수 있습니다. 최근 도메인팩 생성·검토 후 최대 1시간 뒤 다시 시도해 주세요.";
+  }
+
+  const date = new Date(nextAvailableAt);
+  if (Number.isNaN(date.getTime())) {
+    return "도메인팩 생성·검토 시간당 한도가 회복되면 새 상담 로그 업로드를 다시 시작할 수 있습니다. 최근 도메인팩 생성·검토 후 최대 1시간 뒤 다시 시도해 주세요.";
+  }
+
+  return `도메인팩 생성·검토 시간당 한도가 회복되면 새 상담 로그 업로드를 다시 시작할 수 있습니다. 재개 가능 시점: ${date.toLocaleString("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })}`;
+};
+
 const readGenerationResponse = (
   response: unknown,
 ): Omit<GenerationStatus & { kind: "success" }, "kind"> => {
@@ -94,6 +116,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   freeOnboardingStatus = "AVAILABLE",
   hasActiveSubscription = false,
   isEntitlementLoading = false,
+  paidUploadCooldown,
 }) => {
   const navigate = useNavigate();
   const fileRequiredMessageId = useId();
@@ -141,18 +164,28 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   });
 
   const freeOnboardingMeta = FREE_ONBOARDING_STATUS_META[freeOnboardingStatus];
+  const isPaidCooldownBlocked = Boolean(
+    hasActiveSubscription && paidUploadCooldown?.isBlocked,
+  );
+  const paidCooldownMessage = formatCooldownMessage(
+    paidUploadCooldown?.nextAvailableAt,
+  );
   const isConsumedWithoutSubscription =
     freeOnboardingStatus === "CONSUMED" && !hasActiveSubscription;
   const isUploadBlocked =
-    isConsumedWithoutSubscription && !isEntitlementLoading;
-  const isUploaderDisabled =
-    isUploadBlocked || (isEntitlementLoading && isConsumedWithoutSubscription);
+    (isConsumedWithoutSubscription || isPaidCooldownBlocked) &&
+    !isEntitlementLoading;
+  const isUploaderDisabled = isEntitlementLoading || isUploadBlocked;
   const blockedMessage =
-    "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.";
+    isPaidCooldownBlocked
+      ? paidCooldownMessage
+      : "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.";
 
   const handleFileSelect = (selectedFile: File) => {
-    if (isUploadBlocked) {
-      toast.error(blockedMessage);
+    if (isUploaderDisabled) {
+      toast.error(
+        isEntitlementLoading ? "업로드 가능 여부를 확인 중입니다." : blockedMessage,
+      );
       return;
     }
     const errorMessage = validateRawLogUploadFile(selectedFile);
@@ -171,8 +204,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
 
   const handleUpload = (fileToUpload: File) => {
     if (!workspaceId) return;
-    if (isUploadBlocked) {
-      toast.error(blockedMessage);
+    if (isUploaderDisabled) {
+      toast.error(
+        isEntitlementLoading ? "업로드 가능 여부를 확인 중입니다." : blockedMessage,
+      );
       return;
     }
     setStatus("uploading");
@@ -271,13 +306,21 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
 
       <div
         className={styles.onboardingStatus}
-        data-status={freeOnboardingStatus.toLowerCase()}
+        data-status={
+          isPaidCooldownBlocked ? "cooldown" : freeOnboardingStatus.toLowerCase()
+        }
       >
         <span className={styles.statusLabel}>
-          {isEntitlementLoading ? "권한 확인 중" : freeOnboardingMeta.label}
+          {isEntitlementLoading
+            ? "권한 확인 중"
+            : isPaidCooldownBlocked
+              ? "도메인팩 작업 쿨다운 중"
+              : freeOnboardingMeta.label}
         </span>
         <p>
-          {hasActiveSubscription
+          {isPaidCooldownBlocked
+            ? paidCooldownMessage
+            : hasActiveSubscription
             ? "활성 구독이 적용되어 새 업로드와 도메인팩 생성 요청을 계속 사용할 수 있습니다."
             : freeOnboardingMeta.copy}
         </p>
@@ -323,7 +366,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
             onClick={() => {
               if (file) handleUpload(file);
             }}
-            disabled={!file || isUploadBlocked}
+            disabled={!file || isUploaderDisabled}
             aria-describedby={file ? undefined : fileRequiredMessageId}
           >
             처리 시작
