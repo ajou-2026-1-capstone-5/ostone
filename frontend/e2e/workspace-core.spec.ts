@@ -733,3 +733,46 @@ test.describe("Workspace core operator screens", () => {
     });
   });
 });
+
+test.describe("Workspace dashboard Domain Pack health failure", () => {
+  let seen: string[];
+
+  test.beforeEach(async ({ page }) => {
+    seen = [];
+    await installAuth(page);
+    await installMockStomp(page);
+    await installAppApiMocks(page, seen, {
+      dashboardKnowledgePackHealth: "error",
+    });
+  });
+
+  test("When Domain Pack 상태 조회가 실패하면 안전한 오류와 재시도만 보여준다 @critical", async ({
+    page,
+  }) => {
+    await page.goto("/workspaces/1/dashboard");
+
+    await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+    await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+    await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
+
+    const errorPanel = page.getByTestId("knowledge-health-error");
+    await expect(errorPanel).toContainText("운영 지식팩 상태를 불러오지 못했습니다.");
+    await expect(errorPanel.getByRole("button", { name: "다시 시도" })).toBeVisible();
+
+    await expect(page.getByRole("heading", { name: "운영 지식팩 건강도" })).toHaveCount(0);
+    await expect(page.getByText("v1", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Generated API Pack")).toHaveCount(0);
+    await expect(page.getByText("운영 지식팩이 아직 반영되지 않았습니다.")).toHaveCount(0);
+    await expect(errorPanel.getByRole("link", { name: /상담 업로드/ })).toHaveCount(0);
+    await expect(errorPanel.getByRole("link", { name: /지식팩 생성/ })).toHaveCount(0);
+
+    const healthRequest = "GET /workspaces/1/dashboard/knowledge-pack-health";
+    await expect.poll(() => seen.filter((entry) => entry === healthRequest).length).toBe(1);
+
+    await errorPanel.getByRole("button", { name: "다시 시도" }).click();
+
+    await expect
+      .poll(() => seen.filter((entry) => entry === healthRequest).length)
+      .toBeGreaterThan(1);
+  });
+});

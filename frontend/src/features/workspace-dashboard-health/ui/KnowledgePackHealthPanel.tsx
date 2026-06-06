@@ -44,7 +44,10 @@ export function KnowledgePackHealthPanel({ workspaceId }: KnowledgePackHealthPan
   if (healthQuery.isError || !healthQuery.data) {
     return (
       <section className={styles.panel} data-testid="knowledge-health-error">
-        <ErrorState message="운영 지식팩 상태를 불러오지 못했습니다." />
+        <ErrorState
+          message="운영 지식팩 상태를 불러오지 못했습니다."
+          onRetry={() => healthQuery.refetch()}
+        />
       </section>
     );
   }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -66,16 +66,38 @@ describe("KnowledgePackHealthPanel", () => {
     );
   });
 
-  it("error 상태를 표시한다", () => {
+  it("error 상태에서는 stale 운영 상태 대신 재시도 가능한 오류 상태만 표시한다", () => {
+    const refetch = vi.fn();
     mockedUseWorkspaceDashboardHealth.mockReturnValue({
       isLoading: false,
       isError: true,
-      data: undefined,
+      data: {
+        activeKnowledgePack: {
+          packId: 11,
+          packName: "CS Pack",
+          versionId: 12,
+          versionNo: 4,
+          publishedAt: "2026-06-01T10:00:00Z",
+          createdAt: "2026-06-01T09:00:00Z",
+        },
+        lastLogUpload: null,
+        lastKnowledgePackGeneration: null,
+        pendingReviewCount: 0,
+      },
+      refetch,
     } as ReturnType<typeof useWorkspaceDashboardHealth>);
 
     renderPanel();
 
     expect(screen.getByTestId("knowledge-health-error")).toBeInTheDocument();
+    expect(screen.getByText("운영 지식팩 상태를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "운영 지식팩 건강도" })).not.toBeInTheDocument();
+    expect(screen.queryByText("v4")).not.toBeInTheDocument();
+    expect(screen.queryByText("CS Pack")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -34,6 +34,7 @@ interface DomainPackMockState {
 export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
   readonly domainPackGenerationFailureAttempts?: number;
+  readonly dashboardKnowledgePackHealth?: "default" | "error";
 }
 
 interface PipelineReviewMockState {
@@ -1177,6 +1178,7 @@ async function fulfillWorkspaceOperations(
   method: string,
   path: string,
   url: URL,
+  options: AppApiMockOptions,
 ): Promise<boolean> {
   if (method === "GET" && path === "/workspaces/1/members") {
     const q = url.searchParams.get("q")?.toLowerCase() ?? "";
@@ -1266,6 +1268,18 @@ async function fulfillWorkspaceOperations(
   }
 
   if (method === "GET" && path === "/workspaces/1/dashboard/knowledge-pack-health") {
+    if (options.dashboardKnowledgePackHealth === "error") {
+      await fulfillJson(
+        route,
+        {
+          code: "E2E_DASHBOARD_HEALTH_ERROR",
+          message: "운영 지식팩 상태 조회 실패",
+        },
+        500,
+      );
+      return true;
+    }
+
     await fulfillJson(route, {
       activeKnowledgePack: {
         packId: PACK_ID,
@@ -1820,7 +1834,7 @@ export async function installAppApiMocks(
     if (await fulfillWorkspaceShell(route, method, path)) return true;
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
     if (await fulfillBilling(route, method, path, billingState)) return true;
-    if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
+    if (await fulfillWorkspaceOperations(route, method, path, url, options)) return true;
     if (await fulfillUploadAndReview(route, method, path, options, pipelineReviewState))
       return true;
     if (await fulfillSimulation(route, method, path, url, simulationState)) return true;
