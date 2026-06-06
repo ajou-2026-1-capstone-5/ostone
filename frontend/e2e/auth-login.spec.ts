@@ -296,6 +296,146 @@ test.describe("Login screen", () => {
         expect(seen).toContain("GET /workspaces");
         expect(seen).not.toContain("GET /workspaces/1");
       });
+
+      test("Then stale workspace history is ignored for the current account", async ({ page }) => {
+        const seen: string[] = [];
+
+        await page.addInitScript(() => {
+          window.localStorage.setItem("accessToken", "stale-access-token");
+          window.localStorage.setItem("refreshToken", "stale-refresh-token");
+          window.localStorage.setItem(
+            "user",
+            JSON.stringify({
+              id: 99,
+              email: "previous@example.com",
+              name: "이전 상담사",
+              role: "OPERATOR",
+            }),
+          );
+        });
+
+        await page.route("**/api/v1/**", async (route) => {
+          const request = route.request();
+          const url = new URL(request.url());
+          const path = url.pathname.replace(/^\/api\/v1/, "");
+          const method = request.method();
+          seen.push(`${method} ${path}`);
+
+          if (method === "POST" && path === "/auth/refresh") {
+            await route.fulfill({
+              status: 401,
+              contentType: "application/json",
+              body: JSON.stringify({ code: "TOKEN_EXPIRED", message: "expired" }),
+            });
+            return;
+          }
+
+          if (method === "POST" && path === "/auth/login") {
+            await route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify({
+                data: {
+                  accessToken: makeJwt(),
+                  refreshToken: "current-refresh-token",
+                  tokenType: "Bearer",
+                  expiresIn: 3600,
+                  user: {
+                    id: 7,
+                    email: "agent@example.com",
+                    name: "현재 상담사",
+                    role: "OPERATOR",
+                  },
+                },
+              }),
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces") {
+            await route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify([
+                {
+                  id: 1,
+                  workspaceKey: "current-workspace",
+                  name: "Current Workspace",
+                  status: "ACTIVE",
+                  myRole: "OWNER",
+                },
+              ]),
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1") {
+            await route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify({
+                id: 1,
+                workspaceKey: "current-workspace",
+                name: "Current Workspace",
+                status: "ACTIVE",
+                myRole: "OWNER",
+              }),
+            });
+            return;
+          }
+
+          if (method === "GET" && path === "/workspaces/1/domain-packs") {
+            await route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify({ data: [] }),
+            });
+            return;
+          }
+
+          await route.fulfill({
+            status: 500,
+            contentType: "application/json",
+            body: JSON.stringify({ code: "E2E_UNMOCKED", message: `${method} ${path}` }),
+          });
+        });
+
+        await page.goto("/workspaces/99/domain-packs");
+        await expect(page).toHaveURL(/\/login$/);
+
+        await page.getByLabel("이메일 주소").fill("agent@example.com");
+        await page.getByLabel("비밀번호").fill("password123");
+        await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
+        await expect(page.getByRole("heading", { name: "워크플로우", level: 1 })).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("Current Workspace");
+        await expect(page.getByText("이전 상담사")).toHaveCount(0);
+        await expect(page.getByText("Legacy Workspace")).toHaveCount(0);
+        await expect
+          .poll(() =>
+            page.evaluate(() => ({
+              accessToken: window.localStorage.getItem("accessToken"),
+              refreshToken: window.localStorage.getItem("refreshToken"),
+              user: window.localStorage.getItem("user"),
+            })),
+          )
+          .toEqual({
+            accessToken: expect.any(String),
+            refreshToken: null,
+            user: JSON.stringify({
+              id: 7,
+              email: "agent@example.com",
+              name: "현재 상담사",
+              role: "OPERATOR",
+            }),
+          });
+
+        expect(seen).toContain("POST /auth/refresh");
+        expect(seen).toContain("POST /auth/login");
+        expect(seen).toContain("GET /workspaces");
+        expect(seen).not.toContain("GET /workspaces/99");
+      });
     });
   });
 });

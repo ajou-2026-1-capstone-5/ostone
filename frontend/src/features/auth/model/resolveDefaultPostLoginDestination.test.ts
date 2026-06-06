@@ -96,6 +96,29 @@ describe("resolveDefaultPostLoginDestination", () => {
     ).resolves.toBe("/workspaces/7/workflows");
   });
 
+  it("이전 계정 domain pack return-to는 현재 계정 기본 workspace로 대체한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(
+      listResponse([{ id: 7, name: "Current", status: "ACTIVE" }]),
+    );
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/workspaces/99/domain-packs", search: "?versionId=1" },
+      }),
+    ).resolves.toBe("/workspaces/7/workflows");
+  });
+
+  it("workspace 루트 return-to는 현재 계정 workspace 목록 확인 뒤 유지한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(listResponse([]));
+
+    await expect(
+      resolveAuthenticatedPostLoginDestination({
+        from: { pathname: "/workspaces", search: "?tab=logs" },
+      }),
+    ).resolves.toBe("/workspaces?tab=logs");
+    expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
+  });
+
   it("demo return-to는 workspace 조회 없이 유지한다", async () => {
     await expect(
       resolveAuthenticatedPostLoginDestination({

@@ -89,6 +89,18 @@ describe("LoginForm", () => {
     expect(localStorage.getItem("refreshToken")).toBeNull();
   });
 
+  it("허용된 비-workspace return-to 경로가 있으면 워크스페이스 조회 없이 해당 경로를 우선한다", async () => {
+    renderLoginForm({
+      from: { pathname: "/demo/chat/4", search: "?preview=true" },
+    });
+    await submitLoginForm();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("/demo/chat/4?preview=true");
+    });
+    expect(mockedListWorkspaces).not.toHaveBeenCalled();
+  });
+
   it("현재 계정 workspace return-to 경로가 있으면 해당 경로를 우선한다", async () => {
     mockedListWorkspaces.mockResolvedValueOnce(
       listResponse([{ id: 4, name: "Current", status: "ACTIVE" }]),
@@ -115,6 +127,22 @@ describe("LoginForm", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("location")).toHaveTextContent("/workspaces");
+    });
+    expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
+  });
+
+  it("이전 계정 workspace return-to 경로면 현재 계정 기본 workspace로 이동한다", async () => {
+    mockedListWorkspaces.mockResolvedValueOnce(
+      listResponse([{ id: 7, name: "Active", status: "ACTIVE" }]),
+    );
+
+    renderLoginForm({
+      from: { pathname: "/workspaces/99/domain-packs", search: "?versionId=1" },
+    });
+    await submitLoginForm();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/workflows");
     });
     expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
   });
