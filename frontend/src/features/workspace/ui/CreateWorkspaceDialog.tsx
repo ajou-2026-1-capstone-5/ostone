@@ -172,7 +172,7 @@ export function CreateWorkspaceDialog({
         </DialogHeader>
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <Label htmlFor="workspace-name">제목</Label>
+            <Label htmlFor="workspace-name">이름</Label>
             <Input
               id="workspace-name"
               className={styles.dialogInput}
