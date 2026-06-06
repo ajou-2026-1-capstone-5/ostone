@@ -69,8 +69,8 @@ test.describe("Domain pack core read flows", () => {
       });
     });
 
-    test.describe("When they deploy an operating candidate version", () => {
-      test("Then the deploy confirmation calls the version deploy endpoint", async ({ page }) => {
+    test.describe("When they deploy an operating candidate version @critical", () => {
+      test("Then the deploy confirmation switches the operating version", async ({ page }) => {
         await page.goto("/workspaces/1/domain-packs/1?versionId=2");
 
         await expect(
@@ -81,10 +81,29 @@ test.describe("Domain pack core read flows", () => {
         await expect(page.getByText("상담사 연결 정책")).toBeVisible();
         await expect(page.getByText("상담사 연결 검토 워크플로우")).toBeVisible();
         await page.getByRole("button", { name: "배포", exact: true }).click();
-        await expect(page.getByRole("alertdialog")).toContainText("v2 버전을 배포할까요?");
+        const dialog = page.getByRole("alertdialog");
+        await expect(dialog).toContainText("v2 버전을 배포할까요?");
+        const versionInfo = dialog.getByLabel("대상 버전 정보");
+        await expect(versionInfo).toContainText("대상 버전");
+        await expect(versionInfo).toContainText("v2");
+        await expect(versionInfo).toContainText("운영 가능");
+        await expect(versionInfo).toContainText("현재 v1 → v2");
+        await expect(versionInfo).toContainText("환불 자동화 팩 v2");
+        expect(seen).not.toContain("POST /workspaces/1/domain-packs/1/versions/2/deploy");
         await page.getByRole("button", { name: "배포하기" }).click();
 
         await expect(page.getByText("도메인팩 버전이 배포되었습니다.")).toBeVisible();
+        const safety = page.getByLabel("버전 안전성 정보");
+        await expect(safety).toContainText("현재 v2 · 운영 중");
+        await expect(safety).toContainText("운영 구성요소");
+        await expect(safety).toContainText("현재 운영 중인 버전입니다.");
+        await expect(
+          page.getByRole("button", {
+            name: /v2[\s\S]*배포중[\s\S]*상담사 연결 조건을 보강한 운영 가능 버전/,
+          }),
+        ).toBeVisible();
+        await expect(page.getByRole("button", { name: "배포중", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: /v1[\s\S]*배포중/ })).toHaveCount(0);
         expect(seen).toContain("POST /workspaces/1/domain-packs/1/versions/2/deploy");
       });
     });
