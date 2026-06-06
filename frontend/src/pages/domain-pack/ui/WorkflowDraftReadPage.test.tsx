@@ -17,6 +17,9 @@ vi.mock("@/entities/workflow", () => ({
 
 vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: (...args: unknown[]) => mockUsePackDetail(...args),
+  formatLifecycleStatus: (status?: string | null) =>
+    status === "PUBLISHED" ? "운영 가능" : status === "DRAFT" ? "검토 중" : "상태 없음",
+  VersionSafetyBanner: () => null,
 }));
 
 vi.mock("@/features/consultation/api/consultationApi", () => ({
@@ -332,7 +335,9 @@ describe("WorkflowDraftReadPage", () => {
         policyHitTop: [],
         riskHitTop: [],
         humanInterventionPoints: [],
-        improvementHints: ["collect_slots에서 머무는 시간이 길어 다음 안내 문구나 조건을 점검하세요."],
+        improvementHints: [
+          "collect_slots에서 머무는 시간이 길어 다음 안내 문구나 조건을 점검하세요.",
+        ],
       });
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,

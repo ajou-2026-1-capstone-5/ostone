@@ -1,4 +1,12 @@
 export { usePackDetail, useVersionDetail } from "./usePackDetail";
+export {
+  formatLifecycleStatus,
+  formatVersionNo,
+  formatCurrentVersionLabel,
+  formatDateTime,
+  normalizeDescription,
+  buildActionSummary,
+} from "./versionFormat";
 export { parseSummaryJson } from "./parseSummaryJson";
 export type { ParsedSummary } from "./parseSummaryJson";
 export { buildDomainPackApprovalReadiness } from "./buildDomainPackApprovalReadiness";

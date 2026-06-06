@@ -44,6 +44,7 @@ type ConsultationConversationPaneProps = {
   onLoadPreviousMessages: () => Promise<void>;
   onInsertDraftResponse: () => Promise<string>;
   onComposerDraftChange: (draft: ChatComposerDraft) => void;
+  onOpenContext: () => void;
 };
 
 export const ConsultationConversationPane: React.FC<ConsultationConversationPaneProps> = ({
@@ -76,6 +77,7 @@ export const ConsultationConversationPane: React.FC<ConsultationConversationPane
   onLoadPreviousMessages,
   onInsertDraftResponse,
   onComposerDraftChange,
+  onOpenContext,
 }) => {
   return (
     <div className={styles.conversationPane}>
@@ -87,13 +89,25 @@ export const ConsultationConversationPane: React.FC<ConsultationConversationPane
               <div>
                 <div className={styles.customerName}>{activeCustomerName} 고객</div>
                 <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                  {activeCustomer.channel ?? ""} ·{" "}
-                  {formatWaitDuration(activeCustomer.waitMinutes)} 대기 중
+                  {activeCustomer.channel ?? ""} · {formatWaitDuration(activeCustomer.waitMinutes)}{" "}
+                  대기 중
                 </Mono>
               </div>
             </div>
           </div>
           <div className={styles.conversationActions}>
+            <button
+              type="button"
+              className={styles.contextTrigger}
+              onClick={onOpenContext}
+              aria-label="고객 컨텍스트 보기"
+              data-testid="open-context-drawer"
+            >
+              맥락 보기
+              {matchedWorkflow ? (
+                <span className={styles.contextTriggerDot} aria-hidden="true" />
+              ) : null}
+            </button>
             {activeResponseStatusLabel && (
               <div
                 className={styles.responseStatusBadge}

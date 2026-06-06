@@ -13,6 +13,24 @@ test.describe("Domain pack generated read screens", () => {
   });
 
   test.describe("Given a generated API-backed domain pack version", () => {
+    test.describe("When an operator opens a draft sub-component screen", () => {
+      test("Then a version safety banner shows the lifecycle, impact counts, and a blocked-state reason", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/domain-packs/1/policies?versionId=1");
+
+        const banner = page.getByLabel("버전 안전성 정보");
+        await expect(banner).toBeVisible();
+        await expect(banner.getByText("검토 중", { exact: true })).toBeVisible();
+        await expect(banner.getByText("검토본", { exact: true })).toBeVisible();
+        await expect(banner.getByText("반영 대상 구성요소")).toBeVisible();
+        await expect(banner.getByRole("status")).toContainText(
+          "적용하면 변경 내용이 도메인팩에 반영",
+        );
+        expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1");
+      });
+    });
+
     test.describe("When an operator opens the policy list screen", () => {
       test("Then the policy detail screen renders generated list and detail data", async ({
         page,
@@ -40,9 +58,7 @@ test.describe("Domain pack generated read screens", () => {
 
         await page.getByRole("button", { name: /RISK_FRAUD/ }).click();
 
-        await expect(page).toHaveURL(
-          /\/workspaces\/1\/domain-packs\/1\/risks\/201\?versionId=1/,
-        );
+        await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\/risks\/201\?versionId=1/);
         await expect(page.getByText("부정 거래 징후")).toBeVisible();
         await expect(page.getByText(/MANUAL_REVIEW/)).toBeVisible();
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/risks");
@@ -58,9 +74,7 @@ test.describe("Domain pack generated read screens", () => {
 
         await page.getByRole("button", { name: /SLOT_ADDRESS/ }).click();
 
-        await expect(page).toHaveURL(
-          /\/workspaces\/1\/domain-packs\/1\/slots\/301\?versionId=1/,
-        );
+        await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\/slots\/301\?versionId=1/);
         await expect(page.getByText("배송지 주소")).toBeVisible();
         await expect(page.getByText("아니오")).toBeVisible();
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/slots");

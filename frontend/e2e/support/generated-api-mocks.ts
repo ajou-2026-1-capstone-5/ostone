@@ -103,11 +103,7 @@ function trackRequest(
   });
 }
 
-async function fulfillWorkspaceShell(
-  route: Route,
-  method: string,
-  path: string,
-): Promise<boolean> {
+async function fulfillWorkspaceShell(route: Route, method: string, path: string): Promise<boolean> {
   if (method === "GET" && path === "/workspaces") {
     await fulfillJson(route, { data: [workspace] });
     return true;
@@ -132,7 +128,18 @@ async function fulfillDomainPackShell(
   }
 
   if (method === "GET" && path === "/workspaces/1/domain-packs/1/versions/1") {
-    await fulfillJson(route, { data: { ...pack.versions[0], packId: 1, summaryJson: "{}" } });
+    await fulfillJson(route, {
+      data: {
+        ...pack.versions[0],
+        packId: 1,
+        summaryJson: "{}",
+        intentCount: 3,
+        slotCount: 2,
+        policyCount: 1,
+        riskCount: 1,
+        workflowCount: 2,
+      },
+    });
     return true;
   }
 

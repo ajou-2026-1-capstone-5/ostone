@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
 import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
 import { PolicyEditPanel } from "@/features/update-policy";
 import {
@@ -93,6 +93,7 @@ export function PolicyDraftReadPage() {
   return (
     <OstoneShell active="policy" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
+        <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         {hasSelection && (
           <button type="button" className={styles.backButton} onClick={handleBackToList}>
             목록

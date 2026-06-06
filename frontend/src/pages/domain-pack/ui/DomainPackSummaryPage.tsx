@@ -23,6 +23,7 @@ import {
   useVersionDetail,
   VersionListPanel,
   SummaryDetailPanel,
+  VersionSafetyBanner,
 } from "@/features/domain-pack-summary-read";
 import type {
   DomainPackDetail,
@@ -185,7 +186,9 @@ function DomainPackSummaryPageContent({
         toast.success("검토 중인 버전이 삭제되었습니다.");
       },
       onError: (error) => {
-        toast.error(resolveVersionActionErrorMessage(error, "검토 중인 버전을 삭제하지 못했습니다."));
+        toast.error(
+          resolveVersionActionErrorMessage(error, "검토 중인 버전을 삭제하지 못했습니다."),
+        );
       },
     },
   });
@@ -267,6 +270,16 @@ function DomainPackSummaryPageContent({
             )}
           </div>
         </header>
+
+        <VersionSafetyBanner
+          wsId={wsId}
+          packId={packId}
+          versionId={effectiveSelectedVersionId}
+          deployingVersionId={deployMutation.isPending ? deployMutation.variables?.versionId : null}
+          applyingVersionId={
+            activateMutation.isPending ? activateMutation.variables?.versionId : null
+          }
+        />
 
         <div className={styles.twoPane}>
           <VersionListPanel
@@ -379,8 +392,7 @@ function compareVersionSummary(
   if (leftCreatedAt !== rightCreatedAt) return leftCreatedAt - rightCreatedAt;
 
   return (
-    (left.versionId ?? Number.NEGATIVE_INFINITY) -
-    (right.versionId ?? Number.NEGATIVE_INFINITY)
+    (left.versionId ?? Number.NEGATIVE_INFINITY) - (right.versionId ?? Number.NEGATIVE_INFINITY)
   );
 }
 

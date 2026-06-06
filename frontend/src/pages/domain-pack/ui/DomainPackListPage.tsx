@@ -5,6 +5,7 @@ import { unwrapApiResponse } from "@/shared/api";
 import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import type { DomainPackSummaryResult } from "@/shared/api/generated/zod";
 import { domainPackPath } from "@/shared/lib/domainPackRoutes";
+import { CTA_UPLOAD_LOGS } from "@/shared/lib/ctaLabels";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -198,7 +199,7 @@ export function DomainPackListPage() {
             className={styles.uploadCta}
             data-testid="empty-upload-cta"
           >
-            상담 로그 업로드
+            {CTA_UPLOAD_LOGS}
           </Link>
         </div>
       </div>

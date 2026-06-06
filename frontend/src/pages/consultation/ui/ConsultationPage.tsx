@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Mono } from "@/shared/ui/ostone/atoms";
 import { getAuthUser } from "@/shared/lib/auth";
+import { useIsBelow } from "@/shared/hooks/use-media-query";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type {
   ChatComposerDraft,
@@ -91,8 +92,18 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [composerDrafts, setComposerDrafts] = useState<Record<string, ChatComposerDraft>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  // ≤1180px (useIsBelow(1181) = max-width:1180px). consultation-page.module.css의
+  // .contextTrigger 미디어쿼리(max-width:1180px)와 동일 경계로 맞춘다.
+  const isNarrowLayout = useIsBelow(1181);
+  const [isContextOpen, setIsContextOpen] = useState(false);
   const [messageDomainPackElements, setMessageDomainPackElements] =
     useState<MessageDomainPackElements>();
+
+  // 좁은 화면에서 메시지를 선택하면 컨텍스트 슬라이드오버를 자동으로 연다. 패널 닫기는
+  // selectedMessageId를 건드리지 않으므로 닫기→재오픈 루프가 발생하지 않는다.
+  useEffect(() => {
+    if (isNarrowLayout && selectedMessageId) setIsContextOpen(true);
+  }, [isNarrowLayout, selectedMessageId]);
   const [isMessageDomainPackElementsLoading, setIsMessageDomainPackElementsLoading] =
     useState(false);
   const [messageDomainPackElementsError, setMessageDomainPackElementsError] = useState<
@@ -1150,6 +1161,7 @@ export const ConsultationPage: React.FC = () => {
           if (!activeCustomerId) return;
           setComposerDrafts((prev) => ({ ...prev, [activeCustomerId]: draft }));
         }}
+        onOpenContext={() => setIsContextOpen(true)}
       />
 
       <ConsultationDetailPane
@@ -1171,6 +1183,9 @@ export const ConsultationPage: React.FC = () => {
         onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
         onOpenDomainPackElement={(path) => navigate(path)}
         onCloseMessageDetail={() => setSelectedMessageId(null)}
+        isNarrow={isNarrowLayout}
+        isOpen={isContextOpen}
+        onClose={() => setIsContextOpen(false)}
       />
 
       {endSessionModal.open && (

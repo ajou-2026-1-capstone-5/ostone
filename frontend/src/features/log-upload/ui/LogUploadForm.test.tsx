@@ -291,7 +291,7 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("다른 파일 업로드")).toBeInTheDocument();
     expect(screen.getByText("도메인팩 초안 생성 시작")).toBeInTheDocument();
     expect(screen.getByText(/dataset 42/)).toBeInTheDocument();
-    expect(screen.queryByText("도메인팩 보기")).not.toBeInTheDocument();
+    expect(screen.queryByText("도메인팩 관리로 이동")).not.toBeInTheDocument();
   });
 
   it("shows upload failure toast with retry action", () => {
@@ -372,7 +372,7 @@ describe("LogUploadForm", () => {
     fireEvent.click(screen.getByText("검토 화면으로 이동"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/pipeline-jobs/11/review");
 
-    fireEvent.click(screen.getByText("도메인팩 보기"));
+    fireEvent.click(screen.getByText("도메인팩 관리로 이동"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
   });
 
@@ -389,7 +389,7 @@ describe("LogUploadForm", () => {
 
     expect(screen.getByText("생성 요청 완료")).toBeInTheDocument();
     expect(screen.queryByText("검토 화면으로 이동")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("도메인팩 보기"));
+    fireEvent.click(screen.getByText("도메인팩 관리로 이동"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
   });
 

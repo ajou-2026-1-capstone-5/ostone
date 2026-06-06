@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
+import { CTA_GO_DOMAIN_PACK, CTA_GO_REVIEW, CTA_UPLOAD_AGAIN } from "../../../shared/lib/ctaLabels";
 import { useTriggerDomainPackGeneration } from "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
@@ -117,7 +118,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   const isConsumedWithoutSubscription =
     freeOnboardingStatus === "CONSUMED" && !hasActiveSubscription;
   const isUploadBlocked = isConsumedWithoutSubscription && !isEntitlementLoading;
-  const isUploaderDisabled = isUploadBlocked || (isEntitlementLoading && isConsumedWithoutSubscription);
+  const isUploaderDisabled =
+    isUploadBlocked || (isEntitlementLoading && isConsumedWithoutSubscription);
   const blockedMessage =
     "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.";
 
@@ -283,7 +285,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
               </p>
               <div className={styles.successActions}>
                 <Button variant="secondary" onClick={handleReset}>
-                  다른 파일 업로드
+                  {CTA_UPLOAD_AGAIN}
                 </Button>
                 <Button
                   onClick={handleStartGeneration}
@@ -304,7 +306,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
                 onClick={handleReset}
                 disabled={generationMutation.isPending}
               >
-                다른 파일 업로드
+                {CTA_UPLOAD_AGAIN}
               </Button>
             </div>
           )}
@@ -315,7 +317,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
               <p>{generationStatus.message}</p>
               <div className={styles.successActions}>
                 <Button variant="secondary" onClick={handleReset}>
-                  다른 파일 업로드
+                  {CTA_UPLOAD_AGAIN}
                 </Button>
                 <Button
                   onClick={handleStartGeneration}
@@ -336,17 +338,17 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
                 {generationStatus.status ? ` · ${generationStatus.status}` : ""}
               </p>
               <div className={styles.successActions}>
-                <Button variant="secondary" onClick={handleReset}>
-                  다른 파일 업로드
-                </Button>
                 {pipelineReviewPath && (
-                  <Button onClick={() => navigate(pipelineReviewPath)}>검토 화면으로 이동</Button>
+                  <Button onClick={() => navigate(pipelineReviewPath)}>{CTA_GO_REVIEW}</Button>
                 )}
                 <Button
                   variant={pipelineReviewPath ? "secondary" : "primary"}
                   onClick={() => navigate(domainPacksPath)}
                 >
-                  도메인팩 보기
+                  {CTA_GO_DOMAIN_PACK}
+                </Button>
+                <Button variant="ghost" onClick={handleReset}>
+                  {CTA_UPLOAD_AGAIN}
                 </Button>
               </div>
             </div>
