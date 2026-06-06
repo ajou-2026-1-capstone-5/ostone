@@ -24,7 +24,6 @@ COPY ml/src/ml/ ./src/ml/
 # Install runtime dependencies and the local BGE-M3 backend used in production.
 RUN mkdir -p "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR" \
     && uv sync --python 3.13 --frozen --no-dev \
-    && uv pip install "FlagEmbedding>=1.3" "torch>=2.6" \
     && uv cache clean
 
 # Copy application code
