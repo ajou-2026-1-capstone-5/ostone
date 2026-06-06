@@ -35,6 +35,10 @@ export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
 }
 
+interface PipelineReviewMockState {
+  pipelineReviewStatusRequests: Record<number, number>;
+}
+
 const now = "2026-06-04T09:00:00+09:00";
 
 const workspace = {
@@ -1351,6 +1355,7 @@ async function fulfillUploadAndReview(
   method: string,
   path: string,
   options: AppApiMockOptions,
+  state: PipelineReviewMockState,
 ): Promise<boolean> {
   if (method === "POST" && path === "/workspaces/1/datasets/uploads:init") {
     await fulfillJson(route, {
@@ -1480,6 +1485,16 @@ async function fulfillUploadAndReview(
     return true;
   }
 
+  if (method === "GET" && path === "/workspaces/1/pipeline-jobs/902/review-checkpoint") {
+    await fulfillJson(route, transitionCheckpoint(state, 902, "SUCCEEDED"));
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/1/pipeline-jobs/903/review-checkpoint") {
+    await fulfillJson(route, transitionCheckpoint(state, 903, "FAILED"));
+    return true;
+  }
+
   if (
     method === "POST" &&
     path === "/workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation"
@@ -1501,6 +1516,22 @@ async function fulfillUploadAndReview(
   }
 
   return false;
+}
+
+function transitionCheckpoint(
+  state: PipelineReviewMockState,
+  pipelineJobId: number,
+  finalStatus: "SUCCEEDED" | "FAILED",
+) {
+  const seenCount = state.pipelineReviewStatusRequests[pipelineJobId] ?? 0;
+  state.pipelineReviewStatusRequests[pipelineJobId] = seenCount + 1;
+
+  return {
+    pipelineJobId,
+    pipelineStatus: seenCount === 0 ? "RUNNING" : finalStatus,
+    reviewKind: null,
+    tasks: [],
+  };
 }
 
 async function fulfillSimulation(
@@ -1721,6 +1752,7 @@ export async function installAppApiMocks(
     currentVersionId: VERSION_ID,
     currentVersionNo: 1,
   };
+  const pipelineReviewState: PipelineReviewMockState = { pipelineReviewStatusRequests: {} };
   const simulationState = createSimulationState();
   const billingState = createBillingMockState();
 
@@ -1734,7 +1766,8 @@ export async function installAppApiMocks(
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
     if (await fulfillBilling(route, method, path, billingState)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
-    if (await fulfillUploadAndReview(route, method, path, options)) return true;
+    if (await fulfillUploadAndReview(route, method, path, options, pipelineReviewState))
+      return true;
     if (await fulfillSimulation(route, method, path, url, simulationState)) return true;
     return false;
   });

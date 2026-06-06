@@ -343,6 +343,50 @@ test.describe("Workspace core operator screens", () => {
       });
     });
 
+    test.describe("When they refresh pipeline review progress", () => {
+      test("Then the latest completion and failure actions replace the stale running state", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/pipeline-jobs/902/review");
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("RUNNING");
+        await expect(page.getByText("활성 리뷰 체크포인트가 없습니다.")).toBeVisible();
+
+        await page.getByRole("button", { name: "상태 새로고침" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/902\/review/);
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("파이프라인 완료");
+        await expect(page.getByText("리뷰 체크포인트가 완료되었습니다.")).toBeVisible();
+        await expect(page.getByRole("link", { name: "도메인팩 관리로 이동" })).toBeVisible();
+        await expect
+          .poll(
+            () =>
+              seen.filter(
+                (entry) => entry === "GET /workspaces/1/pipeline-jobs/902/review-checkpoint",
+              ).length,
+          )
+          .toBeGreaterThanOrEqual(2);
+
+        await page.goto("/workspaces/1/pipeline-jobs/903/review");
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("RUNNING");
+
+        await page.getByRole("button", { name: "상태 새로고침" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/903\/review/);
+        await expect(page.getByLabel("파이프라인 리뷰 맥락")).toContainText("파이프라인 실패");
+        await expect(page.getByText("파이프라인이 실패했습니다.")).toBeVisible();
+        await expect(page.getByRole("link", { name: "업로드 다시 시작" })).toBeVisible();
+        await expect(page.getByRole("link", { name: "도메인팩 관리로 이동" })).toHaveCount(0);
+        await expect
+          .poll(
+            () =>
+              seen.filter(
+                (entry) => entry === "GET /workspaces/1/pipeline-jobs/903/review-checkpoint",
+              ).length,
+          )
+          .toBeGreaterThanOrEqual(2);
+      });
+    });
+
     test.describe("When they run a simulation and save feedback", () => {
       test("Then runtime state, feedback, and improvement candidate actions work", async ({
         page,

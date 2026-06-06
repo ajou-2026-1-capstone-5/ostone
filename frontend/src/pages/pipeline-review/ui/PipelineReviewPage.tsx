@@ -14,6 +14,7 @@ export function PipelineReviewPage() {
   const checkpointQuery = usePipelineReviewCheckpoint(
     parsedWorkspaceId ?? undefined,
     parsedPipelineJobId ?? undefined,
+    { autoRefresh: true },
   );
 
   useEffect(() => {

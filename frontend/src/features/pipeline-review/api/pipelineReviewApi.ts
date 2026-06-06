@@ -57,6 +57,14 @@ export interface ReviewCheckpointView {
   tasks: ReviewTaskView[];
 }
 
+interface PipelineReviewCheckpointOptions {
+  autoRefresh?: boolean;
+  refetchIntervalMs?: number;
+}
+
+const FINAL_PIPELINE_STATUSES = new Set(["SUCCEEDED", "FAILED", "CANCELLED"]);
+const PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS = 5_000;
+
 const checkpointQueryKey = (workspaceId?: number, pipelineJobId?: number) =>
   ["pipeline-review-checkpoint", workspaceId, pipelineJobId] as const;
 
@@ -67,7 +75,23 @@ function requirePipelineReviewIds(workspaceId?: number, pipelineJobId?: number) 
   return { workspaceId, pipelineJobId };
 }
 
-export function usePipelineReviewCheckpoint(workspaceId?: number, pipelineJobId?: number) {
+export function shouldPollPipelineReviewCheckpoint(checkpoint?: ReviewCheckpointView): boolean {
+  if (!checkpoint) {
+    return true;
+  }
+  if (checkpoint.reviewKind) {
+    return false;
+  }
+  return !FINAL_PIPELINE_STATUSES.has(checkpoint.pipelineStatus);
+}
+
+export function usePipelineReviewCheckpoint(
+  workspaceId?: number,
+  pipelineJobId?: number,
+  options: PipelineReviewCheckpointOptions = {},
+) {
+  const refetchIntervalMs = options.refetchIntervalMs ?? PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS;
+
   return useQuery({
     queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
     enabled: workspaceId != null && pipelineJobId != null,
@@ -79,6 +103,9 @@ export function usePipelineReviewCheckpoint(workspaceId?: number, pipelineJobId?
         "리뷰 체크포인트 응답을 확인할 수 없습니다.",
       );
     },
+    refetchInterval: options.autoRefresh
+      ? (query) => (shouldPollPipelineReviewCheckpoint(query.state.data) ? refetchIntervalMs : false)
+      : false,
   });
 }
 
