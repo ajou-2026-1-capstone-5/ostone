@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-import { installAuth } from "./support/generated-api-auth";
+import { installAuth, makeJwt } from "./support/generated-api-auth";
 import { captureScreen, installAppApiMocks } from "./support/app-mocks";
 import { installMockStomp } from "./support/mock-stomp";
 
@@ -25,6 +25,83 @@ function dashboardRangeQuery(period: "today" | "7d" | "30d"): string {
 
 function latestSeen(seen: string[], prefix: string): string {
   return [...seen].reverse().find((entry) => entry.startsWith(prefix)) ?? "";
+}
+
+async function readAuthStorage(page: Page) {
+  return page.evaluate(() => {
+    const rawUser = window.localStorage.getItem("user");
+    let userName: string | null = null;
+    if (rawUser) {
+      try {
+        userName = (JSON.parse(rawUser) as { name?: string }).name ?? null;
+      } catch {
+        userName = null;
+      }
+    }
+
+    return {
+      accessToken: window.localStorage.getItem("accessToken"),
+      refreshToken: window.localStorage.getItem("refreshToken"),
+      user: rawUser,
+      userName,
+    };
+  });
+}
+
+async function expectLoginScreenWithoutWorkspaceData(page: Page) {
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("button", { name: "시스템 로그인" })).toBeVisible();
+  await expect(page.getByTestId("workspace-marker")).toHaveCount(0);
+  await expect(page.getByText("QA Workspace", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("총 상담", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("최신 도메인 후보 확정")).toHaveCount(0);
+}
+
+async function installLogoutAuthMocks(page: Page, authSeen: string[]) {
+  await page.route("**/api/v1/auth/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    const method = request.method();
+    authSeen.push(`${method} ${path}`);
+
+    if (method === "POST" && path === "/auth/refresh") {
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "UNAUTHORIZED", message: "인증이 필요합니다." }),
+      });
+      return;
+    }
+
+    if (method === "POST" && path === "/auth/login") {
+      expect(request.postDataJSON()).toEqual({
+        email: "new-agent@example.com",
+        password: "password123",
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            accessToken: makeJwt(),
+            refreshToken: "new-refresh-token",
+            tokenType: "Bearer",
+            expiresIn: 3600,
+            user: {
+              id: 17,
+              email: "new-agent@example.com",
+              name: "새 상담사",
+              role: "OPERATOR",
+            },
+          },
+        }),
+      });
+      return;
+    }
+
+    await route.fallback();
+  });
 }
 
 test.describe("Workspace core operator screens", () => {
@@ -145,9 +222,11 @@ test.describe("Workspace core operator screens", () => {
     });
 
     test.describe("When they use the account menu", () => {
-      test("Then settings feedback and logout clear the authenticated session", async ({
+      test("Then settings feedback and logout clear the authenticated session @critical", async ({
         page,
       }, testInfo) => {
+        const authSeen: string[] = [];
+        await installLogoutAuthMocks(page, authSeen);
         await page.goto("/workspaces/1/dashboard");
 
         await page.getByTestId("account-menu-trigger").click();
@@ -160,17 +239,49 @@ test.describe("Workspace core operator screens", () => {
         await page.getByTestId("account-menu-trigger").click();
         await page.getByTestId("account-menu-logout").click();
 
-        await expect(page).toHaveURL(/\/login$/);
-        await expect(page.getByRole("button", { name: "시스템 로그인" })).toBeVisible();
+        await expectLoginScreenWithoutWorkspaceData(page);
         await expect
-          .poll(() =>
-            page.evaluate(() => ({
-              accessToken: window.localStorage.getItem("accessToken"),
-              refreshToken: window.localStorage.getItem("refreshToken"),
-              user: window.localStorage.getItem("user"),
-            })),
-          )
-          .toEqual({ accessToken: null, refreshToken: null, user: null });
+          .poll(() => readAuthStorage(page))
+          .toEqual({ accessToken: null, refreshToken: null, user: null, userName: null });
+
+        const afterLogoutApiCount = seen.length;
+        await page.goBack();
+        await expectLoginScreenWithoutWorkspaceData(page);
+        await expect
+          .poll(() => readAuthStorage(page))
+          .toEqual({ accessToken: null, refreshToken: null, user: null, userName: null });
+        expect(seen.slice(afterLogoutApiCount).some((entry) => entry.startsWith("GET /workspaces")))
+          .toBe(false);
+
+        const afterBackApiCount = seen.length;
+        await page.goto("/workspaces/1/dashboard");
+        await expectLoginScreenWithoutWorkspaceData(page);
+        await expect
+          .poll(() => readAuthStorage(page))
+          .toEqual({ accessToken: null, refreshToken: null, user: null, userName: null });
+        expect(seen.slice(afterBackApiCount).some((entry) => entry.startsWith("GET /workspaces")))
+          .toBe(false);
+        expect(authSeen.filter((entry) => entry === "POST /auth/refresh").length).toBeGreaterThan(
+          0,
+        );
+
+        await page.getByLabel("이메일 주소").fill("new-agent@example.com");
+        await page.getByLabel("비밀번호").fill("password123");
+        await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+        await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
+        await expect(page.getByText("새 상담사")).toBeVisible();
+        await expect
+          .poll(() => readAuthStorage(page))
+          .toEqual({
+            accessToken: expect.any(String),
+            refreshToken: null,
+            user: expect.any(String),
+            userName: "새 상담사",
+          });
+        expect(authSeen).toContain("POST /auth/login");
       });
     });
 
