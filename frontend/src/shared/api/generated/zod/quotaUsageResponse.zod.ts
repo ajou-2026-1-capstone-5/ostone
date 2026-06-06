@@ -10,7 +10,8 @@ export const QuotaUsageResponse = zod.object({
   "resource": zod.string().optional(),
   "used": zod.number().optional(),
   "limit": zod.number().optional(),
-  "warning": zod.boolean().optional()
+  "warning": zod.boolean().optional(),
+  "nextAvailableAt": zod.iso.datetime({"offset":true}).optional()
 })
 
 export type QuotaUsageResponse = zod.input<typeof QuotaUsageResponse>;

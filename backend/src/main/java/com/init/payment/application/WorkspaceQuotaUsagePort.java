@@ -1,6 +1,7 @@
 package com.init.payment.application;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 public interface WorkspaceQuotaUsagePort {
 
@@ -14,6 +15,9 @@ public interface WorkspaceQuotaUsagePort {
 
   /** 윈도우 내 도메인팩 생성(pipeline_job) + 검토(review_decision) 합산 — 시간당 한도 강제용. */
   long countDomainPackOperations(
+      Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive);
+
+  Optional<OffsetDateTime> findOldestDomainPackOperationAt(
       Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive);
 
   long countDatasetUploads(Long workspaceId);

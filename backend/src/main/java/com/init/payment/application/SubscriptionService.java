@@ -20,8 +20,10 @@ import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.quota.QuotaWindow;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class SubscriptionService {
   private final PlanRepository planRepository;
   private final BillingKeyRepository billingKeyRepository;
   private final PaymentRepository paymentRepository;
+  private final WorkspaceQuotaUsagePort usagePort;
   private final TossPaymentPort tossPaymentPort;
   private final BillingKeyCipher billingKeyCipher;
   private final PaymentAccessGuard accessGuard;
@@ -56,6 +59,7 @@ public class SubscriptionService {
       PlanRepository planRepository,
       BillingKeyRepository billingKeyRepository,
       PaymentRepository paymentRepository,
+      WorkspaceQuotaUsagePort usagePort,
       TossPaymentPort tossPaymentPort,
       BillingKeyCipher billingKeyCipher,
       PaymentAccessGuard accessGuard,
@@ -65,6 +69,7 @@ public class SubscriptionService {
     this.planRepository = planRepository;
     this.billingKeyRepository = billingKeyRepository;
     this.paymentRepository = paymentRepository;
+    this.usagePort = usagePort;
     this.tossPaymentPort = tossPaymentPort;
     this.billingKeyCipher = billingKeyCipher;
     this.accessGuard = accessGuard;
@@ -105,7 +110,10 @@ public class SubscriptionService {
             .findCurrentByWorkspaceId(workspaceId)
             .orElseThrow(() -> new SubscriptionNotFoundException(workspaceId));
     Plan plan = requirePlan(subscription.getPlanId());
-    return SubscriptionResult.from(subscription, plan);
+    return SubscriptionResult.from(
+        subscription,
+        plan,
+        List.of(domainPackOperationQuota(workspaceId, plan.getPipelineRunHourlyLimit())));
   }
 
   /** 구독 취소. INCOMPLETE는 즉시 해지, 그 외는 기간말 해지 예약 (U-005). */
@@ -263,6 +271,23 @@ public class SubscriptionService {
     return planRepository
         .findById(planId)
         .orElseThrow(() -> new PlanNotFoundException("id=" + planId));
+  }
+
+  private QuotaUsageResult domainPackOperationQuota(Long workspaceId, int limit) {
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    QuotaWindow window = QuotaWindow.hourEndingAt(now);
+    long used =
+        usagePort.countDomainPackOperations(
+            workspaceId, window.fromInclusive(), window.toExclusive());
+    OffsetDateTime nextAvailableAt =
+        limit >= 0 && used >= limit
+            ? usagePort
+                .findOldestDomainPackOperationAt(
+                    workspaceId, window.fromInclusive(), window.toExclusive())
+                .map(oldest -> oldest.plusHours(1))
+                .orElse(null)
+            : null;
+    return QuotaUsageResult.of("DOMAIN_PACK_OPERATION", used, limit, nextAvailableAt);
   }
 
   private <T> T inTx(Supplier<T> callback) {

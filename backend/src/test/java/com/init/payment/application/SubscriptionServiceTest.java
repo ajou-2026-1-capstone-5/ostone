@@ -50,6 +50,7 @@ class SubscriptionServiceTest {
   @Mock private PlanRepository planRepository;
   @Mock private BillingKeyRepository billingKeyRepository;
   @Mock private PaymentRepository paymentRepository;
+  @Mock private WorkspaceQuotaUsagePort usagePort;
   @Mock private TossPaymentPort tossPaymentPort;
   @Mock private BillingKeyCipher billingKeyCipher;
   @Mock private PaymentAccessGuard accessGuard;
@@ -67,6 +68,7 @@ class SubscriptionServiceTest {
             planRepository,
             billingKeyRepository,
             paymentRepository,
+            usagePort,
             tossPaymentPort,
             billingKeyCipher,
             accessGuard,
@@ -178,10 +180,27 @@ class SubscriptionServiceTest {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L))
         .willReturn(Optional.of(subscription));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+    given(
+            usagePort.countDomainPackOperations(
+                1L,
+                OffsetDateTime.parse("2026-05-31T23:00:00Z"),
+                OffsetDateTime.parse("2026-06-01T00:00:00Z")))
+        .willReturn(1L);
+    given(
+            usagePort.findOldestDomainPackOperationAt(
+                1L,
+                OffsetDateTime.parse("2026-05-31T23:00:00Z"),
+                OffsetDateTime.parse("2026-06-01T00:00:00Z")))
+        .willReturn(Optional.of(OffsetDateTime.parse("2026-05-31T23:15:00Z")));
 
     SubscriptionResult result = subscriptionService.getSubscription(1L, 99L);
 
     assertThat(result.planKey()).isEqualTo("pro_monthly");
+    assertThat(result.quotaUsages())
+        .extracting(QuotaUsageResult::resource, QuotaUsageResult::used, QuotaUsageResult::warning)
+        .containsExactly(org.assertj.core.groups.Tuple.tuple("DOMAIN_PACK_OPERATION", 1L, true));
+    assertThat(result.quotaUsages().get(0).nextAvailableAt())
+        .isEqualTo(OffsetDateTime.parse("2026-06-01T00:15:00Z"));
     verify(accessGuard).requireMember(1L, 99L);
   }
 

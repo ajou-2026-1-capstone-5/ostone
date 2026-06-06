@@ -8,6 +8,9 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.shared.application.quota.QuotaWindow;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,7 @@ public class BillingOverviewService {
   private final PaymentRepository paymentRepository;
   private final WorkspaceQuotaUsagePort usagePort;
   private final PaymentAccessGuard accessGuard;
+  private final Clock clock;
 
   public BillingOverviewService(
       SubscriptionRepository subscriptionRepository,
@@ -29,13 +33,15 @@ public class BillingOverviewService {
       BillingKeyRepository billingKeyRepository,
       PaymentRepository paymentRepository,
       WorkspaceQuotaUsagePort usagePort,
-      PaymentAccessGuard accessGuard) {
+      PaymentAccessGuard accessGuard,
+      Clock clock) {
     this.subscriptionRepository = subscriptionRepository;
     this.planRepository = planRepository;
     this.billingKeyRepository = billingKeyRepository;
     this.paymentRepository = paymentRepository;
     this.usagePort = usagePort;
     this.accessGuard = accessGuard;
+    this.clock = clock;
   }
 
   public BillingOverviewResult getOverview(Long workspaceId, Long userId) {
@@ -89,7 +95,25 @@ public class BillingOverviewService {
                 workspaceId,
                 subscription.getCurrentPeriodStart(),
                 subscription.getCurrentPeriodEnd()),
-            plan.getPipelineRunLimit()));
+            plan.getPipelineRunLimit()),
+        domainPackOperationQuota(workspaceId, plan.getPipelineRunHourlyLimit()));
+  }
+
+  private QuotaUsageResult domainPackOperationQuota(Long workspaceId, int limit) {
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    QuotaWindow window = QuotaWindow.hourEndingAt(now);
+    long used =
+        usagePort.countDomainPackOperations(
+            workspaceId, window.fromInclusive(), window.toExclusive());
+    OffsetDateTime nextAvailableAt =
+        limit >= 0 && used >= limit
+            ? usagePort
+                .findOldestDomainPackOperationAt(
+                    workspaceId, window.fromInclusive(), window.toExclusive())
+                .map(oldest -> oldest.plusHours(1))
+                .orElse(null)
+            : null;
+    return QuotaUsageResult.of("DOMAIN_PACK_OPERATION", used, limit, nextAvailableAt);
   }
 
   private boolean hasCurrentPeriod(Subscription subscription) {

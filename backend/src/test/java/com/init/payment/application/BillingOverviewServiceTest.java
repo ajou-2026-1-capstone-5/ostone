@@ -13,7 +13,10 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +40,11 @@ class BillingOverviewServiceTest {
 
   private BillingOverviewService service;
 
+  private final Clock clock = Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC);
   private final OffsetDateTime periodStart = OffsetDateTime.parse("2026-06-01T00:00:00Z");
   private final OffsetDateTime periodEnd = OffsetDateTime.parse("2026-07-01T00:00:00Z");
+  private final OffsetDateTime hourFrom = OffsetDateTime.parse("2026-05-31T23:00:00Z");
+  private final OffsetDateTime hourTo = OffsetDateTime.parse("2026-06-01T00:00:00Z");
 
   @BeforeEach
   void setUp() {
@@ -49,7 +55,8 @@ class BillingOverviewServiceTest {
             billingKeyRepository,
             paymentRepository,
             usagePort,
-            accessGuard);
+            accessGuard,
+            clock);
   }
 
   @Test
@@ -68,6 +75,9 @@ class BillingOverviewServiceTest {
     given(usagePort.countMembers(1L)).willReturn(8L);
     given(usagePort.countDatasetUploads(1L, periodStart, periodEnd)).willReturn(10L);
     given(usagePort.countPipelineRuns(1L, periodStart, periodEnd)).willReturn(11L);
+    given(usagePort.countDomainPackOperations(1L, hourFrom, hourTo)).willReturn(1L);
+    given(usagePort.findOldestDomainPackOperationAt(1L, hourFrom, hourTo))
+        .willReturn(Optional.of(OffsetDateTime.parse("2026-05-31T23:30:00Z")));
 
     BillingOverviewResult result = service.getOverview(1L, 55L);
 
@@ -80,7 +90,10 @@ class BillingOverviewServiceTest {
         .containsExactly(
             org.assertj.core.groups.Tuple.tuple("MEMBER", 8L, false),
             org.assertj.core.groups.Tuple.tuple("DATASET_UPLOAD", 10L, true),
-            org.assertj.core.groups.Tuple.tuple("PIPELINE_RUN", 11L, true));
+            org.assertj.core.groups.Tuple.tuple("PIPELINE_RUN", 11L, true),
+            org.assertj.core.groups.Tuple.tuple("DOMAIN_PACK_OPERATION", 1L, true));
+    assertThat(result.quotaUsages().get(3).nextAvailableAt())
+        .isEqualTo(OffsetDateTime.parse("2026-06-01T00:30:00Z"));
   }
 
   @Test

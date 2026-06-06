@@ -2,6 +2,7 @@ package com.init.payment.presentation.dto;
 
 import com.init.payment.application.SubscriptionResult;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public record SubscriptionResponse(
     Long id,
@@ -14,7 +15,8 @@ public record SubscriptionResponse(
     String customerKey,
     int memberLimit,
     int datasetUploadLimit,
-    int pipelineRunLimit) {
+    int pipelineRunLimit,
+    List<QuotaUsageResponse> quotaUsages) {
 
   public static SubscriptionResponse from(SubscriptionResult result) {
     return new SubscriptionResponse(
@@ -28,6 +30,7 @@ public record SubscriptionResponse(
         result.customerKey(),
         result.memberLimit(),
         result.datasetUploadLimit(),
-        result.pipelineRunLimit());
+        result.pipelineRunLimit(),
+        result.quotaUsages().stream().map(QuotaUsageResponse::from).toList());
   }
 }

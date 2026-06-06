@@ -277,6 +277,33 @@ describe("LogUploadForm", () => {
     expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("false");
   });
 
+  it("blocks upload while a paid workspace is in domain pack operation cooldown", () => {
+    render(
+      <LogUploadForm
+        workspaceId={1}
+        hasActiveSubscription
+        paidUploadCooldown={{
+          isBlocked: true,
+          nextAvailableAt: "2026-06-04T10:30:00+09:00",
+        }}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(screen.getByText("도메인팩 작업 쿨다운 중")).toBeInTheDocument();
+    expect(screen.getByText(/재개 가능 시점/)).toBeInTheDocument();
+    expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("true");
+    expect(screen.getByTestId("file-input")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "처리 시작" })).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("force-file-select"));
+
+    expect(mockUploadStart).not.toHaveBeenCalled();
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      expect.stringContaining("도메인팩 생성·검토 시간당 한도"),
+    );
+  });
+
   it("keeps processing disabled until a file is selected", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
 

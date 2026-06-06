@@ -17,7 +17,14 @@ export const SubscriptionResponse = zod.object({
   "customerKey": zod.string().optional(),
   "memberLimit": zod.number().optional(),
   "datasetUploadLimit": zod.number().optional(),
-  "pipelineRunLimit": zod.number().optional()
+  "pipelineRunLimit": zod.number().optional(),
+  "quotaUsages": zod.array(zod.object({
+  "resource": zod.string().optional(),
+  "used": zod.number().optional(),
+  "limit": zod.number().optional(),
+  "warning": zod.boolean().optional(),
+  "nextAvailableAt": zod.iso.datetime({"offset":true}).optional()
+})).optional()
 })
 
 export type SubscriptionResponse = zod.input<typeof SubscriptionResponse>;

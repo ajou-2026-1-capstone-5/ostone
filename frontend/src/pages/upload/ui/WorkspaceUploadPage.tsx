@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
-import { isSubscriptionEngaged, useSubscription } from "@/entities/billing";
+import {
+  isSubscriptionEngaged,
+  useSubscription,
+  type SubscriptionResponse,
+} from "@/entities/billing";
 import {
   LogUploadForm,
   type FreeOnboardingStatus,
@@ -36,6 +40,17 @@ function getEntitlementRefetchDelay(
   return Math.min(delay, MAX_TIMEOUT_MS);
 }
 
+function resolvePaidUploadCooldown(subscription: SubscriptionResponse | null) {
+  const quota = subscription?.quotaUsages?.find(
+    (usage) => usage.resource === "DOMAIN_PACK_OPERATION",
+  );
+  const limit = quota?.limit ?? 0;
+  return {
+    isBlocked: limit >= 0 && Boolean(quota?.warning),
+    nextAvailableAt: quota?.nextAvailableAt ?? null,
+  };
+}
+
 export function WorkspaceUploadPage() {
   const { workspaceId } = useParams();
   const [searchParams] = useSearchParams();
@@ -50,8 +65,10 @@ export function WorkspaceUploadPage() {
     (selectApiData(workspaceQuery.data) as
       | WorkspaceWithFreeOnboarding
       | undefined) ?? null;
-  const subscription = subscriptionQuery.data ?? null;
+  const subscription =
+    (subscriptionQuery.data as SubscriptionResponse | null) ?? null;
   const hasActiveSubscription = isSubscriptionEngaged(subscription?.status);
+  const paidUploadCooldown = resolvePaidUploadCooldown(subscription);
   const refetchWorkspace = workspaceQuery.refetch;
   const refetchSubscription = subscriptionQuery.refetch;
   const isEntitlementLoading = Boolean(
@@ -100,6 +117,7 @@ export function WorkspaceUploadPage() {
         freeOnboardingStatus={workspace?.freeOnboardingStatus ?? "AVAILABLE"}
         hasActiveSubscription={hasActiveSubscription}
         isEntitlementLoading={isEntitlementLoading}
+        paidUploadCooldown={paidUploadCooldown}
       />
     </div>
   );
