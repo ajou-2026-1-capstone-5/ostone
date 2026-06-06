@@ -34,6 +34,7 @@ interface Deferred {
 
 interface CrossAccountWorkspaceMockOptions {
   delayCurrentWorkspaceLoading?: boolean;
+  initialAccount?: AccountScope;
 }
 
 interface CrossAccountWorkspaceMocks {
@@ -62,7 +63,7 @@ async function installCrossAccountWorkspaceMocks(
   page: Page,
   options: CrossAccountWorkspaceMockOptions = {},
 ): Promise<CrossAccountWorkspaceMocks> {
-  let account: AccountScope = "previous";
+  let account: AccountScope = options.initialAccount ?? "previous";
   const seen: string[] = [];
   let currentWorkspaceListCount = 0;
   const currentWorkspaceListLoading = options.delayCurrentWorkspaceLoading
@@ -312,7 +313,60 @@ test.describe("Application navigation boundaries", () => {
     });
   });
 
-  test.describe("Given browser history includes another account's workspace URL", () => {
+  test.describe("Given the browser reaches another account's workspace URL", () => {
+    test("When an operator opens an unauthorized workspace URL directly, Then no workspace data is exposed", async ({
+      page,
+    }) => {
+      const { seen } = await installCrossAccountWorkspaceMocks(page, {
+        initialAccount: "current",
+      });
+      await installAuth(page, {
+        name: "현재 상담사",
+        email: "current@example.com",
+      });
+
+      await page.goto("/workspaces/2/workflows");
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+      await expect(page.getByRole("heading", { name: "워크플로우" })).toBeVisible();
+
+      await page.goto("/workspaces/1/dashboard");
+
+      await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+      await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await expect(page.getByTestId("workspace-marker")).not.toContainText(
+        "Previous Account Workspace",
+      );
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+      await expect(page.getByText("총 상담")).toHaveCount(0);
+      expect(seen).toContain("current GET /workspaces/1");
+      expect(
+        seen.some((entry) => entry.startsWith("current GET /workspaces/1/consultation/metrics")),
+      ).toBe(false);
+      expect(seen).not.toContain("current GET /workspaces/1/dashboard/knowledge-pack-health");
+
+      await page.reload();
+      await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+      await expect(page.getByText("접근 권한이 없습니다.")).toBeVisible();
+      await expect(page.getByTestId("workspace-marker")).not.toContainText(
+        "Previous Account Workspace",
+      );
+      await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
+      await expect(page.getByText("Previous Account Pack")).toHaveCount(0);
+
+      await page.getByTestId("workspace-marker").click();
+      await expect(page.getByTestId("workspace-option-2")).toContainText(
+        "Current Account Workspace",
+      );
+      await page.getByTestId("workspace-option-2").click();
+      await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+      await expect(page.getByTestId("workspace-marker")).toContainText(
+        "Current Account Workspace",
+      );
+    });
+
     test("When a different account logs in and navigates back, Then previous workspace data is not exposed", async ({
       page,
     }) => {
