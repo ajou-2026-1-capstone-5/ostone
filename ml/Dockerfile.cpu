@@ -9,19 +9,26 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 ENV UV_PYTHON=3.13
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
+ENV UV_CACHE_DIR=/app/.cache/uv
+ENV UV_LINK_MODE=copy
 ENV HF_HOME=/app/.cache/huggingface
 ENV TORCH_HOME=/app/.cache/torch
 ENV PYTHONPATH=/app/src
 
 COPY ml/pyproject.toml ml/uv.lock ml/README.md ./
 COPY ml/src/ml/ ./src/ml/
-RUN uv sync --python 3.13 --frozen --no-dev
+RUN mkdir -p "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR" \
+    && uv sync --python 3.13 --frozen --no-dev \
+    && uv cache clean
 
 COPY ml/src/ ./src/
 
 RUN groupadd --system appgroup \
     && useradd --system --gid appgroup --home-dir /app appuser \
-    && chown -R appuser:appgroup /app
+    && chown -R appuser:appgroup /app "$UV_PYTHON_INSTALL_DIR"
 USER appuser
+
+RUN /app/.venv/bin/python -c "import encodings"
 
 ENTRYPOINT ["/app/.venv/bin/python", "-m", "pipeline.ecs_stage_worker"]
