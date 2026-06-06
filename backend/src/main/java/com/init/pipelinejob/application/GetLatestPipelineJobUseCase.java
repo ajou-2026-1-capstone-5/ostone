@@ -37,6 +37,7 @@ public class GetLatestPipelineJobUseCase {
   }
 
   public Optional<GetLatestPipelineJobResult> execute(GetLatestPipelineJobQuery query) {
+    validateRequiredQuery(query);
     String jobType = normalizeJobType(query.jobType());
     validateAccess(query.workspaceId(), query.datasetId(), query.userId());
     OffsetDateTime now = OffsetDateTime.now(clock);
@@ -44,6 +45,19 @@ public class GetLatestPipelineJobUseCase {
         .findLatestByWorkspaceIdAndDatasetIdAndJobType(
             query.workspaceId(), query.datasetId(), jobType)
         .map(job -> toResult(job, now));
+  }
+
+  private void validateRequiredQuery(GetLatestPipelineJobQuery query) {
+    if (query == null
+        || query.workspaceId() == null
+        || query.workspaceId() <= 0
+        || query.datasetId() == null
+        || query.datasetId() <= 0
+        || query.userId() == null
+        || query.userId() <= 0) {
+      throw new BadRequestException(
+          "PIPELINE_JOB_QUERY_INVALID", "pipeline job 조회 요청 값이 올바르지 않습니다.");
+    }
   }
 
   private String normalizeJobType(String jobType) {

@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
@@ -92,6 +93,24 @@ class GetLatestPipelineJobUseCaseTest {
             () -> useCase.execute(new GetLatestPipelineJobQuery(2L, 15L, "INGESTION", 9L)))
         .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("Dataset");
+  }
+
+  @Test
+  @DisplayName("지원하지 않는 jobType이면 BadRequestException을 던진다")
+  void execute_invalidJobType_throwsBadRequest() {
+    assertThatThrownBy(
+            () -> useCase.execute(new GetLatestPipelineJobQuery(2L, 15L, "UNKNOWN_TYPE", 9L)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("지원하지 않는 pipeline job type입니다.");
+  }
+
+  @Test
+  @DisplayName("필수 조회 값이 없으면 BadRequestException을 던진다")
+  void execute_missingRequiredQueryValue_throwsBadRequest() {
+    assertThatThrownBy(
+            () -> useCase.execute(new GetLatestPipelineJobQuery(null, 15L, "INGESTION", 9L)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("pipeline job 조회 요청 값이 올바르지 않습니다.");
   }
 
   private PipelineJob pipelineJob() {

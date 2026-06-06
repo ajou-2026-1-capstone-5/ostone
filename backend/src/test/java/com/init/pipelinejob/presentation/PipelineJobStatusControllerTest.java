@@ -1,12 +1,15 @@
 package com.init.pipelinejob.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.init.auth.application.JwtService;
+import com.init.pipelinejob.application.GetLatestPipelineJobQuery;
 import com.init.pipelinejob.application.GetLatestPipelineJobResult;
 import com.init.pipelinejob.application.GetLatestPipelineJobUseCase;
 import com.init.pipelinejob.domain.model.PipelineJob;
@@ -21,6 +24,7 @@ import java.util.Date;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -72,8 +76,27 @@ class PipelineJobStatusControllerTest {
                 .header("Authorization", "Bearer operator-token"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.pipelineJob.pipelineJobId").value(77))
+        .andExpect(jsonPath("$.pipelineJob.workspaceId").value(2))
+        .andExpect(jsonPath("$.pipelineJob.datasetId").value(15))
+        .andExpect(jsonPath("$.pipelineJob.domainPackId").doesNotExist())
         .andExpect(jsonPath("$.pipelineJob.jobType").value("INGESTION"))
-        .andExpect(jsonPath("$.pipelineJob.airflowRunId").value("pipeline_job_77"));
+        .andExpect(jsonPath("$.pipelineJob.status").value("RUNNING"))
+        .andExpect(jsonPath("$.pipelineJob.airflowDagId").value("domain_pack_generation"))
+        .andExpect(jsonPath("$.pipelineJob.airflowRunId").value("pipeline_job_77"))
+        .andExpect(jsonPath("$.pipelineJob.requestedAt").exists())
+        .andExpect(jsonPath("$.pipelineJob.startedAt").exists())
+        .andExpect(jsonPath("$.pipelineJob.finishedAt").doesNotExist())
+        .andExpect(jsonPath("$.pipelineJob.runningDurationSeconds").value(120))
+        .andExpect(jsonPath("$.pipelineJob.lastErrorMessage").doesNotExist());
+
+    ArgumentCaptor<GetLatestPipelineJobQuery> queryCaptor =
+        ArgumentCaptor.forClass(GetLatestPipelineJobQuery.class);
+    verify(getLatestPipelineJobUseCase).execute(queryCaptor.capture());
+    GetLatestPipelineJobQuery query = queryCaptor.getValue();
+    assertThat(query.workspaceId()).isEqualTo(2L);
+    assertThat(query.datasetId()).isEqualTo(15L);
+    assertThat(query.jobType()).isEqualTo(PipelineJob.JOB_TYPE_INGESTION);
+    assertThat(query.userId()).isEqualTo(9L);
   }
 
   @Test
