@@ -11,6 +11,10 @@ const RISK_UPDATE_ENTRY =
   "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201";
 const RISK_STATUS_ENTRY =
   "PATCH /workspaces/1/domain-packs/1/versions/1/risks/201/status";
+const DRAFT_ACTIVATE_ENTRY =
+  "POST /workspaces/1/domain-packs/1/versions/3/activate";
+const DRAFT_DISCARD_ENTRY =
+  "DELETE /workspaces/1/domain-packs/1/versions/3/draft";
 
 interface JsonValidationCase {
   label: string;
@@ -40,6 +44,10 @@ async function expectJsonValidationBlocksUpdate(
 
     await page.getByLabel(fieldCase.label).fill(fieldCase.validValue);
   }
+}
+
+function expectNoRequest(seen: string[], request: string) {
+  expect(seen).not.toContain(request);
 }
 
 test.describe("Domain pack core read flows", () => {
@@ -180,18 +188,23 @@ test.describe("Domain pack core read flows", () => {
       });
     });
 
-    test.describe("When they discard a draft version", () => {
+    test.describe("When they discard a draft version @critical", () => {
       test("Then the discard dialog removes the selected draft", async ({ page }) => {
         await page.goto("/workspaces/1/domain-packs/1?versionId=3");
         await page.getByRole("button", { name: "삭제", exact: true }).click();
-        await expect(page.getByRole("alertdialog")).toContainText(
+        const dialog = page.getByRole("alertdialog");
+        await expect(dialog).toContainText(
           "검토 중인 v3 버전을 삭제할까요?",
         );
-        await page.getByRole("button", { name: "삭제하기" }).click();
+        await expect(dialog).toContainText(
+          "삭제하면 v3 검토본과 저장된 수정 내용이 모두 삭제되며 되돌릴 수 없습니다.",
+        );
+        expectNoRequest(seen, DRAFT_DISCARD_ENTRY);
+        await dialog.getByRole("button", { name: "삭제하기" }).click();
 
         await expect(page.getByText("검토 중인 버전이 삭제되었습니다.")).toBeVisible();
         await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\?versionId=1/);
-        expect(seen).toContain("DELETE /workspaces/1/domain-packs/1/versions/3/draft");
+        expect(seen).toContain(DRAFT_DISCARD_ENTRY);
       });
     });
 
@@ -532,6 +545,60 @@ test.describe("Domain pack core read flows", () => {
         await captureScreen(page, testInfo, "workflow-graph");
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/workflows/401");
       });
+    });
+  });
+});
+
+test.describe("Domain pack draft lifecycle critical flows", () => {
+  let seen: string[];
+
+  test.beforeEach(async ({ page }) => {
+    seen = [];
+    await installAuth(page);
+    await installAppApiMocks(page, seen, { domainPackDraftApproval: "ready" });
+  });
+
+  test.describe("Given an approval-ready draft version", () => {
+    test("When they approve the draft version @critical, Then confirmation and operating state are shown", async ({
+      page,
+    }) => {
+      await page.goto("/workspaces/1/domain-packs/1?versionId=3");
+
+      await expect(
+        page.getByRole("button", {
+          name: /v3[\s\S]*검토 중[\s\S]*고액 환불 검토 흐름을 정리한 수정 검토본/,
+        }),
+      ).toBeVisible();
+      await expect(page.getByText("고액 환불 정책")).toBeVisible();
+      await expect(page.getByText("고액 환불 검토 워크플로우")).toBeVisible();
+
+      const approval = page.getByRole("region", { name: "승인 준비 상태" });
+      await expect(approval).toContainText("승인 가능");
+      await expect(approval).toContainText("승인할 수 있습니다.");
+      await approval.getByRole("button", { name: "승인" }).click();
+
+      const dialog = page.getByRole("alertdialog");
+      await expect(dialog).toContainText("도메인팩 버전을 승인할까요?");
+      await expect(dialog).toContainText(
+        "승인하면 이 버전은 운영에 사용되며, 이후 구성요소를 수정할 수 없습니다.",
+      );
+      expectNoRequest(seen, DRAFT_ACTIVATE_ENTRY);
+      await dialog.getByRole("button", { name: "취소" }).click();
+      await expect(dialog).toBeHidden();
+      expectNoRequest(seen, DRAFT_ACTIVATE_ENTRY);
+
+      await approval.getByRole("button", { name: "승인" }).click();
+      const confirmDialog = page.getByRole("alertdialog");
+      await expect(confirmDialog).toContainText("도메인팩 버전을 승인할까요?");
+      await confirmDialog.getByRole("button", { name: "승인" }).click();
+
+      await expect(page.getByText("초안 수정버전이 적용되었습니다.")).toBeVisible();
+      await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\?versionId=3/);
+      const safety = page.getByLabel("버전 안전성 정보");
+      await expect(safety).toContainText("현재 v3 · 운영 중");
+      await expect(safety).toContainText("운영 구성요소");
+      await expect(page.getByRole("button", { name: /v3[\s\S]*배포중/ })).toBeVisible();
+      expect(seen).toContain(DRAFT_ACTIVATE_ENTRY);
     });
   });
 });
