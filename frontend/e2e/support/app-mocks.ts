@@ -33,10 +33,12 @@ interface DomainPackMockState {
 
 export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
+  readonly domainPackGenerationFailureAttempts?: number;
 }
 
 interface PipelineReviewMockState {
   pipelineReviewStatusRequests: Record<number, number>;
+  domainPackGenerationFailuresRemaining: number;
 }
 
 const now = "2026-06-04T09:00:00+09:00";
@@ -1413,6 +1415,20 @@ async function fulfillUploadAndReview(
     method === "POST" &&
     path === "/workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation"
   ) {
+    if (state.domainPackGenerationFailuresRemaining > 0) {
+      state.domainPackGenerationFailuresRemaining -= 1;
+      await fulfillJson(
+        route,
+        {
+          code: "PIPELINE_REQUEST_FAILED",
+          message:
+            "도메인팩 초안 생성 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        },
+        500,
+      );
+      return true;
+    }
+
     await fulfillJson(route, {
       data: {
         pipelineJobId: PIPELINE_JOB_ID,
@@ -1752,7 +1768,11 @@ export async function installAppApiMocks(
     currentVersionId: VERSION_ID,
     currentVersionNo: 1,
   };
-  const pipelineReviewState: PipelineReviewMockState = { pipelineReviewStatusRequests: {} };
+  const pipelineReviewState: PipelineReviewMockState = {
+    pipelineReviewStatusRequests: {},
+    domainPackGenerationFailuresRemaining:
+      options.domainPackGenerationFailureAttempts ?? 0,
+  };
   const simulationState = createSimulationState();
   const billingState = createBillingMockState();
 
