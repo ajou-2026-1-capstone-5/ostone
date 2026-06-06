@@ -386,6 +386,69 @@ test.describe("Workspace core operator screens", () => {
         ).toBe("PATCH /workspaces/1/simulation/improvement-candidates/9911/status");
         await captureScreen(page, testInfo, "workspace-simulation");
       });
+
+      test("Then improvement candidates can be approved and rejected into the quality loop", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/simulation?candidateStatus=READY_FOR_REVIEW");
+        await expect(page.getByRole("heading", { name: "상담 시뮬레이션" })).toBeVisible();
+        await expect(page.getByRole("tab", { name: "개선 후보" })).toHaveAttribute(
+          "aria-selected",
+          "true",
+        );
+        await expect(page.getByLabel("개선 후보 상태 필터")).toHaveValue("READY_FOR_REVIEW");
+
+        const approvalCard = page.locator("li").filter({
+          hasText: "부분 환불 문의도 주문번호를 먼저 확인하도록 질문을 보강합니다.",
+        });
+        const rejectionCard = page.locator("li").filter({
+          hasText: "고액 환불 handoff 조건을 완화합니다.",
+        });
+        await expect(approvalCard).toBeVisible();
+        await expect(rejectionCard).toBeVisible();
+
+        const approveButton = approvalCard.getByRole("button", { name: "승인" });
+        await approveButton.click();
+        await expect(approveButton).toBeDisabled();
+        await expect(approvalCard.getByRole("button", { name: "반려" })).toBeDisabled();
+        await expect(page.getByText("개선 후보를 초안 버전에 반영했습니다.")).toBeVisible();
+        await expect(approvalCard).toHaveCount(0);
+        await expect(rejectionCard).toBeVisible();
+        expect(
+          seen.filter(
+            (entry) =>
+              entry === "POST /workspaces/1/simulation/improvement-candidates/9912/approve",
+          ),
+        ).toHaveLength(1);
+        expect(
+          seen.some(
+            (entry) =>
+              entry === "POST /workspaces/1/simulation/improvement-candidates/9913/approve",
+          ),
+        ).toBe(false);
+
+        const rejectPath = "POST /workspaces/1/simulation/improvement-candidates/9913/reject";
+        const rejectCountBefore = seen.filter((entry) => entry === rejectPath).length;
+        await rejectionCard.getByRole("button", { name: "반려" }).click();
+        await expect(page.getByText("반려 사유를 입력하세요.")).toBeVisible();
+        expect(seen.filter((entry) => entry === rejectPath)).toHaveLength(rejectCountBefore);
+
+        await rejectionCard.getByLabel("개선 후보 반려 사유").fill("근거가 부족합니다.");
+        const rejectButton = rejectionCard.getByRole("button", { name: "반려" });
+        await rejectButton.click();
+        await expect(rejectButton).toBeDisabled();
+        await expect(page.getByText("개선 후보를 반려했습니다.")).toBeVisible();
+        await expect(page.getByText("조건에 맞는 개선 후보가 없습니다.")).toBeVisible();
+        expect(seen.filter((entry) => entry === rejectPath)).toHaveLength(
+          rejectCountBefore + 1,
+        );
+        expect(
+          seen.some(
+            (entry) =>
+              entry === "POST /workspaces/1/simulation/improvement-candidates/9912/reject",
+          ),
+        ).toBe(false);
+      });
     });
   });
 });

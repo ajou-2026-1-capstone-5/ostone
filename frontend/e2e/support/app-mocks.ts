@@ -533,6 +533,23 @@ const simulationReplayResult = {
 
 type SimulationReplayResultMock = typeof simulationReplayResult;
 
+type SimulationCandidateStatus = "DRAFT" | "READY_FOR_REVIEW" | "APPLIED" | "REJECTED";
+
+type SimulationCandidateMock = Omit<
+  typeof improvementCandidate,
+  "status" | "targetElementId" | "targetElementKey"
+> & {
+  targetElementId: number | null;
+  targetElementKey: string | null;
+  reviewSessionId: number | null;
+  reviewTaskId: number | null;
+  appliedDomainPackVersionId: number | null;
+  decisionReason: string | null;
+  decidedBy: number | null;
+  decidedAt: string | null;
+  status: SimulationCandidateStatus;
+};
+
 type SimulationGoldenCaseMock = {
   id: number;
   workspaceId: number;
@@ -550,13 +567,89 @@ type SimulationGoldenCaseMock = {
 type SimulationMockState = {
   messages: typeof chatMessages;
   goldenCases: SimulationGoldenCaseMock[];
+  candidates: SimulationCandidateMock[];
 };
+
+function buildSimulationCandidate(
+  overrides: Partial<SimulationCandidateMock> = {},
+): SimulationCandidateMock {
+  return {
+    ...improvementCandidate,
+    reviewSessionId: null,
+    reviewTaskId: null,
+    appliedDomainPackVersionId: null,
+    decisionReason: null,
+    decidedBy: null,
+    decidedAt: null,
+    status: "DRAFT",
+    ...overrides,
+  };
+}
+
+const draftImprovementCandidate = buildSimulationCandidate();
+
+const approvalImprovementCandidate = buildSimulationCandidate({
+  id: 9912,
+  candidateType: "SLOT_QUESTION",
+  targetElementType: "SLOT",
+  targetElementId: slot.id,
+  targetElementKey: slot.slotCode,
+  beforeSummary: "부분 환불 문의는 주문번호 확인 질문으로 이어지지 않습니다.",
+  afterSummary: "부분 환불 문의도 주문번호를 먼저 확인하도록 질문을 보강합니다.",
+  evidenceSummary: "시뮬레이션 피드백 #9902",
+  status: "READY_FOR_REVIEW",
+  reviewSessionId: 9201,
+  reviewTaskId: 9301,
+});
+
+const rejectionImprovementCandidate = buildSimulationCandidate({
+  id: 9913,
+  candidateType: "HANDOFF_CONDITION",
+  targetElementType: "HANDOFF",
+  targetElementId: null,
+  targetElementKey: "refund_handoff",
+  beforeSummary: "고액 환불을 모두 상담사에게 넘기도록 제안합니다.",
+  afterSummary: "고액 환불 handoff 조건을 완화합니다.",
+  evidenceSummary: "시뮬레이션 피드백 #9903",
+  status: "READY_FOR_REVIEW",
+  reviewSessionId: 9202,
+  reviewTaskId: 9302,
+});
 
 function createSimulationState(): SimulationMockState {
   return {
     messages: chatMessages,
     goldenCases: [],
+    candidates: [
+      { ...draftImprovementCandidate },
+      { ...approvalImprovementCandidate },
+      { ...rejectionImprovementCandidate },
+    ],
   };
+}
+
+function upsertSimulationCandidate(
+  state: SimulationMockState,
+  candidate: SimulationCandidateMock,
+) {
+  const withoutCandidate = state.candidates.filter((item) => item.id !== candidate.id);
+  state.candidates = [...withoutCandidate, { ...candidate }];
+}
+
+function updateSimulationCandidate(
+  state: SimulationMockState,
+  candidateId: number,
+  updates: Partial<SimulationCandidateMock>,
+) {
+  const current = state.candidates.find((candidate) => candidate.id === candidateId);
+  if (!current) {
+    throw new Error(`Unknown simulation candidate: ${candidateId}`);
+  }
+  const updated = { ...current, ...updates };
+  state.candidates = state.candidates.map((candidate) =>
+    candidate.id === candidateId ? updated : candidate,
+  );
+  return updated;
 }
 
 function simulationDetail(messages: typeof chatMessages = chatMessages) {
@@ -1307,6 +1400,7 @@ async function fulfillSimulation(
   route: Route,
   method: string,
   path: string,
+  url: URL,
   state: SimulationMockState,
 ): Promise<boolean> {
   if (method === "GET" && path === "/workspaces/1/simulation/sessions") {
@@ -1431,32 +1525,80 @@ async function fulfillSimulation(
     method === "POST" &&
     path === "/workspaces/1/simulation/improvement-candidates/from-feedback/9901"
   ) {
-    await fulfillJson(route, improvementCandidate);
+    upsertSimulationCandidate(state, draftImprovementCandidate);
+    await fulfillJson(route, draftImprovementCandidate);
     return true;
   }
 
   if (method === "GET" && path === "/workspaces/1/simulation/improvement-candidates") {
+    const status = url.searchParams.get("status") as SimulationCandidateStatus | null;
+    const candidates = status
+      ? state.candidates.filter((candidate) => candidate.status === status)
+      : state.candidates;
     await fulfillJson(route, {
-      content: [improvementCandidate],
+      content: candidates,
       page: 0,
       size: 20,
-      totalElements: 1,
-      totalPages: 1,
+      totalElements: candidates.length,
+      totalPages: candidates.length === 0 ? 0 : 1,
     });
     return true;
   }
 
-  if (
-    method === "PATCH" &&
-    path === "/workspaces/1/simulation/improvement-candidates/9911/status"
-  ) {
-    expect(route.request().postDataJSON()).toEqual({
-      status: "READY_FOR_REVIEW",
+  const statusMatch = path.match(
+    /^\/workspaces\/1\/simulation\/improvement-candidates\/(\d+)\/status$/,
+  );
+  if (method === "PATCH" && statusMatch) {
+    const candidateId = Number(statusMatch[1]);
+    const body = route.request().postDataJSON() as { status?: SimulationCandidateStatus };
+    expect(body.status).toBe("READY_FOR_REVIEW");
+    const updated = updateSimulationCandidate(state, candidateId, {
+      status: body.status,
+      updatedAt: now,
     });
-    await fulfillJson(route, {
-      ...improvementCandidate,
-      status: "READY_FOR_REVIEW",
+    await fulfillJson(route, updated);
+    return true;
+  }
+
+  const approveMatch = path.match(
+    /^\/workspaces\/1\/simulation\/improvement-candidates\/(\d+)\/approve$/,
+  );
+  if (method === "POST" && approveMatch) {
+    const candidateId = Number(approveMatch[1]);
+    const body = route.request().postDataJSON() as { reason?: string };
+    await new Promise((resolve) => {
+      setTimeout(resolve, 150);
     });
+    const updated = updateSimulationCandidate(state, candidateId, {
+      status: "APPLIED",
+      appliedDomainPackVersionId: 2,
+      decisionReason: body.reason ?? null,
+      decidedBy: 7,
+      decidedAt: now,
+      updatedAt: now,
+    });
+    await fulfillJson(route, updated);
+    return true;
+  }
+
+  const rejectMatch = path.match(
+    /^\/workspaces\/1\/simulation\/improvement-candidates\/(\d+)\/reject$/,
+  );
+  if (method === "POST" && rejectMatch) {
+    const candidateId = Number(rejectMatch[1]);
+    const body = route.request().postDataJSON() as { reason?: string };
+    expect(body.reason).toBeTruthy();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 150);
+    });
+    const updated = updateSimulationCandidate(state, candidateId, {
+      status: "REJECTED",
+      decisionReason: body.reason ?? null,
+      decidedBy: 7,
+      decidedAt: now,
+      updatedAt: now,
+    });
+    await fulfillJson(route, updated);
     return true;
   }
 
@@ -1480,7 +1622,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
     if (await fulfillUploadAndReview(route, method, path)) return true;
-    if (await fulfillSimulation(route, method, path, simulationState)) return true;
+    if (await fulfillSimulation(route, method, path, url, simulationState)) return true;
     return false;
   });
 }
