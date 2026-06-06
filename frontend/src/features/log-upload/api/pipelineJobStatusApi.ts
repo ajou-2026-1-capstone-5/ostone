@@ -1,4 +1,5 @@
-import { apiClient } from "@/shared/api";
+import { selectApiData } from "@/shared/api";
+import { getLatest } from "@/shared/api/generated/endpoints/pipeline-job-status-controller/pipeline-job-status-controller";
 
 export interface LatestPipelineJob {
   readonly pipelineJobId: number;
@@ -20,14 +21,17 @@ export interface LatestPipelineJobResponse {
   readonly pipelineJob: LatestPipelineJob | null;
 }
 
-export function getLatestDatasetPipelineJob(
+export async function getLatestDatasetPipelineJob(
   workspaceId: number,
   datasetId: number,
   jobType = "INGESTION",
 ): Promise<LatestPipelineJobResponse> {
-  // OpenAPI-ungenerated
-  const params = new URLSearchParams({ jobType });
-  return apiClient.get<LatestPipelineJobResponse>(
-    `/workspaces/${workspaceId}/datasets/${datasetId}/pipeline-jobs/latest?${params.toString()}`,
+  const response = await getLatest(workspaceId, datasetId, { jobType });
+  return (
+    selectApiData<LatestPipelineJobResponse>(
+      response as unknown as LatestPipelineJobResponse | {
+        data?: LatestPipelineJobResponse;
+      },
+    ) ?? { pipelineJob: null }
   );
 }

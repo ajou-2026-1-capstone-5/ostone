@@ -1,19 +1,21 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@/shared/api", () => ({
-  apiClient: {
-    get: vi.fn(),
-  },
+const { getLatestMock } = vi.hoisted(() => ({
+  getLatestMock: vi.fn(),
 }));
 
-import { apiClient } from "@/shared/api";
-import { getLatestDatasetPipelineJob } from "./pipelineJobStatusApi";
+vi.mock(
+  "@/shared/api/generated/endpoints/pipeline-job-status-controller/pipeline-job-status-controller",
+  () => ({
+    getLatest: getLatestMock,
+  }),
+);
 
-const mockGet = vi.mocked(apiClient.get);
+import { getLatestDatasetPipelineJob } from "./pipelineJobStatusApi";
 
 describe("getLatestDatasetPipelineJob", () => {
   beforeEach(() => {
-    mockGet.mockReset();
+    getLatestMock.mockReset();
   });
 
   it("requests the latest ingestion job for a dataset", async () => {
@@ -34,21 +36,19 @@ describe("getLatestDatasetPipelineJob", () => {
         lastErrorMessage: null,
       },
     };
-    mockGet.mockResolvedValue(response);
+    getLatestMock.mockResolvedValue(response);
 
     await expect(getLatestDatasetPipelineJob(1, 42)).resolves.toEqual(response);
-    expect(mockGet).toHaveBeenCalledWith(
-      "/workspaces/1/datasets/42/pipeline-jobs/latest?jobType=INGESTION",
-    );
+    expect(getLatestMock).toHaveBeenCalledWith(1, 42, { jobType: "INGESTION" });
   });
 
   it("passes through a requested job type", async () => {
-    mockGet.mockResolvedValue({ pipelineJob: null });
+    getLatestMock.mockResolvedValue({ pipelineJob: null });
 
     await getLatestDatasetPipelineJob(2, 15, "DOMAIN_PACK_GENERATION");
 
-    expect(mockGet).toHaveBeenCalledWith(
-      "/workspaces/2/datasets/15/pipeline-jobs/latest?jobType=DOMAIN_PACK_GENERATION",
-    );
+    expect(getLatestMock).toHaveBeenCalledWith(2, 15, {
+      jobType: "DOMAIN_PACK_GENERATION",
+    });
   });
 });

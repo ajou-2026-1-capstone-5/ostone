@@ -103,15 +103,6 @@
       "wrapperPurpose": "response normalization"
     },
     {
-      "file": "src/features/log-upload/api/pipelineJobStatusApi.ts",
-      "importName": "apiClient",
-      "callee": "apiClient.get",
-      "endpoint": "/workspaces/${}/datasets/${}/pipeline-jobs/latest?${}",
-      "reason": "OpenAPI generated endpoint is not available until the upload pipeline status backend spec is regenerated.",
-      "scope": "Workspace dataset latest pipeline job status endpoint.",
-      "wrapperPurpose": "query key standardization"
-    },
-    {
       "file": "src/features/simulation/api/simulationApi.ts",
       "importName": "customFetch",
       "callee": "customFetch",

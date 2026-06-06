@@ -1,6 +1,7 @@
 package com.init.pipelinejob.presentation.dto;
 
 import com.init.pipelinejob.application.GetLatestPipelineJobResult;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 
 public record LatestPipelineJobResponse(Item pipelineJob) {
@@ -13,6 +14,7 @@ public record LatestPipelineJobResponse(Item pipelineJob) {
     return new LatestPipelineJobResponse(Item.from(result));
   }
 
+  @Schema(name = "LatestPipelineJobItem")
   public record Item(
       Long pipelineJobId,
       Long workspaceId,
