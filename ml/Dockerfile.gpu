@@ -30,4 +30,4 @@ RUN groupadd --system appgroup && useradd --system --gid appgroup --home-dir /ap
 USER appuser
 
 # AWS credentials are provided through the ECS task role.
-ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_stage_worker"]
+ENTRYPOINT ["/app/.venv/bin/python", "-m", "pipeline.ecs_stage_worker"]
