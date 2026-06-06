@@ -385,6 +385,59 @@ const billingOverview = {
   ],
 };
 
+const secondarySubscription = {
+  ...subscription,
+  id: 22,
+  workspaceId: secondaryWorkspace.id,
+  customerKey: "customer-ops-workspace",
+};
+
+const secondaryPayment = {
+  ...payment,
+  id: 7002,
+  orderId: "order-7002",
+  paymentKey: "pay_7002",
+  amount: 49000,
+  status: "DONE",
+  receiptUrl: "https://receipt.example.test/pay_7002",
+};
+
+const secondaryBillingOverview = {
+  subscription: secondarySubscription,
+  billingKey: {
+    id: 25,
+    cardCompany: "국민카드",
+    cardNumberMasked: "9876-****-****-4321",
+    status: "ACTIVE",
+  },
+  payments: [secondaryPayment],
+  quotaUsages: [
+    { resource: "DATASET_UPLOAD", used: 1, limit: 100 },
+    { resource: "PIPELINE_RUN", used: 2, limit: 50 },
+  ],
+};
+
+function createBillingMockState() {
+  return {
+    workspaceOneOverview: {
+      ...billingOverview,
+      subscription: { ...subscription },
+      billingKey: { ...billingOverview.billingKey },
+      payments: [{ ...payment }],
+      quotaUsages: billingOverview.quotaUsages.map((quota) => ({ ...quota })),
+    },
+    workspaceTwoOverview: {
+      ...secondaryBillingOverview,
+      subscription: { ...secondarySubscription },
+      billingKey: { ...secondaryBillingOverview.billingKey },
+      payments: [{ ...secondaryPayment }],
+      quotaUsages: secondaryBillingOverview.quotaUsages.map((quota) => ({ ...quota })),
+    },
+  };
+}
+
+type BillingMockState = ReturnType<typeof createBillingMockState>;
+
 const consultationSession = {
   id: 601,
   workspaceId: WORKSPACE_ID,
@@ -1011,6 +1064,97 @@ async function fulfillDomainPackRead(
   return false;
 }
 
+async function fulfillBilling(
+  route: Route,
+  method: string,
+  path: string,
+  state: BillingMockState,
+): Promise<boolean> {
+  if (method === "GET" && path === "/plans") {
+    await fulfillJson(route, {
+      data: [
+        {
+          planKey: "pro_monthly",
+          name: "Pro (Monthly)",
+          amount: 29000,
+          currency: "KRW",
+          interval: "MONTH",
+          memberLimit: 3,
+          datasetUploadLimit: 10,
+          pipelineRunHourlyLimit: 1,
+          contactOnly: false,
+          unlimited: false,
+        },
+      ],
+      status: 200,
+    });
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/1/subscription") {
+    await fulfillJson(route, { data: state.workspaceOneOverview.subscription, status: 200 });
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/1/billing/overview") {
+    await fulfillJson(route, { data: state.workspaceOneOverview, status: 200 });
+    return true;
+  }
+
+  if (method === "GET" && path === "/workspaces/2/billing/overview") {
+    await fulfillJson(route, { data: state.workspaceTwoOverview, status: 200 });
+    return true;
+  }
+
+  if (method === "POST" && path === "/workspaces/1/payments/pay_7001/cancel") {
+    expect(route.request().postDataJSON()).toEqual({ cancelReason: "품질 검증 환불" });
+    const canceledPayment = { ...payment, status: "CANCELED" };
+    state.workspaceOneOverview = {
+      ...state.workspaceOneOverview,
+      payments: [canceledPayment],
+    };
+    await fulfillJson(route, { data: canceledPayment, status: 200 });
+    return true;
+  }
+
+  if (method === "DELETE" && path === "/workspaces/1/subscription") {
+    const canceledSubscription = { ...subscription, status: "CANCELED", cancelAtPeriodEnd: true };
+    state.workspaceOneOverview = {
+      ...state.workspaceOneOverview,
+      subscription: canceledSubscription,
+    };
+    await fulfillJson(route, { data: canceledSubscription, status: 200 });
+    return true;
+  }
+
+  if (method === "POST" && path === "/workspaces/1/billing/authorizations") {
+    expect(route.request().postDataJSON()).toMatchObject({
+      authKey: "auth-e2e",
+      customerKey: "customer-qa-workspace",
+    });
+    await fulfillJson(route, {
+      data: {
+        subscription: state.workspaceOneOverview.subscription,
+        billingKey: state.workspaceOneOverview.billingKey,
+      },
+      status: 200,
+    });
+    return true;
+  }
+
+  if (method === "POST" && path === "/workspaces/1/payments/confirm") {
+    expect(route.request().postDataJSON()).toMatchObject({
+      paymentKey: "payment-e2e",
+      orderId: "order-e2e",
+      amount: 99000,
+    });
+    await fulfillJson(route, { data: payment, status: 200 });
+    return true;
+  }
+
+  return false;
+}
+
 async function fulfillWorkspaceOperations(
   route: Route,
   method: string,
@@ -1185,60 +1329,6 @@ async function fulfillWorkspaceOperations(
       totalElements: chatMessages.length + olderChatMessages.length,
       totalPages: 2,
     });
-    return true;
-  }
-
-  if (method === "GET" && path === "/workspaces/1/subscription") {
-    await fulfillJson(route, { data: subscription, status: 200 });
-    return true;
-  }
-
-  if (method === "GET" && path === "/workspaces/1/billing/overview") {
-    await fulfillJson(route, { data: billingOverview, status: 200 });
-    return true;
-  }
-
-  if (method === "POST" && path === "/workspaces/1/payments/pay_7001/cancel") {
-    expect(route.request().postDataJSON()).toMatchObject({
-      cancelReason: "품질 검증 환불",
-    });
-    await fulfillJson(route, {
-      data: { ...payment, status: "CANCELED" },
-      status: 200,
-    });
-    return true;
-  }
-
-  if (method === "DELETE" && path === "/workspaces/1/subscription") {
-    await fulfillJson(route, {
-      data: { ...subscription, status: "CANCELED", cancelAtPeriodEnd: true },
-      status: 200,
-    });
-    return true;
-  }
-
-  if (method === "POST" && path === "/workspaces/1/billing/authorizations") {
-    expect(route.request().postDataJSON()).toMatchObject({
-      authKey: "auth-e2e",
-      customerKey: "customer-qa-workspace",
-    });
-    await fulfillJson(route, {
-      data: {
-        subscription,
-        billingKey: billingOverview.billingKey,
-      },
-      status: 200,
-    });
-    return true;
-  }
-
-  if (method === "POST" && path === "/workspaces/1/payments/confirm") {
-    expect(route.request().postDataJSON()).toMatchObject({
-      paymentKey: "payment-e2e",
-      orderId: "order-e2e",
-      amount: 99000,
-    });
-    await fulfillJson(route, { data: payment, status: 200 });
     return true;
   }
 
@@ -1611,6 +1701,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
     currentVersionNo: 1,
   };
   const simulationState = createSimulationState();
+  const billingState = createBillingMockState();
 
   await page.route("**/e2e-upload/**", async (route) => {
     seen.push(`${route.request().method()} /e2e-upload/raw-log.zip`);
@@ -1620,6 +1711,7 @@ export async function installAppApiMocks(page: Page, seen: string[]) {
   await installTrackedApiRoute(page, seen, async (route, method, path, url) => {
     if (await fulfillWorkspaceShell(route, method, path)) return true;
     if (await fulfillDomainPackRead(route, method, path, domainPackState)) return true;
+    if (await fulfillBilling(route, method, path, billingState)) return true;
     if (await fulfillWorkspaceOperations(route, method, path, url)) return true;
     if (await fulfillUploadAndReview(route, method, path)) return true;
     if (await fulfillSimulation(route, method, path, url, simulationState)) return true;

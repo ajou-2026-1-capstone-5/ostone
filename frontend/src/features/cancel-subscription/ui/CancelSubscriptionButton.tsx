@@ -18,10 +18,11 @@ import styles from "./cancel-subscription.module.css";
 
 interface CancelSubscriptionButtonProps {
   workspaceId: number;
+  onCanceled?: (subscription: SubscriptionResponse | undefined) => void;
 }
 
 /** 구독 취소 CTA + 확인 다이얼로그. DELETE /subscription. */
-export function CancelSubscriptionButton({ workspaceId }: CancelSubscriptionButtonProps) {
+export function CancelSubscriptionButton({ workspaceId, onCanceled }: CancelSubscriptionButtonProps) {
   const [open, setOpen] = useState(false);
   const cancel = useCancelSubscription();
 
@@ -36,6 +37,7 @@ export function CancelSubscriptionButton({ workspaceId }: CancelSubscriptionButt
               : "현재 결제 주기가 끝나면 구독이 해지됩니다.",
           );
           setOpen(false);
+          onCanceled?.(updated);
         },
         onError: (error: unknown) => {
           if (error instanceof ApiRequestError) {

@@ -90,14 +90,17 @@ describe("RefundButton", () => {
     );
   });
 
-  it("onSuccess: 환불 완료 토스트", () => {
-    render(<RefundButton workspaceId={1} payment={stubPayment} />);
+  it("onSuccess: 환불 완료 토스트와 완료 콜백", () => {
+    const onRefunded = vi.fn();
+    render(<RefundButton workspaceId={1} payment={stubPayment} onRefunded={onRefunded} />);
     fireEvent.click(screen.getByText("환불"));
     const allButtons = screen.getAllByRole("button");
     const confirmBtn = allButtons.find((b) => b.textContent === "환불");
     if (confirmBtn) fireEvent.click(confirmBtn);
     const { onSuccess } = mockMutate.mock.calls[0][1];
-    onSuccess();
+    const updated = { ...stubPayment, status: "CANCELED" };
+    onSuccess(updated);
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith("환불을 요청했습니다.");
+    expect(onRefunded).toHaveBeenCalledWith(updated);
   });
 });

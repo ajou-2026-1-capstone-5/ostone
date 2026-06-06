@@ -69,12 +69,15 @@ describe("CancelSubscriptionButton", () => {
     );
   });
 
-  it("onSuccess: CANCELED 상태이면 해지 완료 토스트", () => {
-    render(<CancelSubscriptionButton workspaceId={1} />);
+  it("onSuccess: CANCELED 상태이면 해지 완료 토스트와 완료 콜백", () => {
+    const onCanceled = vi.fn();
+    render(<CancelSubscriptionButton workspaceId={1} onCanceled={onCanceled} />);
     clickConfirmButton();
     const { onSuccess } = mockMutate.mock.calls[0][1];
-    onSuccess({ id: 1, status: "CANCELED" });
+    const updated = { id: 1, status: "CANCELED" };
+    onSuccess(updated);
     expect(mockToastSuccess).toHaveBeenCalledWith("구독을 해지했습니다.");
+    expect(onCanceled).toHaveBeenCalledWith(updated);
   });
 
   it("onSuccess: 비CANCELED 상태이면 주기말 해지 토스트", () => {

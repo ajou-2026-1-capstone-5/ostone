@@ -20,10 +20,11 @@ import styles from "./cancel-subscription.module.css";
 interface RefundButtonProps {
   workspaceId: number;
   payment: PaymentResponse;
+  onRefunded?: (payment: PaymentResponse | undefined) => void;
 }
 
 /** 결제 환불 CTA + 사유 입력 다이얼로그. 전액 환불(cancelAmount 미전송). */
-export function RefundButton({ workspaceId, payment }: RefundButtonProps) {
+export function RefundButton({ workspaceId, payment, onRefunded }: RefundButtonProps) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("고객 요청");
   const refund = useRefundPayment();
@@ -41,9 +42,10 @@ export function RefundButton({ workspaceId, payment }: RefundButtonProps) {
     refund.mutate(
       { workspaceId, paymentKey: payment.paymentKey, cancelReason: trimmed },
       {
-        onSuccess: () => {
+        onSuccess: (updated: PaymentResponse | undefined) => {
           toast.success("환불을 요청했습니다.");
           setOpen(false);
+          onRefunded?.(updated);
         },
         onError: (error: unknown) => {
           if (error instanceof ApiRequestError) {
