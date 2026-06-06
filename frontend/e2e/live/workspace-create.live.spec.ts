@@ -36,7 +36,7 @@ test.describe("워크스페이스 생성 스모크", () => {
     }
   });
 
-  test("이름을 입력해 워크스페이스를 생성하면 워크플로우 화면으로 이동한다", async ({ page }) => {
+  test("이름을 입력해 워크스페이스를 생성하면 업로드 화면으로 이동한다", async ({ page }) => {
     createdLabel = `e2e-${Date.now()}`;
 
     await page.goto("/workspaces");
@@ -44,10 +44,11 @@ test.describe("워크스페이스 생성 스모크", () => {
     await page.getByLabel("이름").fill(createdLabel);
     await page.getByRole("button", { name: "생성" }).click();
 
-    await page.waitForURL(/\/workspaces\/\d+\/workflows/);
+    await page.waitForURL(/\/workspaces\/\d+\/upload/);
     await expect(page.getByText("워크스페이스를 생성했습니다.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
 
-    const match = page.url().match(/\/workspaces\/(\d+)\/workflows/);
+    const match = page.url().match(/\/workspaces\/(\d+)\/upload/);
     expect(match).not.toBeNull();
     createdId = Number(match![1]);
     registerWorkspace(createdId, createdLabel);

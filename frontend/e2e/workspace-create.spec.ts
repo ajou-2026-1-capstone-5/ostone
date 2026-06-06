@@ -2,7 +2,17 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { installAuth } from "./support/generated-api-auth";
 
+const createdWorkspace = {
+  id: 777,
+  workspaceKey: "qa-workspace",
+  name: "QA Workspace",
+  status: "ACTIVE",
+  myRole: "OWNER",
+};
+
 async function mockWorkspaceCreation(page: Page, seen: string[]) {
+  let hasCreatedWorkspace = false;
+
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -11,7 +21,11 @@ async function mockWorkspaceCreation(page: Page, seen: string[]) {
     seen.push(`${method} ${path}`);
 
     if (method === "GET" && path === "/workspaces") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(hasCreatedWorkspace ? [createdWorkspace] : []),
+      });
       return;
     }
 
@@ -19,18 +33,11 @@ async function mockWorkspaceCreation(page: Page, seen: string[]) {
       const body = request.postDataJSON() as { name?: string; workspaceKey?: string };
       expect(body.name).toBe("QA Workspace");
       expect(body.workspaceKey).toMatch(/^qa-workspace-[a-z0-9]+$/);
+      hasCreatedWorkspace = true;
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          data: {
-            id: 777,
-            workspaceKey: "qa-workspace",
-            name: "QA Workspace",
-            status: "ACTIVE",
-            myRole: "OWNER",
-          },
-        }),
+        body: JSON.stringify({ data: createdWorkspace }),
       });
       return;
     }
@@ -39,22 +46,19 @@ async function mockWorkspaceCreation(page: Page, seen: string[]) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          id: 777,
-          workspaceKey: "qa-workspace",
-          name: "QA Workspace",
-          status: "ACTIVE",
-          myRole: "OWNER",
-        }),
+        body: JSON.stringify(createdWorkspace),
       });
       return;
     }
 
-    if (method === "GET" && path === "/workspaces/777/domain-packs") {
+    if (method === "GET" && path === "/workspaces/777/subscription") {
       await route.fulfill({
-        status: 200,
+        status: 404,
         contentType: "application/json",
-        body: JSON.stringify({ data: [] }),
+        body: JSON.stringify({
+          code: "SUBSCRIPTION_NOT_FOUND",
+          message: "구독 정보가 없습니다.",
+        }),
       });
       return;
     }
@@ -111,7 +115,9 @@ test.describe("Workspace creation", () => {
     });
 
     test.describe("When the operator creates the first workspace", () => {
-      test("Then the workspace is created and opened", async ({ page }) => {
+      test("Then the created workspace opens upload and keeps its context after reload", async ({
+        page,
+      }) => {
         const seen: string[] = [];
         await mockWorkspaceCreation(page, seen);
 
@@ -120,10 +126,32 @@ test.describe("Workspace creation", () => {
         await page.getByLabel("이름").fill("QA Workspace");
         await page.getByRole("button", { name: "생성" }).click();
 
-        await expect(page).toHaveURL(/\/workspaces\/777\/upload/);
+        await expect(page).toHaveURL(/\/workspaces\/777\/upload$/);
         await expect(page.getByText("워크스페이스를 생성했습니다.")).toBeVisible();
         await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+        await expect(page.locator('input[type="file"]')).toBeEnabled();
+        await expect(page.getByText("무료 온보딩 가능")).toBeVisible();
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+        await expect(page.getByTestId("sidebar-link-upload")).toHaveAttribute(
+          "href",
+          "/workspaces/777/upload",
+        );
+        await expect(page.getByTestId("sidebar-link-upload")).toHaveAttribute("data-active", "true");
+
+        await page.getByTestId("workspace-marker").click();
+        await expect(page.getByTestId("workspace-marker-menu")).toBeVisible();
+        await expect(page.getByTestId("workspace-option-777")).toContainText("QA Workspace");
+        await expect(page.getByTestId("workspace-marker-menu")).not.toContainText("Ops Workspace");
+
+        await page.reload();
+        await expect(page).toHaveURL(/\/workspaces\/777\/upload$/);
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+        await expect(page.locator('input[type="file"]')).toBeEnabled();
+
         expect(seen).toContain("POST /workspaces");
+        expect(seen).toContain("GET /workspaces/777");
+        expect(seen).not.toContain("GET /workspaces/1");
       });
     });
   });
