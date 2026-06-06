@@ -370,7 +370,7 @@ variable "gpu_asg_max_size" {
 }
 
 variable "gpu_asg_desired_capacity" {
-  description = "Default desired capacity of the shared GPU Auto Scaling Group."
+  description = "Initial desired capacity of the shared GPU Auto Scaling Group. ECS capacity provider managed scaling owns runtime desired capacity."
   type        = number
   default     = 0
 }

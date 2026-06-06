@@ -84,6 +84,10 @@ resource "aws_autoscaling_group" "gpu" {
   protect_from_scale_in     = false
 
   lifecycle {
+    # ECS capacity provider managed scaling owns desired capacity after creation.
+    # Terraform should not scale GPU hosts back to zero while stage tasks are pending.
+    ignore_changes = [desired_capacity]
+
     precondition {
       condition     = length(local.gpu_private_subnet_ids) > 0
       error_message = "gpu_instance_type must be offered in at least one selected private subnet availability zone."
