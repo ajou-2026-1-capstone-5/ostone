@@ -166,6 +166,7 @@ ml/
 # light 실행 (postgres + minio(+init) + backend + frontend)
 # dev:setup 부트스트랩이 .env 자동 생성(JWT_SECRET 랜덤 채움)·필수 env 점검·jar preflight·
 # compose config 검증·포트 사전 점검을 수행하고, 기동 후 접속 URL을 출력한다.
+pnpm run doctor         # 비파괴 개발 환경 진단(도구 버전/env/포트/JAR)
 pnpm run dev            # = pnpm run up:light
 
 # 기동 없이 준비·점검만
@@ -256,6 +257,7 @@ pnpm run ci:backend
 | ----------------- | ------------------------ |
 | 의존성 설치       | `pnpm install`           |
 | Husky 설치        | `pnpm run prepare`       |
+| 개발 환경 진단    | `pnpm run doctor`        |
 | 로컬 전체 실행    | `pnpm run dev`           |
 | 로컬 부트스트랩   | `pnpm run dev:setup`     |
 | 전체 품질 검사    | `pnpm run check`         |
