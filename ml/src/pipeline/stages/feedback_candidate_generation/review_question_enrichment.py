@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.exceptions import PipelineStageError
 
 MAX_EVIDENCE_ITEMS = 8
 MAX_EVIDENCE_CHARS = 420
@@ -117,6 +118,8 @@ def _enrich_question(
         parsed = _parse_response(response.json())
     except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
         _increment(summary, "requestFailureCount")
+        if runtime_config.llm_runtime_base_url:
+            raise PipelineStageError("Review question LLM enrichment failed.") from exc
         _record_fallback(question, summary, "request_failure")
         if logger is not None:
             logger.warning(

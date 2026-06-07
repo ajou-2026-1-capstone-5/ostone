@@ -207,6 +207,55 @@ def test_run_evaluation_stage_delegates_to_evaluation_run(monkeypatch: pytest.Mo
     assert calls == ["/tmp/upstream.json"]
 
 
+def test_initial_llm_lifecycle_starts_only_for_initial_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    calls: list[str] = []
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
+    monkeypatch.setattr(dag_module, "start_llm_ecs_service", lambda: calls.append("start") or {"enabled": True})
+
+    assert dag_module._start_initial_llm_service() == {"enabled": True}
+    assert calls == ["start"]
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_DOMAIN_CONFIRMED_REPLAY)
+
+    assert dag_module._start_initial_llm_service() == {"enabled": False, "reason": "not_initial_run"}
+    assert calls == ["start"]
+
+
+def test_initial_llm_lifecycle_stops_only_for_initial_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    calls: list[str] = []
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
+    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", lambda: calls.append("stop") or {"enabled": True})
+
+    assert dag_module._stop_initial_llm_service() == {"enabled": True}
+    assert calls == ["stop"]
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_FEEDBACK_REPLAY)
+
+    assert dag_module._stop_initial_llm_service() == {"enabled": False, "reason": "not_initial_run"}
+    assert calls == ["stop"]
+
+
+def test_set_task_dependency_links_airflow_task_like_objects(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    linked: list[tuple[str, str]] = []
+
+    class FakeTask:
+        def __init__(self, task_id: str) -> None:
+            self.task_id = task_id
+
+        def __rshift__(self, downstream: "FakeTask") -> "FakeTask":
+            linked.append((self.task_id, downstream.task_id))
+            return downstream
+
+    dag_module._set_task_dependency(FakeTask("start"), FakeTask("stop"))
+
+    assert linked == [("start", "stop")]
+
+
 @pytest.mark.parametrize("value", ["true", "TRUE", " 1 ", "yes", "Y", "on"])
 def test_conf_bool_accepts_true_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
     dag_module = _import_dag_module(monkeypatch)

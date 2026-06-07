@@ -55,6 +55,22 @@ def _run_mode() -> str:
     return normalized
 
 
+def _start_initial_llm_service() -> Mapping[str, object]:
+    if _run_mode() != RUN_MODE_INITIAL:
+        return {"enabled": False, "reason": "not_initial_run"}
+    return start_llm_ecs_service()
+
+
+def _stop_initial_llm_service() -> Mapping[str, object]:
+    if _run_mode() != RUN_MODE_INITIAL:
+        return {"enabled": False, "reason": "not_initial_run"}
+    return stop_llm_ecs_service()
+
+
+def _set_task_dependency(upstream: Any, downstream: Any) -> None:
+    upstream >> downstream
+
+
 def _conf_value(key: str) -> str | None:
     context = get_current_context()
     return _context_value(context, key)
@@ -391,6 +407,15 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
             upstream_manifest_path=representation_result["artifact_manifest_path"],
         )
 
+    @task(task_id="start_initial_llm_service")
+    def start_initial_llm_service(representation_result: dict[str, str]) -> dict[str, str]:
+        _start_initial_llm_service()
+        return representation_result
+
+    @task(task_id="stop_initial_llm_service", trigger_rule="all_done")
+    def stop_initial_llm_service() -> dict[str, object]:
+        return dict(_stop_initial_llm_service())
+
     @task(task_id="domain_confirmation_checkpoint")
     def domain_confirmation_checkpoint(domain_candidate_result: dict[str, str]) -> dict[str, str]:
         if _run_mode() != RUN_MODE_INITIAL:
@@ -475,7 +500,8 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
     ingestion_task = ingestion()
     preprocessing_task = preprocessing(ingestion_task)
     representation_task = representation(preprocessing_task)
-    domain_candidate_task = domain_candidate_generation(representation_task)
+    start_initial_llm_task = start_initial_llm_service(representation_task)
+    domain_candidate_task = domain_candidate_generation(start_initial_llm_task)
     domain_confirmation_task = domain_confirmation_checkpoint(domain_candidate_task)
     intent_discovery_task = intent_discovery(domain_confirmation_task)
     flow_splitting_task = flow_splitting(intent_discovery_task)
@@ -483,22 +509,29 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
     feedback_candidate_task = feedback_candidate_generation(start_llm_task)
     human_feedback_task = human_feedback_checkpoint(feedback_candidate_task)
     draft_generation_task = draft_generation(human_feedback_task)
+    stop_initial_llm_task = stop_initial_llm_service()
     stop_llm_task = stop_llm_service()
     evaluation_task = evaluation(draft_generation_task)
     publish_candidate_task = publish_candidate(evaluation_task)
 
-    ingestion_task >> preprocessing_task >> representation_task >> domain_candidate_task >> domain_confirmation_task
-    (
-        domain_confirmation_task
-        >> intent_discovery_task
-        >> flow_splitting_task
-        >> start_llm_task
-        >> feedback_candidate_task
-    )
-    feedback_candidate_task >> human_feedback_task >> draft_generation_task
-    human_feedback_task >> stop_llm_task
-    draft_generation_task >> stop_llm_task
-    draft_generation_task >> evaluation_task >> publish_candidate_task
+    _set_task_dependency(ingestion_task, preprocessing_task)
+    _set_task_dependency(preprocessing_task, representation_task)
+    _set_task_dependency(representation_task, start_initial_llm_task)
+    _set_task_dependency(start_initial_llm_task, domain_candidate_task)
+    _set_task_dependency(domain_candidate_task, domain_confirmation_task)
+    _set_task_dependency(start_initial_llm_task, stop_initial_llm_task)
+    _set_task_dependency(domain_candidate_task, stop_initial_llm_task)
+    _set_task_dependency(domain_confirmation_task, intent_discovery_task)
+    _set_task_dependency(intent_discovery_task, flow_splitting_task)
+    _set_task_dependency(flow_splitting_task, start_llm_task)
+    _set_task_dependency(start_llm_task, feedback_candidate_task)
+    _set_task_dependency(feedback_candidate_task, human_feedback_task)
+    _set_task_dependency(human_feedback_task, draft_generation_task)
+    _set_task_dependency(start_llm_task, stop_llm_task)
+    _set_task_dependency(human_feedback_task, stop_llm_task)
+    _set_task_dependency(draft_generation_task, stop_llm_task)
+    _set_task_dependency(draft_generation_task, evaluation_task)
+    _set_task_dependency(evaluation_task, publish_candidate_task)
 
 
 domain_pack_generation()
