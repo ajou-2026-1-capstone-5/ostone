@@ -17,6 +17,14 @@ ENABLED_VALUES = {"1", "true", "yes", "on", "local_llm", "llm"}
 MAX_EVIDENCE_ITEMS = 8
 MAX_EVIDENCE_CHARS = 420
 CHOICE_KEYS = ("must_link", "cannot_link", "unsure")
+ENRICHMENT_TEXT_FIELDS = (
+    "sourceTitle",
+    "targetTitle",
+    "sourceSummary",
+    "targetSummary",
+    "commonGround",
+    "operatorQuestion",
+)
 FORBIDDEN_PHRASES = (
     "자동 생성",
     "클러스터",
@@ -301,16 +309,7 @@ def _json_content(content: str) -> str:
 
 
 def _schema_validation_error(parsed: dict[str, Any]) -> str | None:
-    string_fields = (
-        "questionType",
-        "sourceTitle",
-        "targetTitle",
-        "sourceSummary",
-        "targetSummary",
-        "commonGround",
-        "operatorQuestion",
-        "abstainReason",
-    )
+    string_fields = ("questionType", *ENRICHMENT_TEXT_FIELDS, "abstainReason")
     for field in string_fields:
         if not isinstance(parsed.get(field), str):
             return f"{field}_not_string"
@@ -347,16 +346,7 @@ def _content_validation_error(
     if parsed["abstain"]:
         return None if _normalized_text(parsed["abstainReason"]) else "missing_abstain_reason"
 
-    fields = [
-        parsed["sourceTitle"],
-        parsed["targetTitle"],
-        parsed["sourceSummary"],
-        parsed["targetSummary"],
-        parsed["commonGround"],
-        parsed["operatorQuestion"],
-        *parsed["keyDifferences"],
-        *[str(parsed["choiceExplanations"][key]) for key in CHOICE_KEYS],
-    ]
+    fields = _enrichment_text_values(parsed)
     if any(not _normalized_text(field) for field in fields):
         return "empty_enrichment_field"
     if len(parsed["sourceTitle"]) > 60 or len(parsed["targetTitle"]) > 60:
@@ -377,32 +367,29 @@ def _contains_forbidden_content(value: str) -> bool:
     return any(pattern in normalized for pattern in BROKEN_LABEL_PATTERNS)
 
 
+def _enrichment_text_values(parsed: dict[str, Any]) -> list[str]:
+    return [
+        *[str(parsed[field]) for field in ENRICHMENT_TEXT_FIELDS],
+        *[str(item) for item in parsed["keyDifferences"]],
+        *[str(parsed["choiceExplanations"][key]) for key in CHOICE_KEYS],
+    ]
+
+
 def _apply_enrichment(
     question: dict[str, object],
     parsed: dict[str, Any],
     runtime_config: PipelineRuntimeConfig,
     summary: dict[str, Any],
 ) -> None:
-    question["questionText"] = _normalized_text(parsed["operatorQuestion"])
     question["questionType"] = parsed["questionType"]
-    question["sourceTitle"] = _normalized_text(parsed["sourceTitle"])
-    question["targetTitle"] = _normalized_text(parsed["targetTitle"])
-    question["sourceSummary"] = _normalized_text(parsed["sourceSummary"])
-    question["targetSummary"] = _normalized_text(parsed["targetSummary"])
-    question["commonGround"] = _normalized_text(parsed["commonGround"])
+    question["questionText"] = _normalized_text(parsed["operatorQuestion"])
+    for field in ENRICHMENT_TEXT_FIELDS:
+        question[field] = _normalized_text(parsed[field])
     question["keyDifferences"] = [_normalized_text(item) for item in parsed["keyDifferences"]]
-    question["operatorQuestion"] = _normalized_text(parsed["operatorQuestion"])
     question["choiceExplanations"] = {
         key: _normalized_text(str(parsed["choiceExplanations"][key])) for key in CHOICE_KEYS
     }
-    question["reviewQuestionEnrichmentJson"] = _compact_json(
-        {
-            "provider": "local_llm",
-            "model": runtime_config.llm_model_name,
-            "usedEvidenceIds": parsed["usedEvidenceIds"],
-            "status": "applied",
-        }
-    )
+    question["reviewQuestionEnrichmentJson"] = _enrichment_record(runtime_config, parsed, "applied")
     question["enrichmentStatus"] = "applied"
     _update_context_summary(question.get("sourceReviewContext"), parsed["sourceTitle"], parsed["sourceSummary"])
     _update_context_summary(question.get("targetReviewContext"), parsed["targetTitle"], parsed["targetSummary"])
@@ -418,18 +405,32 @@ def _apply_abstain(
     previous_priority = str(question.get("priority") or "NORMAL")
     question["priority"] = "LOW"
     question["abstainReason"] = _normalized_text(parsed["abstainReason"])
-    question["reviewQuestionEnrichmentJson"] = _compact_json(
-        {
-            "provider": "local_llm",
-            "model": runtime_config.llm_model_name,
-            "usedEvidenceIds": parsed["usedEvidenceIds"],
-            "status": "abstained",
-            "previousPriority": previous_priority,
-        }
+    question["reviewQuestionEnrichmentJson"] = _enrichment_record(
+        runtime_config,
+        parsed,
+        "abstained",
+        {"previousPriority": previous_priority},
     )
     question["enrichmentStatus"] = "abstained"
     _increment(summary, "abstainCount")
     _increment(summary, "lowPriorityCount")
+
+
+def _enrichment_record(
+    runtime_config: PipelineRuntimeConfig,
+    parsed: dict[str, Any],
+    status: str,
+    extra: dict[str, object] | None = None,
+) -> str:
+    payload: dict[str, object] = {
+        "provider": "local_llm",
+        "model": runtime_config.llm_model_name,
+        "usedEvidenceIds": parsed["usedEvidenceIds"],
+        "status": status,
+    }
+    if extra is not None:
+        payload.update(extra)
+    return _compact_json(payload)
 
 
 def _update_context_summary(context: object, title: str, summary: str) -> None:

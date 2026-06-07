@@ -158,19 +158,90 @@ def test_review_question_enrichment_rejects_broken_label_patterns(monkeypatch, t
     assert source_context["summary"] == "공항 픽업 예약 변경"
 
 
+def test_review_question_enrichment_falls_back_without_llm_base_url(monkeypatch, tmp_path: Path) -> None:
+    question = _question_payload()
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
+
+    summary = review_question_enrichment.enrich_review_questions(
+        [question],
+        PipelineRuntimeConfig(
+            artifact_root=tmp_path,
+            backend_base_url="http://backend:8080",
+            llm_runtime_base_url=None,
+            llm_model_name="gemma-local",
+        ),
+    )
+
+    assert summary["requestFailureCount"] == 1
+    assert summary["fallbackCount"] == 1
+    assert summary["fallbackReason"] == "missing_llm_runtime_base_url"
+
+
+def test_review_question_enrichment_sends_runtime_options_and_respects_limit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    question = _question_payload()
+    second_question = {**_question_payload(), "questionId": "cannot-link-1-2"}
+    client_class = _fake_client_factory(_fenced_json_response(_valid_enrichment_response()))
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
+    monkeypatch.setenv("ML_LLM_DISABLE_THINKING", "true")
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "1")
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "not-a-number")
+    monkeypatch.setattr(review_question_enrichment.httpx, "Client", client_class)
+
+    summary = review_question_enrichment.enrich_review_questions(
+        [question, second_question],
+        PipelineRuntimeConfig(
+            artifact_root=tmp_path,
+            backend_base_url="http://backend:8080",
+            llm_runtime_base_url="http://127.0.0.1:18080/v1",
+            llm_runtime_api_key="local-token",
+            llm_model_name="gemma-local",
+        ),
+    )
+
+    assert summary["appliedCount"] == 1
+    assert summary["skippedByLimitCount"] == 1
+    assert second_question.get("enrichmentStatus") is None
+    assert _FakeClient.calls[0]["headers"]["Authorization"] == "Bearer local-token"
+    assert _FakeClient.calls[0]["json"]["options"] == {"think": False}
+    assert question["enrichmentStatus"] == "applied"
+
+
+def test_review_question_enrichment_rejects_missing_grounding_and_invalid_limit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    question = _question_payload()
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "bad-limit")
+    monkeypatch.setattr(
+        review_question_enrichment.httpx,
+        "Client",
+        _fake_client_factory({**_valid_enrichment_response(), "usedEvidenceIds": []}),
+    )
+
+    summary = review_question_enrichment.enrich_review_questions([question], _runtime_config(tmp_path))
+
+    assert summary["groundingFailureCount"] == 1
+    assert question["enrichmentFallbackReason"] == "missing_grounding_evidence"
+
+
 class _FakeResponse:
-    def __init__(self, payload: dict[str, Any]) -> None:
+    def __init__(self, payload: dict[str, Any] | str) -> None:
         self._payload = payload
 
     def raise_for_status(self) -> None:
         return None
 
     def json(self) -> dict[str, Any]:
+        content = self._payload if isinstance(self._payload, str) else json.dumps(self._payload, ensure_ascii=False)
         return {
             "choices": [
                 {
                     "message": {
-                        "content": json.dumps(self._payload, ensure_ascii=False),
+                        "content": content,
                     }
                 }
             ]
@@ -178,7 +249,9 @@ class _FakeResponse:
 
 
 class _FakeClient:
-    def __init__(self, payload: dict[str, Any] | Exception) -> None:
+    calls: list[dict[str, Any]] = []
+
+    def __init__(self, payload: dict[str, Any] | str | Exception) -> None:
         self._payload = payload
 
     def __enter__(self) -> "_FakeClient":
@@ -187,18 +260,25 @@ class _FakeClient:
     def __exit__(self, *_args: object) -> None:
         return None
 
-    def post(self, *_args: object, **_kwargs: object) -> _FakeResponse:
+    def post(self, *_args: object, **kwargs: object) -> _FakeResponse:
+        _FakeClient.calls.append(cast(dict[str, Any], kwargs))
         if isinstance(self._payload, Exception):
             raise self._payload
         return _FakeResponse(self._payload)
 
 
-def _fake_client_factory(payload: dict[str, Any] | Exception) -> type[_FakeClient]:
+def _fake_client_factory(payload: dict[str, Any] | str | Exception) -> type[_FakeClient]:
+    _FakeClient.calls = []
+
     class BoundFakeClient(_FakeClient):
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             super().__init__(payload)
 
     return BoundFakeClient
+
+
+def _fenced_json_response(payload: dict[str, Any]) -> str:
+    return f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
 
 
 def _write_feedback_stage_inputs(artifact_root: Path) -> Path:
