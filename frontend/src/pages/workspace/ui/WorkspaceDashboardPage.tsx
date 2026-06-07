@@ -23,7 +23,11 @@ import {
   type WorkspaceDashboardActionRecommendations,
 } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { buildDemoChatPath, buildWorkspaceSimulationPath } from "@/shared/lib/demoRoutes";
+import {
+  buildDemoChatPath,
+  buildWorkspaceSimulationPath,
+  PUBLIC_DEMO_CHAT_LABEL,
+} from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -822,7 +826,7 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
         <Button asChild variant="outline">
           <Link to={buildDemoChatPath(workspaceId)} data-testid="dashboard-customer-preview-cta">
             <MonitorSmartphoneIcon aria-hidden="true" />
-            고객 화면 미리보기
+            {PUBLIC_DEMO_CHAT_LABEL}
           </Link>
         </Button>
       </div>

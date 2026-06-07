@@ -1,4 +1,7 @@
 export const DEMO_SELECTION_PATH = "/demo";
+export const PUBLIC_DEMO_CHAT_LABEL = "공개 데모 체험";
+export const PUBLIC_DEMO_SELECTION_LABEL = "공개 데모 선택";
+export const PUBLIC_DEMO_SELECTION_NEW_TAB_LABEL = "공개 데모 선택 화면을 새 탭에서 엽니다";
 
 export interface WorkspaceSimulationPathParams {
   packId?: number | string | null;

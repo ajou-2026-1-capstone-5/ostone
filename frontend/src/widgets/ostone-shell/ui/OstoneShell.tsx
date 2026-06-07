@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { useParams } from "react-router-dom";
+import { WORKSPACE_PREVIEW_LABEL } from "@/shared/lib/userChatRoutes";
 import { Sidebar, Topbar, type SidebarActive } from "@/shared/ui/ostone/chrome";
 import type { Crumb, CrumbItem } from "@/shared/ui/ostone/chrome/Topbar";
 import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
@@ -29,7 +30,7 @@ const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
   consult: "상담 응대",
   domain: "도메인팩 관리",
   settings: "워크스페이스 설정",
-  chat: "사용자 화면 미리보기",
+  chat: WORKSPACE_PREVIEW_LABEL,
   intent: "상담 유형",
   slot: "확인 항목",
   policy: "응대 기준",
