@@ -16,14 +16,21 @@ vi.mock("../../../features/log-upload/ui/LogUploadForm", () => ({
     hasActiveSubscription,
     isEntitlementLoading,
     paidUploadCooldown,
-    openReviewCta,
+    openReviewRecord,
   }: {
     workspaceId?: number;
     freeOnboardingStatus?: string;
     hasActiveSubscription?: boolean;
     isEntitlementLoading?: boolean;
     paidUploadCooldown?: { isBlocked?: boolean; nextAvailableAt?: string | null };
-    openReviewCta?: { path: string; pendingReviewCount: number } | null;
+    openReviewRecord?: {
+      path: string;
+      pipelineJobId: number;
+      pendingReviewCount: number;
+      datasetId?: number | null;
+      datasetName?: string | null;
+      status?: string | null;
+    } | null;
   }) => (
     <div data-testid="upload-form">
       workspace:{workspaceId} onboarding:{freeOnboardingStatus} active:
@@ -31,8 +38,11 @@ vi.mock("../../../features/log-upload/ui/LogUploadForm", () => ({
       cooldown:
       {String(paidUploadCooldown?.isBlocked)} next:
       {paidUploadCooldown?.nextAvailableAt ?? "none"} review:
-      {openReviewCta?.path ?? "none"} pending:
-      {openReviewCta?.pendingReviewCount ?? "none"}
+      {openReviewRecord?.path ?? "none"} job:
+      {openReviewRecord?.pipelineJobId ?? "none"} pending:
+      {openReviewRecord?.pendingReviewCount ?? "none"} dataset:
+      {openReviewRecord?.datasetName ?? "none"} status:
+      {openReviewRecord?.status ?? "none"}
     </div>
   ),
 }));
@@ -107,7 +117,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:AVAILABLE active:false loading:false cooldown:false next:none review:none pending:none",
+      "workspace:1 onboarding:AVAILABLE active:false loading:false cooldown:false next:none review:none job:none pending:none dataset:none status:none",
     );
   });
 
@@ -116,6 +126,17 @@ describe("WorkspaceUploadPage", () => {
       data: {
         pendingReviewCount: 3,
         latestOpenReviewPipelineJobId: 43,
+        lastLogUpload: {
+          datasetId: 77,
+          datasetKey: "dataset-refund-log",
+          datasetName: "refund-log.zip",
+          datasetStatus: "READY",
+        },
+        lastKnowledgePackGeneration: {
+          pipelineJobId: 43,
+          datasetId: 77,
+          status: "WAITING_DOMAIN_CONFIRMATION",
+        },
       },
       isLoading: false,
     });
@@ -123,7 +144,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/2/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "review:/workspaces/2/pipeline-jobs/43/review pending:3",
+      "review:/workspaces/2/pipeline-jobs/43/review job:43 pending:3 dataset:refund-log.zip status:WAITING_DOMAIN_CONFIRMATION",
     );
   });
 
@@ -142,7 +163,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:true loading:false cooldown:false next:none review:none pending:none",
+      "workspace:1 onboarding:CONSUMED active:true loading:false cooldown:false next:none review:none job:none pending:none dataset:none status:none",
     );
   });
 
@@ -166,7 +187,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:AVAILABLE active:true loading:false cooldown:true next:2026-06-04T10:30:00+09:00 review:none pending:none",
+      "workspace:1 onboarding:AVAILABLE active:true loading:false cooldown:true next:2026-06-04T10:30:00+09:00 review:none job:none pending:none dataset:none status:none",
     );
   });
 
@@ -190,7 +211,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:false loading:false cooldown:false next:none review:none pending:none",
+      "workspace:1 onboarding:CONSUMED active:false loading:false cooldown:false next:none review:none job:none pending:none dataset:none status:none",
     );
 
     act(() => {

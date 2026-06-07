@@ -58,9 +58,14 @@ export interface PaidUploadCooldown {
   readonly nextAvailableAt?: string | null;
 }
 
-export interface OpenReviewCta {
+export interface OpenReviewRecord {
   readonly path: string;
+  readonly pipelineJobId: number;
   readonly pendingReviewCount: number;
+  readonly datasetId?: number | null;
+  readonly datasetName?: string | null;
+  readonly status?: string | null;
+  readonly requestedAt?: string | null;
 }
 
 interface LogUploadFormProps {
@@ -69,7 +74,7 @@ interface LogUploadFormProps {
   hasActiveSubscription?: boolean;
   isEntitlementLoading?: boolean;
   paidUploadCooldown?: PaidUploadCooldown;
-  openReviewCta?: OpenReviewCta | null;
+  openReviewRecord?: OpenReviewRecord | null;
 }
 
 interface GenerationRequestToken {
@@ -114,6 +119,22 @@ const formatCooldownMessage = (nextAvailableAt?: string | null) => {
   })}`;
 };
 
+const formatReviewDateTime = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
+
 const readGenerationResponse = (
   response: unknown,
 ): Omit<GenerationStatus & { kind: "success" }, "kind"> => {
@@ -134,7 +155,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   hasActiveSubscription = false,
   isEntitlementLoading = false,
   paidUploadCooldown,
-  openReviewCta,
+  openReviewRecord,
 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -517,24 +538,60 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         )}
       </div>
 
-      {openReviewCta ? (
-        <div className={styles.openReviewNotice}>
-          <div>
-            <span className={styles.statusLabel}>검토 대기</span>
+      {openReviewRecord ? (
+        <section className={styles.reviewHistory} aria-labelledby="review-history-title">
+          <div className={styles.reviewHistoryHeader}>
+            <div>
+              <span className={styles.statusLabel}>처리 기록</span>
+              <h3 id="review-history-title">상담 로그 처리 기록</h3>
+            </div>
             <p>
-              {openReviewCta.pendingReviewCount > 0
-                ? `검토 대기 항목 ${openReviewCta.pendingReviewCount}개가 남아 있습니다.`
-                : "검토가 필요한 파이프라인이 열려 있습니다."}
+              {openReviewRecord.pendingReviewCount > 1
+                ? `검토 대기 항목 ${openReviewRecord.pendingReviewCount}개 중 최신 1건입니다.`
+                : "검토가 필요한 최신 상담 로그 처리 기록입니다."}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => navigate(openReviewCta.path)}
-          >
-            <ListChecksIcon aria-hidden="true" size={16} />
-            {CTA_GO_REVIEW}
-          </Button>
-        </div>
+          <div className={styles.reviewHistoryTableWrap}>
+            <table className={styles.reviewHistoryTable}>
+              <thead>
+                <tr>
+                  <th scope="col">상담 로그</th>
+                  <th scope="col">파이프라인</th>
+                  <th scope="col">상태</th>
+                  <th scope="col">요청 시각</th>
+                  <th scope="col">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>
+                      {openReviewRecord.datasetName ??
+                        (openReviewRecord.datasetId == null
+                          ? "최근 상담 로그"
+                          : `dataset ${openReviewRecord.datasetId}`)}
+                    </strong>
+                    {openReviewRecord.datasetId == null ? null : (
+                      <span>dataset {openReviewRecord.datasetId}</span>
+                    )}
+                  </td>
+                  <td>JOB-{openReviewRecord.pipelineJobId}</td>
+                  <td>{openReviewRecord.status ?? "검토 대기"}</td>
+                  <td>{formatReviewDateTime(openReviewRecord.requestedAt)}</td>
+                  <td>
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(openReviewRecord.path)}
+                    >
+                      <ListChecksIcon aria-hidden="true" size={16} />
+                      {CTA_GO_REVIEW}
+                    </Button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       ) : null}
 
       <div className={styles.uploadArea}>
