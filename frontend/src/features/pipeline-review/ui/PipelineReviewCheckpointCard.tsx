@@ -9,7 +9,10 @@ import {
   useSubmitPipelineFeedback,
 } from "../api/pipelineReviewApi";
 import { domainPackListPath } from "@/shared/lib/domainPackRoutes";
-import { CTA_GO_DOMAIN_PACK, CTA_RETRY_FROM_UPLOAD } from "@/shared/lib/ctaLabels";
+import {
+  CTA_GO_DOMAIN_PACK,
+  CTA_RETRY_FROM_UPLOAD,
+} from "@/shared/lib/ctaLabels";
 import styles from "./PipelineReviewCheckpointCard.module.css";
 
 interface Props {
@@ -36,11 +39,17 @@ const WORKFLOW_FEEDBACK_ANSWER_OPTIONS = [
 type FeedbackDecision = string;
 type FeedbackDecisions = Record<number, FeedbackDecision>;
 
-export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Props) {
+export function PipelineReviewCheckpointCard({
+  workspaceId,
+  pipelineJobId,
+}: Props) {
   const query = usePipelineReviewCheckpoint(workspaceId, pipelineJobId);
   const confirmDomain = useConfirmPipelineDomain(workspaceId, pipelineJobId);
   const submitFeedback = useSubmitPipelineFeedback(workspaceId, pipelineJobId);
-  const draftStorageKey = createFeedbackDraftStorageKey(workspaceId, pipelineJobId);
+  const draftStorageKey = createFeedbackDraftStorageKey(
+    workspaceId,
+    pipelineJobId,
+  );
   const [feedbackDraft, setFeedbackDraft] = useState<{
     storageKey: string | null;
     decisions: FeedbackDecisions;
@@ -48,18 +57,46 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
     storageKey: null,
     decisions: {},
   });
+  const [domainSelection, setDomainSelection] = useState<{
+    selectionKey: string | null;
+    taskId: number | null;
+  }>({
+    selectionKey: null,
+    taskId: null,
+  });
 
   const openTasks = useMemo(
     () => query.data?.tasks.filter((task) => task.status === "OPEN") ?? [],
     [query.data?.tasks],
   );
-  const openTaskIds = useMemo(() => openTasks.map((task) => task.id), [openTasks]);
+  const openTaskIds = useMemo(
+    () => openTasks.map((task) => task.id),
+    [openTasks],
+  );
+  const domainSelectionKey =
+    query.data?.reviewKind === "DOMAIN_CONFIRMATION"
+      ? `${workspaceId}:${pipelineJobId}:${openTaskIds.join(",")}`
+      : null;
+  const selectedDomainTask = useMemo(
+    () =>
+      domainSelection.selectionKey === domainSelectionKey
+        ? openTasks.find((task) => task.id === domainSelection.taskId)
+        : undefined,
+    [
+      domainSelection.selectionKey,
+      domainSelection.taskId,
+      domainSelectionKey,
+      openTasks,
+    ],
+  );
   const openTaskDecisionValues = useMemo(
     () =>
       new Map(
         openTasks.map((task) => [
           task.id,
-          new Set(feedbackAnswerOptions(task.payload).map((option) => option.value)),
+          new Set(
+            feedbackAnswerOptions(task.payload).map((option) => option.value),
+          ),
         ]),
       ),
     [openTasks],
@@ -68,12 +105,23 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
     if (query.data?.reviewKind !== "HUMAN_FEEDBACK" || !draftStorageKey) {
       return {};
     }
-    return readFeedbackDraft(draftStorageKey, openTaskIds, openTaskDecisionValues);
-  }, [draftStorageKey, openTaskDecisionValues, openTaskIds, query.data?.reviewKind]);
+    return readFeedbackDraft(
+      draftStorageKey,
+      openTaskIds,
+      openTaskDecisionValues,
+    );
+  }, [
+    draftStorageKey,
+    openTaskDecisionValues,
+    openTaskIds,
+    query.data?.reviewKind,
+  ]);
   const activeFeedbackDecisions = filterFeedbackDecisions(
     {
       ...storedFeedbackDecisions,
-      ...(feedbackDraft.storageKey === draftStorageKey ? feedbackDraft.decisions : {}),
+      ...(feedbackDraft.storageKey === draftStorageKey
+        ? feedbackDraft.decisions
+        : {}),
     },
     openTaskIds,
     openTaskDecisionValues,
@@ -81,7 +129,8 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   const answeredFeedbackCount = openTasks.filter(
     (task) => activeFeedbackDecisions[task.id] !== undefined,
   ).length;
-  const allFeedbackResolved = openTasks.length > 0 && answeredFeedbackCount === openTasks.length;
+  const allFeedbackResolved =
+    openTasks.length > 0 && answeredFeedbackCount === openTasks.length;
   const hasUnsavedFeedback =
     query.data?.reviewKind === "HUMAN_FEEDBACK" && answeredFeedbackCount > 0;
 
@@ -109,9 +158,13 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedFeedback]);
 
-  const updateFeedbackDecision = (taskId: number, decision: FeedbackDecision) => {
+  const updateFeedbackDecision = (
+    taskId: number,
+    decision: FeedbackDecision,
+  ) => {
     setFeedbackDraft((current) => {
-      const currentDecisions = current.storageKey === draftStorageKey ? current.decisions : {};
+      const currentDecisions =
+        current.storageKey === draftStorageKey ? current.decisions : {};
       const next = filterFeedbackDecisions(
         { ...currentDecisions, [taskId]: decision },
         openTaskIds,
@@ -136,7 +189,11 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   }
 
   if (query.isLoading) {
-    return <section className={styles.stateCard}>리뷰 체크포인트를 불러오는 중입니다.</section>;
+    return (
+      <section className={styles.stateCard}>
+        리뷰 체크포인트를 불러오는 중입니다.
+      </section>
+    );
   }
 
   if (query.isError) {
@@ -155,7 +212,10 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <RefreshCwIcon aria-hidden="true" />
           다시 시도
         </button>
-        <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionSecondary}>
+        <Link
+          to={`/workspaces/${workspaceId}/upload`}
+          className={styles.stateActionSecondary}
+        >
           <UploadIcon aria-hidden="true" />
           업로드 화면으로 돌아가기
         </Link>
@@ -171,7 +231,10 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
       >
         {query.data?.pipelineStatus === "SUCCEEDED" ? (
           <>
-            <Link to={domainPackListPath(workspaceId)} className={styles.stateActionPrimary}>
+            <Link
+              to={domainPackListPath(workspaceId)}
+              className={styles.stateActionPrimary}
+            >
               <ListChecksIcon aria-hidden="true" />
               {CTA_GO_DOMAIN_PACK}
             </Link>
@@ -185,9 +248,13 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               상태 새로고침
             </button>
           </>
-        ) : query.data?.pipelineStatus === "FAILED" || query.data?.pipelineStatus === "CANCELLED" ? (
+        ) : query.data?.pipelineStatus === "FAILED" ||
+          query.data?.pipelineStatus === "CANCELLED" ? (
           <>
-            <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionPrimary}>
+            <Link
+              to={`/workspaces/${workspaceId}/upload`}
+              className={styles.stateActionPrimary}
+            >
               <UploadIcon aria-hidden="true" />
               {CTA_RETRY_FROM_UPLOAD}
             </Link>
@@ -251,32 +318,106 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <span className={styles.badge}>{openTasks.length} candidates</span>
         </div>
         <div className={styles.domainGrid}>
-          {openTasks.map((task) => (
-            <button
-              key={task.id}
-              type="button"
-              className={styles.domainOption}
-              disabled={confirmDomain.isPending}
-              onClick={() => confirmDomain.mutate(task.id)}
-            >
-              <span className={styles.optionHeader}>
-                <strong>{task.payload.displayName ?? task.title}</strong>
-                {task.payload.confidence !== undefined && (
-                  <span className={styles.confidence}>
-                    {Math.round(task.payload.confidence * 100)}%
-                  </span>
-                )}
-              </span>
-              <span className={styles.optionDescription}>{task.payload.description}</span>
-              <span className={styles.termRow}>
-                {(task.payload.evidenceTerms ?? []).slice(0, 6).map((term) => (
-                  <span key={term} className={styles.term}>
-                    {term}
-                  </span>
-                ))}
-              </span>
-            </button>
-          ))}
+          {openTasks.map((task) => {
+            const isSelected = selectedDomainTask?.id === task.id;
+            return (
+              <button
+                key={task.id}
+                type="button"
+                className={`${styles.domainOption} ${isSelected ? styles.domainOptionSelected : ""}`}
+                aria-pressed={isSelected}
+                disabled={confirmDomain.isPending}
+                onClick={() =>
+                  setDomainSelection({
+                    selectionKey: domainSelectionKey,
+                    taskId: task.id,
+                  })
+                }
+              >
+                <span className={styles.optionHeader}>
+                  <strong>{task.payload.displayName ?? task.title}</strong>
+                  {task.payload.confidence !== undefined && (
+                    <span className={styles.confidence}>
+                      {formatDomainConfidence(task.payload.confidence)}
+                    </span>
+                  )}
+                </span>
+                <span className={styles.optionDescription}>
+                  {task.payload.description}
+                </span>
+                <span className={styles.termRow}>
+                  {(task.payload.evidenceTerms ?? [])
+                    .slice(0, 6)
+                    .map((term) => (
+                      <span key={term} className={styles.term}>
+                        {term}
+                      </span>
+                    ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className={styles.domainReviewPanel} aria-live="polite">
+          <div className={styles.domainReviewCopy}>
+            <span className={styles.eyebrow}>Selected domain</span>
+            {selectedDomainTask ? (
+              <>
+                <strong className={styles.domainReviewTitle}>
+                  {selectedDomainTask.payload.displayName ??
+                    selectedDomainTask.title}
+                </strong>
+                <span className={styles.domainReviewDescription}>
+                  {selectedDomainTask.payload.description ??
+                    "도메인 설명이 제공되지 않았습니다."}
+                </span>
+                <span className={styles.domainReviewImpact}>
+                  이 선택은 intent clustering 입력으로 반영되며, 확정 후
+                  pipeline replay를 거쳐 다음 review 단계 또는 Domain Pack 초안
+                  생성으로 이어집니다.
+                </span>
+                <div className={styles.termRow} aria-label="선택 근거 키워드">
+                  {selectedDomainTask.payload.confidence !== undefined && (
+                    <span className={styles.term}>
+                      신뢰도{" "}
+                      {formatDomainConfidence(
+                        selectedDomainTask.payload.confidence,
+                      )}
+                    </span>
+                  )}
+                  {(selectedDomainTask.payload.evidenceTerms ?? [])
+                    .slice(0, 6)
+                    .map((term) => (
+                      <span key={term} className={styles.term}>
+                        {term}
+                      </span>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <strong className={styles.domainReviewTitle}>
+                  확정할 도메인을 선택하세요.
+                </strong>
+                <span className={styles.domainReviewDescription}>
+                  후보를 선택하면 근거와 파이프라인 반영 범위를 확인한 뒤 확정할
+                  수 있습니다.
+                </span>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            className={styles.submitButton}
+            disabled={confirmDomain.isPending || !selectedDomainTask}
+            onClick={() => {
+              if (selectedDomainTask) {
+                confirmDomain.mutate(selectedDomainTask.id);
+              }
+            }}
+          >
+            {confirmDomain.isPending ? "확정 중입니다" : "선택한 도메인 확정"}
+          </button>
         </div>
       </section>
     );
@@ -303,10 +444,14 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
           <div key={task.id} className={styles.feedbackItem}>
             <div className={styles.questionHeader}>
               <p className={styles.question}>
-                {task.payload.questionText ?? "두 상담을 같은 intent로 묶어도 되나요?"}
+                {task.payload.questionText ??
+                  "두 상담을 같은 intent로 묶어도 되나요?"}
               </p>
               <span className={styles.reason}>
-                {questionScopeLabel(task.payload.questionType, task.payload.decisionScope)}
+                {questionScopeLabel(
+                  task.payload.questionType,
+                  task.payload.decisionScope,
+                )}
               </span>
               <span className={styles.reason}>
                 {task.payload.reasonLabel ?? reasonLabel(task.payload.reason)}
@@ -391,7 +536,8 @@ function CaseContextCard({
   context?: ReviewCaseContext;
   fallbackSnippet?: string;
 }) {
-  const summary = context?.summary || fallbackSnippet || "업무 내용을 확인할 수 없습니다.";
+  const summary =
+    context?.summary || fallbackSnippet || "업무 내용을 확인할 수 없습니다.";
   const frame = [context?.object, context?.action].filter(Boolean).join(" · ");
   const signals = context?.signals?.filter(Boolean).slice(0, 5) ?? [];
 
@@ -399,11 +545,15 @@ function CaseContextCard({
     <article className={styles.caseCard}>
       <div className={styles.caseHeader}>
         <span className={styles.caseLabel}>{label}</span>
-        {context?.conversationId && <span className={styles.caseId}>{context.conversationId}</span>}
+        {context?.conversationId && (
+          <span className={styles.caseId}>{context.conversationId}</span>
+        )}
       </div>
       <strong className={styles.caseSummary}>{summary}</strong>
       {frame && <span className={styles.caseFrame}>{frame}</span>}
-      {fallbackSnippet && <p className={styles.caseSnippet}>{fallbackSnippet}</p>}
+      {fallbackSnippet && (
+        <p className={styles.caseSnippet}>{fallbackSnippet}</p>
+      )}
       {signals.length > 0 && (
         <div className={styles.signalRow}>
           {signals.map((signal) => (
@@ -413,7 +563,10 @@ function CaseContextCard({
           ))}
         </div>
       )}
-      <ConversationExcerpt context={context} fallbackSnippet={fallbackSnippet} />
+      <ConversationExcerpt
+        context={context}
+        fallbackSnippet={fallbackSnippet}
+      />
     </article>
   );
 }
@@ -448,7 +601,9 @@ function ConversationExcerpt({
         <p className={styles.logText}>{logExcerpt}</p>
       )}
       {context?.evidenceTurnIds && context.evidenceTurnIds.length > 0 && (
-        <span className={styles.turnIds}>{context.evidenceTurnIds.slice(0, 5).join(" · ")}</span>
+        <span className={styles.turnIds}>
+          {context.evidenceTurnIds.slice(0, 5).join(" · ")}
+        </span>
       )}
     </div>
   );
@@ -471,7 +626,10 @@ function reasonLabel(reason?: string): string {
   return "클러스터 경계 판단이 필요합니다.";
 }
 
-function questionScopeLabel(questionType?: string, decisionScope?: string): string {
+function questionScopeLabel(
+  questionType?: string,
+  decisionScope?: string,
+): string {
   if (questionType === "WORKFLOW_BOUNDARY") {
     return `Workflow boundary · ${decisionScope || "workflow"} scope`;
   }
@@ -479,6 +637,10 @@ function questionScopeLabel(questionType?: string, decisionScope?: string): stri
     return `Intent boundary · ${decisionScope || "intent"} scope`;
   }
   return `${decisionScope || "intent"} scope`;
+}
+
+function formatDomainConfidence(confidence: number): string {
+  return `${Math.round(confidence * 100)}%`;
 }
 
 function feedbackAnswerOptions(payload: {
@@ -573,18 +735,21 @@ function filterFeedbackDecisions(
 ): FeedbackDecisions {
   const openTaskIdSet = new Set(openTaskIds);
 
-  return Object.entries(decisions).reduce<FeedbackDecisions>((filtered, [taskId, decision]) => {
-    const numericTaskId = Number(taskId);
-    const allowedValues = allowedValuesByTaskId.get(numericTaskId);
-    if (
-      openTaskIdSet.has(numericTaskId) &&
-      isFeedbackDecision(decision) &&
-      allowedValues?.has(decision)
-    ) {
-      filtered[numericTaskId] = decision;
-    }
-    return filtered;
-  }, {});
+  return Object.entries(decisions).reduce<FeedbackDecisions>(
+    (filtered, [taskId, decision]) => {
+      const numericTaskId = Number(taskId);
+      const allowedValues = allowedValuesByTaskId.get(numericTaskId);
+      if (
+        openTaskIdSet.has(numericTaskId) &&
+        isFeedbackDecision(decision) &&
+        allowedValues?.has(decision)
+      ) {
+        filtered[numericTaskId] = decision;
+      }
+      return filtered;
+    },
+    {},
+  );
 }
 
 function isFeedbackDecision(value: unknown): value is FeedbackDecision {

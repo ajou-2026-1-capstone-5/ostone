@@ -180,6 +180,12 @@
   background: var(--paper-2);
 }
 
+.domainOptionSelected {
+  border-color: var(--ink);
+  background: var(--paper-2);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
 .domainOption:focus-visible,
 .choiceButton:focus-visible,
 .submitButton:focus-visible {
@@ -238,6 +244,42 @@
   color: var(--ink-2);
   font-size: 11px;
   letter-spacing: -0.1px;
+}
+
+.domainReviewPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: end;
+  padding: var(--s-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-2);
+  background: var(--paper);
+}
+
+.domainReviewCopy {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.domainReviewTitle {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  line-height: 1.3;
+}
+
+.domainReviewDescription,
+.domainReviewImpact {
+  color: var(--ink-2);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.55;
+}
+
+.domainReviewImpact {
+  color: var(--ink-3);
 }
 
 .feedbackList {
@@ -489,6 +531,14 @@
 
   .stateActionPrimary,
   .stateActionSecondary {
+    width: 100%;
+  }
+
+  .domainReviewPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .domainReviewPanel .submitButton {
     width: 100%;
   }
 }
