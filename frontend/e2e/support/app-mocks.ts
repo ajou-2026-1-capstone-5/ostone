@@ -47,7 +47,7 @@ export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
   readonly uploadTransferDelayMs?: number;
   readonly domainPackGenerationFailureAttempts?: number;
-  readonly dashboardKnowledgePackHealth?: "default" | "error";
+  readonly dashboardKnowledgePackHealth?: "default" | "error" | "open-review";
   readonly generatedPipelineJob?: "domain-confirmation" | "running";
   readonly workspaceOneFreeOnboardingStatus?: FreeOnboardingStatus;
   readonly workspaceOneSubscriptionStatus?: WorkspaceOneSubscriptionStatus | null;
@@ -1454,6 +1454,8 @@ async function fulfillWorkspaceOperations(
         lastErrorMessage: null,
       },
       pendingReviewCount: 1,
+      latestOpenReviewPipelineJobId:
+        options.dashboardKnowledgePackHealth === "open-review" ? PIPELINE_JOB_ID : null,
     });
     return true;
   }

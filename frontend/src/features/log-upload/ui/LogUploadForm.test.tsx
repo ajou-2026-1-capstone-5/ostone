@@ -223,6 +223,26 @@ describe("LogUploadForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows open review CTA on the upload screen", () => {
+    render(
+      <LogUploadForm
+        workspaceId={2}
+        openReviewCta={{
+          path: "/workspaces/2/pipeline-jobs/43/review",
+          pendingReviewCount: 2,
+        }}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(screen.getByText("검토 대기")).toBeInTheDocument();
+    expect(screen.getByText("검토 대기 항목 2개가 남아 있습니다.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /검토 화면으로 이동/ }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/2/pipeline-jobs/43/review");
+  });
+
   it("blocks upload when free onboarding is consumed without active subscription", () => {
     render(
       <LogUploadForm
