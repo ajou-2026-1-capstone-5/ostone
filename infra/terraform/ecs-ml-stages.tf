@@ -116,6 +116,10 @@ resource "aws_ecs_task_definition" "ml_stage_gpu" {
           value = "flag_embedding"
         },
         {
+          name  = "EMBEDDING_REQUIRE_ACCELERATOR"
+          value = "true"
+        },
+        {
           name  = "EMBEDDING_MODEL_NAME"
           value = var.embedding_model_name
         },

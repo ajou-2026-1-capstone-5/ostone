@@ -48,7 +48,10 @@ class FlagEmbeddingRuntime:
         self.max_length = _positive_int_env("EMBEDDING_MAX_LENGTH", default=_default_max_length(runtime_profile))
         self.dim = _positive_int_env("EMBEDDING_DIM", default=1024)
         self.use_fp16 = _bool_env("EMBEDDING_USE_FP16", default=False)
+        self.require_accelerator = _bool_env("EMBEDDING_REQUIRE_ACCELERATOR", default=False)
         self.device = _embedding_device(auto_device)
+        if self.require_accelerator:
+            self.device = _required_cuda_device(self.device)
         try:
             from FlagEmbedding import BGEM3FlagModel  # type: ignore[import-not-found, import-untyped]
         except ImportError as exc:
@@ -266,6 +269,25 @@ def _embedding_device(auto_device: bool) -> str | None:
     if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
         return "mps"
     return None
+
+
+def _required_cuda_device(device: str | None) -> str:
+    if device and not device.startswith("cuda"):
+        raise PipelineConfigurationError("EMBEDDING_REQUIRE_ACCELERATOR requires EMBEDDING_DEVICE to be cuda.")
+    try:
+        import torch
+    except ImportError as exc:
+        raise PipelineConfigurationError("EMBEDDING_REQUIRE_ACCELERATOR requires torch with CUDA support.") from exc
+    try:
+        cuda_available = bool(torch.cuda.is_available())
+    except Exception as exc:
+        raise PipelineConfigurationError("CUDA availability check failed for embedding runtime.") from exc
+    if not cuda_available:
+        raise PipelineConfigurationError(
+            "CUDA is unavailable for the required embedding runtime. "
+            "Check the GPU host driver and the torch CUDA wheel before retrying."
+        )
+    return device or "cuda"
 
 
 def cosine_similarity(left: np.ndarray, right: np.ndarray) -> float:
