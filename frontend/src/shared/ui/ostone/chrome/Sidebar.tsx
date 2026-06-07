@@ -1,6 +1,8 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { DEMO_SELECTION_PATH } from "@/shared/lib/demoRoutes";
+import { buildWorkspacePreviewChatPath } from "@/shared/lib/userChatRoutes";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
 import { AccountMenu } from "./AccountMenu";
@@ -31,11 +33,7 @@ interface TopNavItem {
   icon: IconName;
   label: string;
   getPath: (base: string) => string;
-  external?: boolean;
-}
-
-function getDemoPreviewPath(): string {
-  return "/demo";
+  openInNewTab?: boolean;
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
@@ -61,8 +59,8 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
     key: "chat",
     icon: "msg",
     label: "사용자 화면 미리보기",
-    getPath: getDemoPreviewPath,
-    external: true,
+    getPath: buildWorkspacePreviewChatPath,
+    openInNewTab: true,
   },
   {
     key: "upload",
@@ -181,7 +179,8 @@ export function Sidebar({
             hoverBg={hoverBg}
             activeBg={activeBg}
             testId={`sidebar-link-${item.key}`}
-            target={item.external ? "_blank" : undefined}
+            target={item.openInNewTab ? "_blank" : undefined}
+            newTabLabel={item.openInNewTab ? getNewTabLabel(item.getPath(basePath)) : undefined}
           />
         ))}
 
@@ -230,6 +229,14 @@ interface SidebarLinkProps {
   activeBg: string;
   testId?: string;
   target?: "_blank";
+  newTabLabel?: string;
+}
+
+const NEW_TAB_PREVIEW_LABEL = "현재 워크스페이스 사용자 화면을 새 탭에서 엽니다";
+const NEW_TAB_PUBLIC_DEMO_LABEL = "공개 데모 선택 화면을 새 탭에서 엽니다";
+
+function getNewTabLabel(to: string): string {
+  return to === DEMO_SELECTION_PATH ? NEW_TAB_PUBLIC_DEMO_LABEL : NEW_TAB_PREVIEW_LABEL;
 }
 
 function buildLinkStyle({
@@ -272,6 +279,7 @@ function SidebarLink({
   activeBg,
   testId,
   target,
+  newTabLabel,
 }: SidebarLinkProps) {
   const expandedStyle: CSSProperties = buildLinkStyle({
     isActive,
@@ -294,23 +302,23 @@ function SidebarLink({
     }
   };
 
-  const isExternal = target === "_blank";
+  const opensInNewTab = target === "_blank";
   const content = (
     <>
       <Icon name={icon} size={16} />
       <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
-      {isExternal ? (
+      {opensInNewTab ? (
         <ExternalLink
           size={13}
           role="img"
-          aria-label="새 탭에서 열림"
+          aria-label={newTabLabel ?? "새 탭에서 열림"}
           style={{ flexShrink: 0, color: "var(--ink-3)" }}
         />
       ) : null}
     </>
   );
 
-  if (isExternal) {
+  if (opensInNewTab) {
     return (
       <a
         href={to}

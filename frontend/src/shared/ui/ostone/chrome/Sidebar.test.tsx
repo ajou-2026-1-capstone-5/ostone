@@ -82,11 +82,8 @@ describe("Sidebar", () => {
 
     expect(screen.getByTitle("대시보드")).toHaveAttribute("href", "/workspaces/7/dashboard");
     expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
-    expect(screen.getByTitle("시뮬레이션")).toHaveAttribute(
-      "href",
-      "/workspaces/7/simulation",
-    );
-    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
+    expect(screen.getByTitle("시뮬레이션")).toHaveAttribute("href", "/workspaces/7/simulation");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/chat/7");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute(
@@ -95,28 +92,45 @@ describe("Sidebar", () => {
     );
   });
 
-  it("workspaceId를 추출할 수 없어도 사용자 화면 미리보기는 데모 선택 화면으로 보낸다", () => {
+  it("workspaceId를 추출하면 사용자 화면 미리보기를 현재 워크스페이스 채팅으로 보낸다", () => {
+    renderSidebar({ basePath: "/workspaces/7" });
+
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/chat/7");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("workspaceId를 추출할 수 없어도 사용자 화면 미리보기는 공개 데모 선택 화면으로 보낸다", () => {
     renderSidebar({ basePath: "/workspaces" });
 
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
+    expect(screen.getByLabelText("공개 데모 선택 화면을 새 탭에서 엽니다")).toBeInTheDocument();
   });
 
-  it("외부 링크(사용자 화면 미리보기)에만 새 탭 안내 아이콘을 표시한다", () => {
+  it("새 탭 링크(사용자 화면 미리보기)에만 목적이 분명한 새 탭 안내 아이콘을 표시한다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
-    const externalIcon = screen.getByLabelText("새 탭에서 열림");
-    expect(externalIcon).toBeInTheDocument();
-    expect(screen.getByTestId("sidebar-link-chat")).toContainElement(externalIcon);
-    expect(screen.getAllByLabelText("새 탭에서 열림")).toHaveLength(1);
+    const newTabIcon = screen.getByLabelText("현재 워크스페이스 사용자 화면을 새 탭에서 엽니다");
+    expect(newTabIcon).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-chat")).toContainElement(newTabIcon);
+    expect(
+      screen.getAllByLabelText("현재 워크스페이스 사용자 화면을 새 탭에서 엽니다"),
+    ).toHaveLength(1);
 
     expect(
-      screen.getByTestId("sidebar-link-consult").querySelector('[aria-label="새 탭에서 열림"]'),
+      screen
+        .getByTestId("sidebar-link-consult")
+        .querySelector('[aria-label="현재 워크스페이스 사용자 화면을 새 탭에서 엽니다"]'),
     ).toBeNull();
     expect(
-      screen.getByTestId("sidebar-link-simulation").querySelector('[aria-label="새 탭에서 열림"]'),
+      screen
+        .getByTestId("sidebar-link-simulation")
+        .querySelector('[aria-label="현재 워크스페이스 사용자 화면을 새 탭에서 엽니다"]'),
     ).toBeNull();
     expect(
-      screen.getByTestId("sidebar-domain-link").querySelector('[aria-label="새 탭에서 열림"]'),
+      screen
+        .getByTestId("sidebar-domain-link")
+        .querySelector('[aria-label="현재 워크스페이스 사용자 화면을 새 탭에서 엽니다"]'),
     ).toBeNull();
   });
 
