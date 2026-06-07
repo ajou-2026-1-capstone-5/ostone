@@ -718,6 +718,58 @@
   line-height: 1.5;
 }
 
+.candidateTargetPanel {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper-2);
+  padding: var(--s-2);
+}
+
+.candidateTargetPanel p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.candidateTargetField {
+  display: grid;
+  gap: var(--s-2);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 540;
+}
+
+.candidateTargetSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.candidateTargetSummary div {
+  min-width: 0;
+}
+
+.candidateTargetSummary dt {
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 540;
+  text-transform: uppercase;
+}
+
+.candidateTargetSummary dd {
+  margin: 3px 0 0;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 540;
+  overflow-wrap: anywhere;
+}
+
 .candidateList {
   display: grid;
   gap: var(--s-2);

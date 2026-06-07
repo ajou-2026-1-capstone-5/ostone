@@ -27,8 +27,10 @@ import {
   type SimulationFeedbackType,
   type SimulationGoldenCase,
   type SimulationGoldenCaseReplayStatus,
+  type CreateSimulationImprovementCandidatePayload,
   type SimulationImprovementCandidate,
   type SimulationImprovementCandidateStatus,
+  type SimulationImprovementCandidateTargetType,
   type SimulationSessionDetail,
 } from "@/features/simulation";
 import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
@@ -86,6 +88,20 @@ const CANDIDATE_STATUSES: Array<{
   { value: "APPLIED", label: "반영됨" },
   { value: "REJECTED", label: "반려됨" },
   { value: "", label: "전체" },
+];
+
+const CANDIDATE_TARGET_TYPES: Array<{
+  value: SimulationImprovementCandidateTargetType;
+  label: string;
+}> = [
+  { value: "INTENT", label: "Intent" },
+  { value: "SLOT", label: "Slot" },
+  { value: "POLICY", label: "Policy" },
+  { value: "RISK_RULE", label: "Risk rule" },
+  { value: "WORKFLOW", label: "Workflow" },
+  { value: "HANDOFF", label: "Handoff" },
+  { value: "RESPONSE", label: "Response" },
+  { value: "UNKNOWN", label: "기타" },
 ];
 
 const FEEDBACK_LIST_ERROR = "시뮬레이션 피드백 목록을 불러오지 못했습니다.";
@@ -304,6 +320,91 @@ function candidateTargetLabel(candidate: SimulationImprovementCandidate): string
   return `${candidate.targetElementType}${id}${key}`;
 }
 
+function candidateTargetTypeLabel(type: SimulationImprovementCandidateTargetType): string {
+  return CANDIDATE_TARGET_TYPES.find((item) => item.value === type)?.label ?? type;
+}
+
+function inferCandidateTargetType(
+  feedbackType: SimulationFeedbackType,
+): SimulationImprovementCandidateTargetType {
+  switch (feedbackType) {
+    case "INTENT_MISMATCH":
+      return "INTENT";
+    case "MISSING_SLOT_QUESTION":
+      return "SLOT";
+    case "POLICY_CONDITION_MISSING":
+      return "POLICY";
+    case "RISK_HANDOFF_REQUIRED":
+      return "RISK_RULE";
+    case "WORKFLOW_BRANCH_ERROR":
+      return "WORKFLOW";
+    case "INAPPROPRIATE_RESPONSE":
+      return "RESPONSE";
+    case "OTHER":
+      return "UNKNOWN";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+function candidateTargetDescription(
+  targetType: SimulationImprovementCandidateTargetType,
+  workflowTarget: CandidateWorkflowTarget | null,
+): string {
+  if (targetType === "WORKFLOW") {
+    return workflowTarget
+      ? `${workflowTarget.workflowName} workflow id/key를 후보에 함께 저장합니다.`
+      : "workflow 맥락이 확인되지 않아 target type만 후보에 저장됩니다.";
+  }
+
+  if (targetType === "UNKNOWN") {
+    return "기타 피드백은 구체 대상이 확정되지 않은 제한 상태로 후보화됩니다.";
+  }
+
+  return "현재 화면은 세부 element 선택을 지원하지 않아 target type까지만 후보에 저장합니다.";
+}
+
+function candidateTargetElementLabel(
+  targetType: SimulationImprovementCandidateTargetType,
+  workflowTarget: CandidateWorkflowTarget | null,
+): string {
+  if (targetType === "WORKFLOW" && workflowTarget) {
+    const key = workflowTarget.workflowCode ?? workflowTarget.workflowName;
+    return `#${workflowTarget.workflowId} · ${key}`;
+  }
+
+  return "세부 element 미선택";
+}
+
+function buildCandidateBeforeSummary(
+  feedback: SimulationFeedback,
+  targetType: SimulationImprovementCandidateTargetType,
+  workflowTarget: CandidateWorkflowTarget | null,
+): string {
+  const targetLabel = candidateTargetTypeLabel(targetType);
+  const workflowLabel = workflowTarget ? ` (${workflowTarget.workflowName} workflow 맥락)` : "";
+  return `${targetLabel} 개선 후보${workflowLabel}: ${feedback.description}`;
+}
+
+function buildCandidateTargetPayload(
+  feedback: SimulationFeedback,
+  targetType: SimulationImprovementCandidateTargetType,
+  workflowTarget: CandidateWorkflowTarget | null,
+): CreateSimulationImprovementCandidatePayload {
+  const payload: CreateSimulationImprovementCandidatePayload = {
+    targetElementType: targetType,
+    beforeSummary: buildCandidateBeforeSummary(feedback, targetType, workflowTarget),
+    afterSummary: feedback.expectedBehavior,
+  };
+
+  if (targetType === "WORKFLOW" && workflowTarget) {
+    payload.targetElementId = workflowTarget.workflowId;
+    payload.targetElementKey = workflowTarget.workflowCode ?? workflowTarget.workflowName;
+  }
+
+  return payload;
+}
+
 function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): string {
   switch (status) {
     case "PASS":
@@ -400,6 +501,9 @@ export function WorkspaceSimulationPage() {
   const [isCreatingGoldenCase, setIsCreatingGoldenCase] = useState(false);
   const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<number | null>(null);
   const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
+  const [candidateTargetSelections, setCandidateTargetSelections] = useState<
+    Record<number, SimulationImprovementCandidateTargetType>
+  >({});
   const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
   const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -791,20 +895,13 @@ export function WorkspaceSimulationPage() {
   const handleCreateCandidate = async (feedback: SimulationFeedback) => {
     setCreatingCandidateId(feedback.id);
     try {
-      const workflowTargetPayload = candidateWorkflowTarget
-        ? {
-            targetElementType: "WORKFLOW" as const,
-            targetElementId: candidateWorkflowTarget.workflowId,
-            targetElementKey:
-              candidateWorkflowTarget.workflowCode ?? candidateWorkflowTarget.workflowName,
-            beforeSummary: `${candidateWorkflowTarget.workflowName} workflow 피드백: ${feedback.description}`,
-            afterSummary: feedback.expectedBehavior,
-          }
-        : undefined;
+      const targetType =
+        candidateTargetSelections[feedback.id] ?? inferCandidateTargetType(feedback.feedbackType);
+      const payload = buildCandidateTargetPayload(feedback, targetType, candidateWorkflowTarget);
       await simulationApi.createImprovementCandidate(
         parsedWorkspaceId,
         feedback.id,
-        workflowTargetPayload,
+        payload,
       );
       toast.success("개선 후보를 생성했습니다.");
       setActiveSideTab("candidates");
@@ -1446,32 +1543,81 @@ export function WorkspaceSimulationPage() {
                   <p className={styles.feedbackMuted}>조건에 맞는 피드백이 없습니다.</p>
                 ) : (
                   <ul className={styles.feedbackList}>
-                    {feedbackItems.map((feedback) => (
-                      <li key={feedback.id}>
-                        <div className={styles.feedbackRowHeader}>
-                          <div>
-                            <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
-                            <span>
-                              {feedbackSeverityLabel(feedback.severity)} ·{" "}
-                              {feedbackStatusLabel(feedback.status)}
-                            </span>
+                    {feedbackItems.map((feedback) => {
+                      const targetType =
+                        candidateTargetSelections[feedback.id] ??
+                        inferCandidateTargetType(feedback.feedbackType);
+                      const targetDescription = candidateTargetDescription(
+                        targetType,
+                        candidateWorkflowTarget,
+                      );
+                      const targetElementLabel = candidateTargetElementLabel(
+                        targetType,
+                        candidateWorkflowTarget,
+                      );
+                      const isCandidateActionDisabled =
+                        feedback.status !== "OPEN" || creatingCandidateId === feedback.id;
+                      return (
+                        <li key={feedback.id}>
+                          <div className={styles.feedbackRowHeader}>
+                            <div>
+                              <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
+                              <span>
+                                {feedbackSeverityLabel(feedback.severity)} ·{" "}
+                                {feedbackStatusLabel(feedback.status)}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleCreateCandidate(feedback)}
+                              disabled={isCandidateActionDisabled}
+                            >
+                              <LightbulbIcon className={styles.buttonIcon} />
+                              <span>
+                                {creatingCandidateId === feedback.id ? "생성 중" : "후보"}
+                              </span>
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void handleCreateCandidate(feedback)}
-                            disabled={
-                              feedback.status !== "OPEN" || creatingCandidateId === feedback.id
-                            }
-                          >
-                            <LightbulbIcon className={styles.buttonIcon} />
-                            <span>{creatingCandidateId === feedback.id ? "생성 중" : "후보"}</span>
-                          </Button>
-                        </div>
-                        <p>{feedback.description}</p>
-                      </li>
-                    ))}
+                          <p>{feedback.description}</p>
+                          <div className={styles.candidateTargetPanel}>
+                            <label className={styles.candidateTargetField}>
+                              <span>개선 대상</span>
+                              <NativeSelect
+                                value={targetType}
+                                onChange={(event) =>
+                                  setCandidateTargetSelections((current) => ({
+                                    ...current,
+                                    [feedback.id]: event.target
+                                      .value as SimulationImprovementCandidateTargetType,
+                                  }))
+                                }
+                                disabled={isCandidateActionDisabled}
+                                aria-label={`피드백 #${feedback.id} 개선 대상 선택`}
+                              >
+                                {CANDIDATE_TARGET_TYPES.map((item) => (
+                                  <NativeSelectOption key={item.value} value={item.value}>
+                                    {item.label}
+                                  </NativeSelectOption>
+                                ))}
+                              </NativeSelect>
+                            </label>
+                            <dl className={styles.candidateTargetSummary}>
+                              <div>
+                                <dt>Target type</dt>
+                                <dd>{candidateTargetTypeLabel(targetType)}</dd>
+                              </div>
+                              <div>
+                                <dt>Target element</dt>
+                                <dd>{targetElementLabel}</dd>
+                              </div>
+                            </dl>
+                            <p>{targetDescription}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

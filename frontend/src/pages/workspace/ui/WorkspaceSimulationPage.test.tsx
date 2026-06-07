@@ -568,7 +568,39 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await openFeedbackTab();
+    expect(await screen.findByLabelText("피드백 #900 개선 대상 선택")).toHaveValue("SLOT");
+    expect(screen.getByText("세부 element 미선택")).toBeInTheDocument();
+    expect(screen.getByText("현재 화면은 세부 element 선택을 지원하지 않아 target type까지만 후보에 저장합니다.")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+        1,
+        900,
+        expect.objectContaining({
+          targetElementType: "SLOT",
+          beforeSummary: "Slot 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+          afterSummary: "주문번호를 먼저 요청합니다.",
+        }),
+      );
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("개선 후보 target을 workflow로 바꾸면 기존 workflow context payload를 유지한다", async () => {
+    renderPage();
+
+    await openFeedbackTab();
+    fireEvent.change(await screen.findByLabelText("피드백 #900 개선 대상 선택"), {
+      target: { value: "WORKFLOW" },
+    });
+    expect(screen.getByText("#100 · refund_workflow")).toBeInTheDocument();
+    expect(screen.getByText("환불 처리 workflow id/key를 후보에 함께 저장합니다.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
 
     await waitFor(() => {
       expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
@@ -578,14 +610,31 @@ describe("WorkspaceSimulationPage", () => {
           targetElementType: "WORKFLOW",
           targetElementId: 100,
           targetElementKey: "refund_workflow",
+          beforeSummary: "Workflow 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
           afterSummary: "주문번호를 먼저 요청합니다.",
         }),
       );
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
+  });
+
+  it("개선 후보 target을 policy로 바꿔 생성할 수 있다", async () => {
+    renderPage();
+
+    await openFeedbackTab();
+    fireEvent.change(await screen.findByLabelText("피드백 #900 개선 대상 선택"), {
+      target: { value: "POLICY" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
     await waitFor(() => {
-      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+        1,
+        900,
+        expect.objectContaining({
+          targetElementType: "POLICY",
+          beforeSummary: "Policy 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+        }),
+      );
     });
   });
 
@@ -604,8 +653,7 @@ describe("WorkspaceSimulationPage", () => {
         1,
         900,
         expect.objectContaining({
-          targetElementType: "WORKFLOW",
-          targetElementId: 100,
+          targetElementType: "SLOT",
         }),
       );
     });
