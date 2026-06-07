@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -12,12 +12,14 @@ import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-v
 import { activate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
 import type { ActivateDomainPackVersionRequest } from "@/shared/api/generated/zod";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
-import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { domainPackPath, withVersionSearch } from "@/shared/lib/domainPackRoutes";
+import {
+  domainPackPath,
+  withVersionSearch,
+} from "@/shared/lib/domainPackRoutes";
 import {
   usePackDetail,
   useVersionDetail,
@@ -30,7 +32,10 @@ import type {
   DomainPackVersionDetail,
   DomainPackVersionSummary,
 } from "@/entities/domain-pack";
+import { DomainPackShellState } from "./DomainPackShellState";
 import styles from "./domain-pack-summary-page.module.css";
+
+const EMPTY_CRUMBS: Crumb[] = [];
 
 export function DomainPackSummaryPage() {
   const { workspaceId, packId } = useParams();
@@ -41,13 +46,17 @@ export function DomainPackSummaryPage() {
   const rawVersionId = search.get("versionId");
   const vId = rawVersionId === null ? null : parseRouteId(rawVersionId);
 
-  if (wsId === null || pId === null || (rawVersionId !== null && vId === null)) {
+  if (
+    wsId === null ||
+    pId === null ||
+    (rawVersionId !== null && vId === null)
+  ) {
     return (
-      <OstoneShell active="domain" crumbs={[]}>
+      <DomainPackShellState crumbs={EMPTY_CRUMBS}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
@@ -82,15 +91,22 @@ function DomainPackSummaryPageContent({
   setSearch,
 }: ContentProps) {
   const queryClient = useQueryClient();
-  const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
+  const packQuery = usePackDetail(
+    wsId,
+    packId,
+  ) as UseQueryResult<DomainPackDetail>;
   const pack = packQuery.data;
   const defaultVersionId = resolveDefaultVersionId(pack);
   const effectiveSelectedVersionId = selectedVersionId ?? defaultVersionId;
 
   useEffect(() => {
     if (!packQuery.isError) return;
-    const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
-    toast.error(is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다.");
+    const is404 =
+      packQuery.error instanceof ApiRequestError &&
+      packQuery.error.status === 404;
+    toast.error(
+      is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다.",
+    );
   }, [packQuery.isError, packQuery.error]);
 
   useEffect(() => {
@@ -113,10 +129,12 @@ function DomainPackSummaryPageContent({
   const currentVersionId = pack?.currentVersionId ?? null;
   const currentVersionNo =
     pack?.currentVersionNo ??
-    pack?.versions?.find((version) => version.versionId === currentVersionId)?.versionNo ??
+    pack?.versions?.find((version) => version.versionId === currentVersionId)
+      ?.versionNo ??
     null;
   const selectedVersionNo =
-    pack?.versions?.find((v) => v.versionId === effectiveSelectedVersionId)?.versionNo ?? null;
+    pack?.versions?.find((v) => v.versionId === effectiveSelectedVersionId)
+      ?.versionNo ?? null;
 
   const deployMutation = useDeploy({
     mutation: {
@@ -131,12 +149,26 @@ function DomainPackSummaryPageContent({
   });
   const activateMutation = useMutation({
     mutationKey: ["activate-domain-pack-version"],
-    mutationFn: ({ workspaceId, packId, versionId, description }: ActivateDraftVariables) =>
-      activate(workspaceId, packId, versionId, buildActivateRequest(description)),
+    mutationFn: ({
+      workspaceId,
+      packId,
+      versionId,
+      description,
+    }: ActivateDraftVariables) =>
+      activate(
+        workspaceId,
+        packId,
+        versionId,
+        buildActivateRequest(description),
+      ),
     onSuccess: async (result, variables) => {
-      const activatedVersionId = resolveActivatedVersionId(result, variables.versionId);
+      const activatedVersionId = resolveActivatedVersionId(
+        result,
+        variables.versionId,
+      );
       const activatedDescription =
-        resolveActivatedDescription(result) ?? normalizeDescription(variables.description);
+        resolveActivatedDescription(result) ??
+        normalizeDescription(variables.description);
       updateVersionDescriptionCache(
         queryClient,
         variables.workspaceId,
@@ -163,14 +195,20 @@ function DomainPackSummaryPageContent({
       toast.success("초안 수정버전이 적용되었습니다.");
     },
     onError: (error) => {
-      toast.error(resolveVersionActionErrorMessage(error, "초안 수정버전을 적용하지 못했습니다."));
+      toast.error(
+        resolveVersionActionErrorMessage(
+          error,
+          "초안 수정버전을 적용하지 못했습니다.",
+        ),
+      );
     },
   });
   const discardMutation = useDiscard({
     mutation: {
       onSuccess: async () => {
         const refetched = await packQuery.refetch();
-        const targetVersionId = refetched.data?.currentVersionId ?? currentVersionId;
+        const targetVersionId =
+          refetched.data?.currentVersionId ?? currentVersionId;
         setSearch(
           (prev) => {
             const next = new URLSearchParams(prev);
@@ -187,7 +225,10 @@ function DomainPackSummaryPageContent({
       },
       onError: (error) => {
         toast.error(
-          resolveVersionActionErrorMessage(error, "검토 중인 버전을 삭제하지 못했습니다."),
+          resolveVersionActionErrorMessage(
+            error,
+            "검토 중인 버전을 삭제하지 못했습니다.",
+          ),
         );
       },
     },
@@ -209,7 +250,12 @@ function DomainPackSummaryPageContent({
   };
 
   const handleApplyDraft = (versionId: number, description?: string) => {
-    activateMutation.mutate({ workspaceId: wsId, packId, versionId, description });
+    activateMutation.mutate({
+      workspaceId: wsId,
+      packId,
+      versionId,
+      description,
+    });
   };
 
   const handleDiscardDraft = (versionId: number) => {
@@ -220,7 +266,7 @@ function DomainPackSummaryPageContent({
     });
   };
 
-  const buildSummaryCrumbs = (): Crumb[] => {
+  const summaryCrumbs = useMemo<Crumb[]>(() => {
     const items: Crumb[] = [
       { label: "도메인팩", href: `/workspaces/${wsId}/domain-packs` },
       {
@@ -231,34 +277,43 @@ function DomainPackSummaryPageContent({
     if (effectiveSelectedVersionId !== null && selectedVersionNo !== null) {
       items.push({
         label: `#${selectedVersionNo}`,
-        href: withVersionSearch(domainPackPath(wsId, packId), effectiveSelectedVersionId),
+        href: withVersionSearch(
+          domainPackPath(wsId, packId),
+          effectiveSelectedVersionId,
+        ),
       });
     }
     return items;
-  };
+  }, [effectiveSelectedVersionId, pack?.name, packId, selectedVersionNo, wsId]);
 
   if (packQuery.isLoading) {
     return (
-      <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
+      <DomainPackShellState crumbs={summaryCrumbs}>
         <LoadingSpinner />
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
   if (packQuery.isError) {
-    const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
+    const is404 =
+      packQuery.error instanceof ApiRequestError &&
+      packQuery.error.status === 404;
     return (
-      <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
+      <DomainPackShellState crumbs={summaryCrumbs}>
         <ErrorState
-          message={is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다."}
+          message={
+            is404
+              ? "Pack을 찾을 수 없습니다."
+              : "Pack 정보를 불러오지 못했습니다."
+          }
           onRetry={!is404 ? () => packQuery.refetch() : undefined}
         />
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
   return (
-    <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
+    <DomainPackShellState crumbs={summaryCrumbs}>
       <div className={styles.page}>
         <header className={styles.pageHeader}>
           <div>
@@ -275,9 +330,15 @@ function DomainPackSummaryPageContent({
           wsId={wsId}
           packId={packId}
           versionId={effectiveSelectedVersionId}
-          deployingVersionId={deployMutation.isPending ? deployMutation.variables?.versionId : null}
+          deployingVersionId={
+            deployMutation.isPending
+              ? deployMutation.variables?.versionId
+              : null
+          }
           applyingVersionId={
-            activateMutation.isPending ? activateMutation.variables?.versionId : null
+            activateMutation.isPending
+              ? activateMutation.variables?.versionId
+              : null
           }
         />
 
@@ -297,13 +358,19 @@ function DomainPackSummaryPageContent({
             versions={pack?.versions ?? []}
             approvalReadinessEnabled
             deployingVersionId={
-              deployMutation.isPending ? deployMutation.variables?.versionId : null
+              deployMutation.isPending
+                ? deployMutation.variables?.versionId
+                : null
             }
             applyingVersionId={
-              activateMutation.isPending ? activateMutation.variables?.versionId : null
+              activateMutation.isPending
+                ? activateMutation.variables?.versionId
+                : null
             }
             discardingVersionId={
-              discardMutation.isPending ? discardMutation.variables?.draftVersionId : null
+              discardMutation.isPending
+                ? discardMutation.variables?.draftVersionId
+                : null
             }
             onDeploy={handleDeployVersion}
             onApplyDraft={handleApplyDraft}
@@ -311,7 +378,7 @@ function DomainPackSummaryPageContent({
           />
         </div>
       </div>
-    </OstoneShell>
+    </DomainPackShellState>
   );
 }
 
@@ -322,14 +389,19 @@ function resolveDeployErrorMessage(error: unknown): string {
   return "도메인팩 버전을 배포하지 못했습니다.";
 }
 
-function resolveVersionActionErrorMessage(error: unknown, fallback: string): string {
+function resolveVersionActionErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
   if (error instanceof ApiRequestError && error.message) {
     return error.message;
   }
   return fallback;
 }
 
-function buildActivateRequest(description?: string): ActivateDomainPackVersionRequest | undefined {
+function buildActivateRequest(
+  description?: string,
+): ActivateDomainPackVersionRequest | undefined {
   const normalizedDescription = normalizeDescription(description);
   if (normalizedDescription === undefined) return undefined;
   return { description: normalizedDescription };
@@ -355,7 +427,8 @@ function updateVersionDescriptionCache(
 }
 
 function resolveDefaultVersionId(pack?: DomainPackDetail): number | null {
-  const versions = pack?.versions?.filter((version) => version.versionId != null) ?? [];
+  const versions =
+    pack?.versions?.filter((version) => version.versionId != null) ?? [];
   if (versions.length === 0) return null;
 
   if (
@@ -366,17 +439,23 @@ function resolveDefaultVersionId(pack?: DomainPackDetail): number | null {
   }
 
   return (
-    pickLatestVersionId(versions.filter((version) => version.lifecycleStatus === "DRAFT")) ??
-    pickLatestVersionId(versions)
+    pickLatestVersionId(
+      versions.filter((version) => version.lifecycleStatus === "DRAFT"),
+    ) ?? pickLatestVersionId(versions)
   );
 }
 
-function pickLatestVersionId(versions: DomainPackVersionSummary[]): number | null {
-  const latest = versions.reduce<DomainPackVersionSummary | null>((best, version) => {
-    if (version.versionId == null) return best;
-    if (best === null) return version;
-    return compareVersionSummary(version, best) > 0 ? version : best;
-  }, null);
+function pickLatestVersionId(
+  versions: DomainPackVersionSummary[],
+): number | null {
+  const latest = versions.reduce<DomainPackVersionSummary | null>(
+    (best, version) => {
+      if (version.versionId == null) return best;
+      if (best === null) return version;
+      return compareVersionSummary(version, best) > 0 ? version : best;
+    },
+    null,
+  );
 
   return latest?.versionId ?? null;
 }
@@ -394,7 +473,8 @@ function compareVersionSummary(
   if (leftCreatedAt !== rightCreatedAt) return leftCreatedAt - rightCreatedAt;
 
   return (
-    (left.versionId ?? Number.NEGATIVE_INFINITY) - (right.versionId ?? Number.NEGATIVE_INFINITY)
+    (left.versionId ?? Number.NEGATIVE_INFINITY) -
+    (right.versionId ?? Number.NEGATIVE_INFINITY)
   );
 }
 

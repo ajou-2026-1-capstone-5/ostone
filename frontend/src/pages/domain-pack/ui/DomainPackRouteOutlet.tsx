@@ -1,5 +1,8 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useOutletContext } from "react-router-dom";
+import type { ShellContext } from "@/shared/ui/ostone/chrome";
 
 export function DomainPackRouteOutlet() {
-  return <Outlet />;
+  const shellContext = useOutletContext<ShellContext>();
+
+  return <Outlet context={shellContext} />;
 }

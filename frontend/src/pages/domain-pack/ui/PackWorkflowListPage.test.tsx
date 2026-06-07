@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 
 import { PackWorkflowListPage } from "./PackWorkflowListPage";
 
@@ -44,23 +51,42 @@ vi.mock("@/features/workflow-list", () => ({
   )),
 }));
 
-vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/workflows";
-
 function NavigatedRoute() {
   const loc = useLocation();
   return <div data-testid="navigated">{loc.pathname + loc.search}</div>;
+}
+
+function ShellHost() {
+  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
+  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
+
+  return (
+    <>
+      <div data-testid="shell-crumbs">
+        {crumbs
+          .map((crumb) => (typeof crumb === "string" ? crumb : crumb.label))
+          .join(" / ")}
+      </div>
+      <div data-testid="shell-topbar">{topbarRight}</div>
+      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
+    </>
+  );
 }
 
 function renderPage(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path={ROUTE} element={<PackWorkflowListPage />} />
-        <Route path="/workspaces" element={<div data-testid="workspaces-root">root</div>} />
+        <Route
+          path="/workspaces/:workspaceId/domain-packs/:packId"
+          element={<ShellHost />}
+        >
+          <Route path="workflows" element={<PackWorkflowListPage />} />
+        </Route>
+        <Route
+          path="/workspaces"
+          element={<div data-testid="workspaces-root">root</div>}
+        />
         <Route path="*" element={<NavigatedRoute />} />
       </Routes>
     </MemoryRouter>,
@@ -73,13 +99,21 @@ beforeEach(() => {
 
 describe("PackWorkflowListPage", () => {
   it("유효하지 않은 wsId는 /workspaces 로 redirect", () => {
-    mockUseListWorkflows.mockReturnValue({ isLoading: false, isError: false, data: undefined });
+    mockUseListWorkflows.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: undefined,
+    });
     renderPage("/workspaces/abc/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("workspaces-root")).toBeInTheDocument();
   });
 
   it("loading 시 loading state 가 노출된다", () => {
-    mockUseListWorkflows.mockReturnValue({ isLoading: true, isError: false, data: undefined });
+    mockUseListWorkflows.mockReturnValue({
+      isLoading: true,
+      isError: false,
+      data: undefined,
+    });
     renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("pack-workflows-loading")).toBeInTheDocument();
   });
@@ -152,7 +186,11 @@ describe("PackWorkflowListPage", () => {
     mockUseListWorkflows.mockReturnValue({
       isLoading: false,
       isError: false,
-      data: { data: [{ id: 42, name: "Click me", workflowCode: null, description: null }] },
+      data: {
+        data: [
+          { id: 42, name: "Click me", workflowCode: null, description: null },
+        ],
+      },
     });
     renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     fireEvent.click(screen.getByTestId("mock-card-42"));

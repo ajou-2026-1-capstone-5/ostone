@@ -1,4 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { LoginPage } from "../pages/login/ui/LoginPage";
 import { SignupPage } from "../pages/signup/ui/SignupPage";
 import { WorkspaceRootRedirect } from "../pages/workspace/ui/WorkspaceRootRedirect";
@@ -25,7 +32,11 @@ import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOu
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
 import { WorkspaceDashboardPage } from "../pages/workspace/ui/WorkspaceDashboardPage";
 import { WorkspaceMembersPage } from "../pages/workspace/ui/WorkspaceMembersPage";
-import { BillingPage, BillingSuccessPage, BillingFailPage } from "../pages/billing";
+import {
+  BillingPage,
+  BillingSuccessPage,
+  BillingFailPage,
+} from "../pages/billing";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
 import { WorkspaceSimulationPage } from "../pages/workspace/ui/WorkspaceSimulationPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
@@ -70,7 +81,10 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordResetInitPage />} />
-        <Route path="/password-reset/complete" element={<PasswordResetCompletePage />} />
+        <Route
+          path="/password-reset/complete"
+          element={<PasswordResetCompletePage />}
+        />
         <Route
           path="/admin"
           element={
@@ -105,19 +119,67 @@ export function App() {
           <Route path="dashboard" element={<WorkspaceDashboardPage />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="simulation" element={<WorkspaceSimulationPage />} />
-          <Route path="pipeline" element={<Navigate to="../upload" replace />} />
+          <Route
+            path="pipeline"
+            element={<Navigate to="../upload" replace />}
+          />
           <Route path="consultation/history" element={<ChatHistoryPage />} />
-          <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
+          <Route
+            path="consultation/history/:sessionId"
+            element={<ChatHistoryPage />}
+          />
           <Route path="consultation" element={<ConsultationPage />} />
-          <Route path="consultation/:sessionId" element={<ConsultationPage />} />
+          <Route
+            path="consultation/:sessionId"
+            element={<ConsultationPage />}
+          />
           <Route path="upload" element={<WorkspaceUploadPage />} />
-          <Route path="pipeline-jobs/:pipelineJobId/review" element={<PipelineReviewPage />} />
+          <Route
+            path="pipeline-jobs/:pipelineJobId/review"
+            element={<PipelineReviewPage />}
+          />
           <Route path="domain-packs" element={<DomainPackListPage />} />
+          <Route
+            path="domain-packs/:packId"
+            element={<DomainPackRouteOutlet />}
+          >
+            <Route index element={<DomainPackSummaryPage />} />
+            <Route path="intents" element={<IntentDraftReadPage />}>
+              <Route path=":intentId" />
+            </Route>
+            <Route path="policies" element={<PolicyDraftReadPage />}>
+              <Route path=":policyId" />
+            </Route>
+            <Route path="risks" element={<RiskDraftReadPage />}>
+              <Route path=":riskId" />
+            </Route>
+            <Route path="slots" element={<SlotDraftReadPage />}>
+              <Route path=":slotId" />
+            </Route>
+            <Route path="workflows">
+              <Route index element={<PackWorkflowListPage />} />
+              <Route path=":workflowId" element={<WorkflowDraftReadPage />} />
+              <Route
+                path=":workflowId/graph"
+                element={<WorkflowGraphViewerPage />}
+              />
+            </Route>
+            <Route
+              path="versions/:versionId/*"
+              element={<LegacyDomainPackVersionRedirect />}
+            />
+            <Route
+              path="versions/:versionId"
+              element={<LegacyDomainPackVersionRedirect />}
+            />
+          </Route>
           <Route path="settings/members" element={<WorkspaceMembersPage />} />
           <Route
             path="billing"
             element={
-              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+              <ErrorBoundary
+                fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
+              >
                 <BillingPage />
               </ErrorBoundary>
             }
@@ -127,7 +189,9 @@ export function App() {
           path="/billing/success"
           element={
             <PrivateRoute>
-              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+              <ErrorBoundary
+                fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
+              >
                 <BillingSuccessPage />
               </ErrorBoundary>
             </PrivateRoute>
@@ -137,7 +201,9 @@ export function App() {
           path="/billing/fail"
           element={
             <PrivateRoute>
-              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+              <ErrorBoundary
+                fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
+              >
                 <BillingFailPage />
               </ErrorBoundary>
             </PrivateRoute>
@@ -146,7 +212,9 @@ export function App() {
         <Route
           path="/demo"
           element={
-            <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+            <ErrorBoundary
+              fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
+            >
               <DemoPage />
             </ErrorBoundary>
           }
@@ -168,7 +236,10 @@ export function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/demo/workspaces/:workspaceId/chat" element={<LegacyDemoChatRedirect />} />
+        <Route
+          path="/demo/workspaces/:workspaceId/chat"
+          element={<LegacyDemoChatRedirect />}
+        />
         <Route
           path="/upload"
           element={
@@ -193,35 +264,6 @@ export function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId"
-          element={
-            <PrivateRoute>
-              <DomainPackRouteOutlet />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<DomainPackSummaryPage />} />
-          <Route path="intents" element={<IntentDraftReadPage />}>
-            <Route path=":intentId" />
-          </Route>
-          <Route path="policies" element={<PolicyDraftReadPage />}>
-            <Route path=":policyId" />
-          </Route>
-          <Route path="risks" element={<RiskDraftReadPage />}>
-            <Route path=":riskId" />
-          </Route>
-          <Route path="slots" element={<SlotDraftReadPage />}>
-            <Route path=":slotId" />
-          </Route>
-          <Route path="workflows">
-            <Route index element={<PackWorkflowListPage />} />
-            <Route path=":workflowId" element={<WorkflowDraftReadPage />} />
-            <Route path=":workflowId/graph" element={<WorkflowGraphViewerPage />} />
-          </Route>
-          <Route path="versions/:versionId/*" element={<LegacyDomainPackVersionRedirect />} />
-          <Route path="versions/:versionId" element={<LegacyDomainPackVersionRedirect />} />
-        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

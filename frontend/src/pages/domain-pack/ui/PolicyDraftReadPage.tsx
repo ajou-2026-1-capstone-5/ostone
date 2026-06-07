@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
-import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
+import {
+  usePackDetail,
+  VersionSafetyBanner,
+} from "@/features/domain-pack-summary-read";
+import {
+  PolicyDetailPanel,
+  PolicyListPanel,
+} from "@/features/policy-draft-read/ui";
 import { PolicyEditPanel } from "@/features/update-policy";
 import {
   buildDomainPackCrumbs,
@@ -11,7 +17,7 @@ import {
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Pill } from "@/shared/ui/ostone/atoms";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
-import { OstoneShell } from "@/widgets/ostone-shell";
+import { DomainPackShellState } from "./DomainPackShellState";
 import styles from "./policy-draft-read-page.module.css";
 
 interface EditingPolicyState {
@@ -23,7 +29,9 @@ export function PolicyDraftReadPage() {
   const { workspaceId, packId, policyId } = useParams();
   const [search] = useSearchParams();
   const navigate = useNavigate();
-  const [editingPolicy, setEditingPolicy] = useState<EditingPolicyState | null>(null);
+  const [editingPolicy, setEditingPolicy] = useState<EditingPolicyState | null>(
+    null,
+  );
   const listSlotRef = useRef<HTMLDivElement>(null);
   const shouldFocusListRef = useRef(false);
 
@@ -31,14 +39,19 @@ export function PolicyDraftReadPage() {
   const pId = parseRouteId(packId);
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const selectedPolicyId = policyId ? parseRouteId(policyId) : null;
-  const hasInvalidPolicyId = policyId !== undefined && selectedPolicyId === null;
+  const hasInvalidPolicyId =
+    policyId !== undefined && selectedPolicyId === null;
   const routeKey = `${wsId}:${pId}:${vId}:${selectedPolicyId}`;
 
   const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
-    enabled: wsId !== null && pId !== null && vId !== null && !hasInvalidPolicyId,
+    enabled:
+      wsId !== null && pId !== null && vId !== null && !hasInvalidPolicyId,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ??
+    vId ??
+    0;
   const hasSelection = selectedPolicyId !== null;
 
   useEffect(() => {
@@ -47,13 +60,39 @@ export function PolicyDraftReadPage() {
     shouldFocusListRef.current = false;
   }, [hasSelection]);
 
+  const crumbs = useMemo<Crumb[]>(() => {
+    if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
+      return ["도메인팩 관리"];
+    }
+
+    return buildDomainPackCrumbs({
+      wsId,
+      pId,
+      vId,
+      packName,
+      versionNo,
+      section: { label: "응대 기준", path: "policies" },
+      selectedLabel: selectedPolicyId !== null ? `#${selectedPolicyId}` : null,
+    });
+  }, [
+    hasInvalidPolicyId,
+    packName,
+    pId,
+    selectedPolicyId,
+    versionNo,
+    vId,
+    wsId,
+  ]);
+
+  const topbarRight = useMemo(() => <Pill tone="mute">조회/수정</Pill>, []);
+
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
-      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
+      <DomainPackShellState crumbs={crumbs}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
@@ -68,38 +107,35 @@ export function PolicyDraftReadPage() {
   };
 
   const activeEditingPolicyId =
-    editingPolicy?.routeKey === routeKey && editingPolicy.policyId === selectedPolicyId
+    editingPolicy?.routeKey === routeKey &&
+    editingPolicy.policyId === selectedPolicyId
       ? editingPolicy.policyId
       : null;
 
   const handleBackToList = () => {
     setEditingPolicy(null);
     shouldFocusListRef.current = true;
-    navigate(domainPackSectionPath(wsId, pId, vId, "policies"), { replace: true });
+    navigate(domainPackSectionPath(wsId, pId, vId, "policies"), {
+      replace: true,
+    });
   };
 
-  const crumbs: Crumb[] = buildDomainPackCrumbs({
-    wsId,
-    pId,
-    vId,
-    packName,
-    versionNo,
-    section: { label: "응대 기준", path: "policies" },
-    selectedLabel: selectedPolicyId !== null ? `#${selectedPolicyId}` : null,
-  });
-
-  const topbarRight = <Pill tone="mute">조회/수정</Pill>;
-
   return (
-    <OstoneShell active="policy" crumbs={crumbs} topbarRight={topbarRight}>
+    <DomainPackShellState crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
         <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={handleBackToList}>
+          <button
+            type="button"
+            className={styles.backButton}
+            onClick={handleBackToList}
+          >
             목록
           </button>
         )}
-        <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
+        <div
+          className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}
+        >
           <div
             ref={listSlotRef}
             className={styles.listSlot}
@@ -135,6 +171,6 @@ export function PolicyDraftReadPage() {
           </div>
         </div>
       </div>
-    </OstoneShell>
+    </DomainPackShellState>
   );
 }
