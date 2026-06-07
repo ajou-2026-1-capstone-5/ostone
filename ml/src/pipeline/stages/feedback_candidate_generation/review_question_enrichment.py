@@ -282,16 +282,10 @@ def _request_payload(
 
 
 def _parse_response(payload: dict[str, Any]) -> dict[str, Any]:
-    choices = payload.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise ValueError("missing choices")
-    choice = choices[0]
-    if not isinstance(choice, dict):
-        raise ValueError("invalid choice")
-    message = choice.get("message")
-    if not isinstance(message, dict):
-        raise ValueError("missing message")
-    content = message.get("content")
+    try:
+        content = payload["choices"][0]["message"]["content"]
+    except (IndexError, KeyError, TypeError) as exc:
+        raise ValueError("missing message content") from exc
     if not isinstance(content, str):
         raise ValueError("missing content")
     parsed = json.loads(_json_content(content))
