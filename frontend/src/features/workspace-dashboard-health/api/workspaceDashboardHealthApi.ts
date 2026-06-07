@@ -68,7 +68,8 @@ export interface WorkspaceDashboardActionRecommendationParams {
 
 export const workspaceDashboardHealthKeys = {
   all: ["workspace-dashboard-health"] as const,
-  detail: (workspaceId: number) => [...workspaceDashboardHealthKeys.all, workspaceId] as const,
+  detail: (workspaceId?: number | null) =>
+    [...workspaceDashboardHealthKeys.all, workspaceId ?? "unknown"] as const,
 };
 
 export const workspaceDashboardActionRecommendationKeys = {
@@ -77,11 +78,12 @@ export const workspaceDashboardActionRecommendationKeys = {
     [...workspaceDashboardActionRecommendationKeys.all, workspaceId, params] as const,
 };
 
-export function useWorkspaceDashboardHealth(workspaceId: number) {
+export function useWorkspaceDashboardHealth(workspaceId?: number | null) {
   return useQuery({
     queryKey: workspaceDashboardHealthKeys.detail(workspaceId),
+    enabled: workspaceId != null,
     queryFn: async ({ signal }) => {
-      const response = await getGeneratedKnowledgePackHealth(workspaceId, {
+      const response = await getGeneratedKnowledgePackHealth(workspaceId as number, {
         signal,
       });
       return requireApiData<WorkspaceDashboardHealth>(

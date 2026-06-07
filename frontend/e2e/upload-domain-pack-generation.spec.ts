@@ -181,6 +181,34 @@ test.describe("Upload completed Domain Pack draft generation", () => {
   }
 
   test.describe("Given a completed consultation log upload without an automatic pipeline job", () => {
+    test("When an open pipeline review exists, Then upload exposes review navigation", async ({
+      page,
+    }) => {
+      await installUploadGenerationMocks(page, {
+        dashboardKnowledgePackHealth: "open-review",
+      });
+
+      await page.goto("/workspaces/1/upload");
+
+      await expect(page.getByText("검토 대기", { exact: true })).toBeVisible();
+      await expect(page.getByText("검토 대기 항목 1개가 남아 있습니다.")).toBeVisible();
+
+      await page.getByRole("button", { name: "검토 화면으로 이동" }).click();
+
+      await expect(page).toHaveURL(
+        /\/workspaces\/1\/pipeline-jobs\/900\/review/,
+      );
+      await expect(page.getByText("상담 도메인을 확정합니다.")).toBeVisible();
+      expect(seen).toContain(
+        "GET /workspaces/1/dashboard/knowledge-pack-health",
+      );
+      expect(seen).toContain(
+        "GET /workspaces/1/pipeline-jobs/900/review-checkpoint",
+      );
+      expect(seen).not.toContain(uploadInitRequest);
+      expect(seen).not.toContain(uploadCompleteRequest);
+    });
+
     test(
       "When the operator uploads a valid ZIP, Then progress, completion, and the next Domain Pack action are visible",
       { tag: "@critical" },
