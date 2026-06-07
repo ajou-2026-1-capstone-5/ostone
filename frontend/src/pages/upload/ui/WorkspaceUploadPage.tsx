@@ -71,13 +71,30 @@ export function WorkspaceUploadPage() {
     (subscriptionQuery.data as SubscriptionResponse | null) ?? null;
   const hasActiveSubscription = isSubscriptionEngaged(subscription?.status);
   const paidUploadCooldown = resolvePaidUploadCooldown(subscription);
+  const dashboardHealth = dashboardHealthQuery.data ?? null;
   const latestOpenReviewPipelineJobId =
-    dashboardHealthQuery.data?.latestOpenReviewPipelineJobId ?? null;
-  const openReviewCta =
+    dashboardHealth?.latestOpenReviewPipelineJobId ?? null;
+  const reviewDatasetId =
+    dashboardHealth?.lastKnowledgePackGeneration?.datasetId ??
+    dashboardHealth?.lastLogUpload?.datasetId ??
+    null;
+  const reviewDatasetName =
+    dashboardHealth?.lastLogUpload?.datasetId === reviewDatasetId
+      ? dashboardHealth.lastLogUpload.datasetName
+      : null;
+  const openReviewRecord =
     parsedWorkspaceId !== null && latestOpenReviewPipelineJobId !== null
       ? {
           path: `/workspaces/${parsedWorkspaceId}/pipeline-jobs/${latestOpenReviewPipelineJobId}/review`,
-          pendingReviewCount: dashboardHealthQuery.data?.pendingReviewCount ?? 0,
+          pipelineJobId: latestOpenReviewPipelineJobId,
+          pendingReviewCount: dashboardHealth?.pendingReviewCount ?? 0,
+          datasetId: reviewDatasetId,
+          datasetName: reviewDatasetName,
+          status: dashboardHealth?.lastKnowledgePackGeneration?.status ?? null,
+          requestedAt:
+            dashboardHealth?.lastKnowledgePackGeneration?.requestedAt ??
+            dashboardHealth?.lastLogUpload?.uploadedAt ??
+            null,
         }
       : null;
   const refetchWorkspace = workspaceQuery.refetch;
@@ -129,7 +146,7 @@ export function WorkspaceUploadPage() {
         hasActiveSubscription={hasActiveSubscription}
         isEntitlementLoading={isEntitlementLoading}
         paidUploadCooldown={paidUploadCooldown}
-        openReviewCta={openReviewCta}
+        openReviewRecord={openReviewRecord}
       />
     </div>
   );

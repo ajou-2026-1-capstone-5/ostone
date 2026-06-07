@@ -223,24 +223,78 @@ describe("LogUploadForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows open review CTA on the upload screen", () => {
+  it("shows open review record table on the upload screen", () => {
     render(
       <LogUploadForm
         workspaceId={2}
-        openReviewCta={{
+        openReviewRecord={{
           path: "/workspaces/2/pipeline-jobs/43/review",
+          pipelineJobId: 43,
           pendingReviewCount: 2,
+          datasetId: 77,
+          datasetName: "refund-log.zip",
+          status: "WAITING_DOMAIN_CONFIRMATION",
+          requestedAt: "2026-06-04T09:00:00+09:00",
         }}
       />,
       { wrapper: MemoryRouter },
     );
 
-    expect(screen.getByText("검토 대기")).toBeInTheDocument();
-    expect(screen.getByText("검토 대기 항목 2개가 남아 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("상담 로그 처리 기록")).toBeInTheDocument();
+    expect(screen.getByText("검토 대기 항목 2개 중 최신 1건입니다.")).toBeInTheDocument();
+    expect(screen.getByText("refund-log.zip")).toBeInTheDocument();
+    expect(screen.getByText("JOB-43")).toBeInTheDocument();
+    expect(screen.getByText("WAITING_DOMAIN_CONFIRMATION")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /검토 화면으로 이동/ }));
 
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/2/pipeline-jobs/43/review");
+  });
+
+  it("shows open review record fallbacks when optional metadata is missing", () => {
+    render(
+      <LogUploadForm
+        workspaceId={2}
+        openReviewRecord={{
+          path: "/workspaces/2/pipeline-jobs/44/review",
+          pipelineJobId: 44,
+          pendingReviewCount: 1,
+          datasetId: 78,
+          status: null,
+          requestedAt: null,
+        }}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(
+      screen.getByText("검토가 필요한 최신 상담 로그 처리 기록입니다."),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("dataset 78")).toHaveLength(2);
+    expect(screen.getByText("JOB-44")).toBeInTheDocument();
+    expect(screen.getByText("검토 대기")).toBeInTheDocument();
+    expect(screen.getByText("-")).toBeInTheDocument();
+  });
+
+  it("shows a generic open review record when dataset metadata is unavailable", () => {
+    render(
+      <LogUploadForm
+        workspaceId={2}
+        openReviewRecord={{
+          path: "/workspaces/2/pipeline-jobs/45/review",
+          pipelineJobId: 45,
+          pendingReviewCount: 0,
+          datasetId: null,
+          requestedAt: "not-a-date",
+        }}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(screen.getByText("최근 상담 로그")).toBeInTheDocument();
+    expect(screen.getByText("JOB-45")).toBeInTheDocument();
+    expect(screen.getByText("검토 대기")).toBeInTheDocument();
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 
   it("blocks upload when free onboarding is consumed without active subscription", () => {

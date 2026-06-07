@@ -190,8 +190,17 @@ test.describe("Upload completed Domain Pack draft generation", () => {
 
       await page.goto("/workspaces/1/upload");
 
-      await expect(page.getByText("검토 대기", { exact: true })).toBeVisible();
-      await expect(page.getByText("검토 대기 항목 1개가 남아 있습니다.")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "상담 로그 처리 기록" }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("검토가 필요한 최신 상담 로그 처리 기록입니다."),
+      ).toBeVisible();
+      await expect(page.getByRole("cell", { name: /refund-log\.zip/ })).toBeVisible();
+      await expect(page.getByRole("cell", { name: "JOB-900" })).toBeVisible();
+      await expect(
+        page.getByRole("cell", { name: "WAITING_DOMAIN_CONFIRMATION" }),
+      ).toBeVisible();
 
       await page.getByRole("button", { name: "검토 화면으로 이동" }).click();
 
