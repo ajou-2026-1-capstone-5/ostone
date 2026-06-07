@@ -6,10 +6,39 @@ from typing import Any, cast
 
 from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
-from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.preprocessing.io import read_stage_context
 
+# redundant alias import는 stage 분해 이전 경로를 쓰는 테스트를 위해 이 모듈로 re-export한다.
+from .confidence import (
+    _apply_entrypoint_semantic_metadata,
+    _apply_workflow_review_metadata,
+    _workflow_confidence_report,
+)
+from .confidence import (
+    _evidence_confidence as _evidence_confidence,
+)
+from .confidence import (
+    _has_weak_entrypoint_semantic_boundary as _has_weak_entrypoint_semantic_boundary,
+)
+from .confidence import (
+    _review_reason_codes as _review_reason_codes,
+)
+from .confidence import (
+    _review_tier as _review_tier,
+)
+from .confidence import (
+    _sample_review_reason_codes as _sample_review_reason_codes,
+)
+from .confidence import (
+    _semantic_confidence as _semantic_confidence,
+)
+from .confidence import (
+    _support_confidence as _support_confidence,
+)
+from .confidence import (
+    _workflow_confidence_payload as _workflow_confidence_payload,
+)
 from .constants import (
     CLUSTERS_ARTIFACT,
     FLOW_SPLIT_REPORT_ARTIFACT,
@@ -18,23 +47,9 @@ from .constants import (
     NOVEL_REVIEW_CANDIDATE_MIN_SIZE,
     WORKFLOW_ENTRYPOINTS_ARTIFACT,
 )
-from .confidence import (
-    _apply_entrypoint_semantic_metadata,
-    _apply_workflow_review_metadata,
-    _evidence_confidence,
-    _has_weak_entrypoint_semantic_boundary,
-    _review_reason_codes,
-    _review_tier,
-    _sample_review_reason_codes,
-    _semantic_confidence,
-    _support_confidence,
-    _workflow_confidence_payload,
-    _workflow_confidence_report,
-)
 from .helpers import (
     _cluster_member_id_set,
     _drop_low_quality_clusters,
-    _extend_unique,
     _int_list,
     _member_index_lookup,
     _member_indices_for_ids,
@@ -42,24 +57,42 @@ from .helpers import (
     _merged_workflow_signal,
     _read_json,
     _read_preprocessed_index,
-    _split_label,
-    _split_name,
     _split_reason_has_action,
     _split_reason_has_action_object,
     _split_reason_has_sequence,
     _string_list,
     _upstream_stage_dir,
 )
+from .helpers import (
+    _extend_unique as _extend_unique,
+)
+from .helpers import (
+    _split_label as _split_label,
+)
+from .helpers import (
+    _split_name as _split_name,
+)
 from .labeling import (
     _enforce_review_only_labels,
-    _regenerated_split_label,
     _resolve_duplicate_generated_labels,
-    _review_safe_generated_label,
-    _score_split_label_candidate,
-    _split_label_auto_acceptable,
-    _unique_duplicate_fallback_name,
 )
-from .novel import _promote_novel_candidates, _stabilized_novel_label
+from .labeling import (
+    _regenerated_split_label as _regenerated_split_label,
+)
+from .labeling import (
+    _review_safe_generated_label as _review_safe_generated_label,
+)
+from .labeling import (
+    _score_split_label_candidate as _score_split_label_candidate,
+)
+from .labeling import (
+    _split_label_auto_acceptable as _split_label_auto_acceptable,
+)
+from .labeling import (
+    _unique_duplicate_fallback_name as _unique_duplicate_fallback_name,
+)
+from .novel import _promote_novel_candidates
+from .novel import _stabilized_novel_label as _stabilized_novel_label
 from .splitting import (
     _apply_regenerated_label_metadata,
     _flow_groups,

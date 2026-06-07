@@ -218,8 +218,7 @@ def _parse_raw_payload(source: Path | bytes, dataset_id: str | None) -> Iterator
         emitted += 1
         if emitted > MAX_INGESTION_CONVERSATIONS:
             raise PipelineStageError(
-                "처리 가능 상담 건수를 초과했습니다. "
-                f"최대 {MAX_INGESTION_CONVERSATIONS}건까지 처리할 수 있습니다."
+                f"처리 가능 상담 건수를 초과했습니다. 최대 {MAX_INGESTION_CONVERSATIONS}건까지 처리할 수 있습니다."
             )
         yield conversation
 
@@ -261,8 +260,7 @@ def _extract_rows_from_zip(source: Path | BytesIO) -> Iterator[Mapping[str, obje
 def _enforce_zip_limits(entries: list[zipfile.ZipInfo]) -> None:
     if len(entries) > MAX_ZIP_ENTRY_COUNT:
         raise PipelineStageError(
-            "압축 파일의 항목 수가 처리 가능 한도를 초과했습니다. "
-            f"최대 {MAX_ZIP_ENTRY_COUNT}개까지 처리할 수 있습니다."
+            f"압축 파일의 항목 수가 처리 가능 한도를 초과했습니다. 최대 {MAX_ZIP_ENTRY_COUNT}개까지 처리할 수 있습니다."
         )
     total_uncompressed = 0
     total_compressed = 0

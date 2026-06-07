@@ -128,29 +128,29 @@ def test_embedding_request_rejects_invalid_payload(monkeypatch, payload: dict[st
     assert responses[0][1] == HTTPStatus.BAD_REQUEST
 
 
-def test_read_json_requires_valid_content_length() -> None:
+def test_read_json_requires_valid_content_length(monkeypatch) -> None:
     handler = _handler()
-    handler.headers = {}
+    monkeypatch.setattr(handler, "headers", {}, raising=False)
 
     with pytest.raises(ValueError, match="Content-Length"):
         handler._read_json()
 
-    handler.headers = {"Content-Length": "not-int"}
+    monkeypatch.setattr(handler, "headers", {"Content-Length": "not-int"}, raising=False)
     with pytest.raises(ValueError, match="integer"):
         handler._read_json()
 
-    handler.headers = {"Content-Length": "0"}
+    monkeypatch.setattr(handler, "headers", {"Content-Length": "0"}, raising=False)
     with pytest.raises(ValueError, match="between 1"):
         handler._read_json()
 
-    handler.headers = {"Content-Length": "11"}
+    monkeypatch.setattr(handler, "headers", {"Content-Length": "11"}, raising=False)
     handler.rfile = BytesIO(b'{"ok":true}')
     assert handler._read_json() == {"ok": True}
 
 
 def test_read_json_rejects_body_larger_than_limit(monkeypatch) -> None:
     handler = _handler()
-    handler.headers = {"Content-Length": "12"}
+    monkeypatch.setattr(handler, "headers", {"Content-Length": "12"}, raising=False)
     handler.rfile = BytesIO(b'{"ok":true}')
     monkeypatch.setenv("LOCAL_EMBEDDER_MAX_BODY_BYTES", "8")
 
@@ -158,13 +158,13 @@ def test_read_json_rejects_body_larger_than_limit(monkeypatch) -> None:
         handler._read_json()
 
 
-def test_write_json_sets_headers_and_body() -> None:
+def test_write_json_sets_headers_and_body(monkeypatch) -> None:
     handler = _handler()
     calls: list[tuple[str, object]] = []
     handler.wfile = BytesIO()
-    handler.send_response = lambda status: calls.append(("status", status))
-    handler.send_header = lambda name, value: calls.append((name, value))
-    handler.end_headers = lambda: calls.append(("end", None))
+    monkeypatch.setattr(handler, "send_response", lambda status: calls.append(("status", status)))
+    monkeypatch.setattr(handler, "send_header", lambda name, value: calls.append((name, value)))
+    monkeypatch.setattr(handler, "end_headers", lambda: calls.append(("end", None)))
 
     handler._write_json({"상태": "정상"}, status=HTTPStatus.CREATED)
 
@@ -176,7 +176,7 @@ def test_write_json_sets_headers_and_body() -> None:
 def test_log_message_delegates_to_logger(monkeypatch) -> None:
     handler = _handler()
     messages: list[tuple[str, str, str]] = []
-    handler.address_string = lambda: "127.0.0.1"
+    monkeypatch.setattr(handler, "address_string", lambda: "127.0.0.1")
     monkeypatch.setattr(
         "pipeline.local_embedder_server.logger.info",
         lambda template, host, message: messages.append((template, host, message)),
@@ -205,6 +205,7 @@ def test_runtime_from_env_reuses_cached_runtime(monkeypatch) -> None:
     second = _runtime_from_env()
 
     assert first is second
+    assert isinstance(first, FakeRuntime)
     assert first.model_name == "model-a"
     assert first.runtime_profile == "quality"
     assert first.auto_device is True

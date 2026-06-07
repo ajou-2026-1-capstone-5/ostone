@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, cast
+from typing import Any
 
 from .constants import (
     ACTION_OBJECT_SPLIT_PREFIX,
@@ -9,13 +9,10 @@ from .constants import (
     AUTO_LABEL_MIN_MEMBER_COUNT,
     COMPOUND_SPLIT_SEPARATOR,
     MIN_SPLIT_SIZE,
-    SEQUENCE_SPLIT_PREFIX,
 )
 from .helpers import (
     _event_sequence_key,
-    _float_value,
     _flow_group_key,
-    _merged_workflow_signal,
     _resolve_expanded_min_split_size,
     _signal_key,
     _split_name,
@@ -32,6 +29,7 @@ from .labeling import (
     _split_label_auto_acceptable,
 )
 from .novel import _stabilized_novel_label
+
 
 def _flow_groups(
     cluster: dict[str, Any],
@@ -88,6 +86,7 @@ def _flow_groups(
         return groups
     return {"mixed_flow": member_ids}
 
+
 def _expanded_action_object_groups(
     base_groups: dict[str, list[str]],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -106,6 +105,7 @@ def _expanded_action_object_groups(
         for action_key, action_member_ids in action_object_groups.items():
             expanded[f"{base_key}{COMPOUND_SPLIT_SEPARATOR}{action_key}"] = action_member_ids
     return expanded
+
 
 def _expanded_action_groups(
     base_groups: dict[str, list[str]],
@@ -126,6 +126,7 @@ def _expanded_action_groups(
             expanded[f"{base_key}{COMPOUND_SPLIT_SEPARATOR}{action_key}"] = action_member_ids
     return expanded
 
+
 def _expanded_sequence_groups(
     base_groups: dict[str, list[str]],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -144,6 +145,7 @@ def _expanded_sequence_groups(
         for sequence_key, sequence_member_ids in sequence_groups.items():
             expanded[f"{base_key}{COMPOUND_SPLIT_SEPARATOR}{sequence_key}"] = sequence_member_ids
     return expanded
+
 
 def _action_object_flow_groups(
     member_ids: list[str],
@@ -165,6 +167,7 @@ def _action_object_flow_groups(
         groups.setdefault("mixed_residual", []).extend(unknown_members)
     return groups
 
+
 def _action_object_sequence_key(conversation: object) -> str:
     if not isinstance(conversation, dict):
         return ""
@@ -178,6 +181,7 @@ def _action_object_sequence_key(conversation: object) -> str:
     if not _is_split_label_term(object_term) or not _is_action_label_term(action):
         return ""
     return f"{ACTION_OBJECT_SPLIT_PREFIX}{object_term}>{action}"
+
 
 def _action_flow_groups(
     member_ids: list[str],
@@ -199,6 +203,7 @@ def _action_flow_groups(
         groups.setdefault("mixed_residual", []).extend(unknown_members)
     return groups
 
+
 def _action_sequence_key(conversation: object) -> str:
     if not isinstance(conversation, dict):
         return ""
@@ -209,6 +214,7 @@ def _action_sequence_key(conversation: object) -> str:
     if not _is_action_label_term(action):
         return ""
     return f"{ACTION_SPLIT_PREFIX}{action}"
+
 
 def _major_groups_with_residual(
     grouped: dict[str, list[str]],
@@ -221,6 +227,7 @@ def _major_groups_with_residual(
     if residual:
         major_groups["mixed_residual"] = residual
     return major_groups
+
 
 def _sequence_flow_groups(
     member_ids: list[str],
@@ -238,6 +245,7 @@ def _sequence_flow_groups(
         if len(groups) > 1:
             return groups
     return {}
+
 
 def _apply_regenerated_label_metadata(
     target: dict[str, Any],

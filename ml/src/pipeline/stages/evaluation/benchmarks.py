@@ -44,12 +44,12 @@ def _parse_benchmark_suite(payload: object, path: Path | None = None) -> dict[st
     pairs: list[dict[str, object]] = []
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
-                raise PipelineStageError(f"Evaluation benchmark pair must be an object: index={index}")
+            raise PipelineStageError(f"Evaluation benchmark pair must be an object: index={index}")
         source_id = _benchmark_id(row, "source")
         target_id = _benchmark_id(row, "target")
         relation = _benchmark_relation(row)
         if source_id is None or target_id is None or relation is None:
-                raise PipelineStageError(f"Invalid evaluation benchmark pair: index={index}")
+            raise PipelineStageError(f"Invalid evaluation benchmark pair: index={index}")
         pairs.append(
             {
                 "sourceId": source_id,
@@ -76,7 +76,7 @@ def _benchmark_object_list(value: object, key: str) -> list[dict[str, object]]:
     output: list[dict[str, object]] = []
     for index, item in enumerate(value):
         if not isinstance(item, dict):
-                raise PipelineStageError(f"Evaluation benchmark {key}[{index}] must be an object.")
+            raise PipelineStageError(f"Evaluation benchmark {key}[{index}] must be an object.")
         output.append(cast(dict[str, object], item))
     return output
 
@@ -89,15 +89,15 @@ def _normalize_boundary_case(row: dict[str, object], index: int) -> dict[str, ob
     expected_caselets: list[dict[str, object]] = []
     for case_index, caselet in enumerate(expected):
         if not isinstance(caselet, dict):
-                raise PipelineStageError(
+            raise PipelineStageError(
                 f"Evaluation benchmark boundary caselet must be an object: index={index}.{case_index}"
             )
         turn_start = caselet.get("turnStart")
         turn_end = caselet.get("turnEnd")
         if not isinstance(turn_start, int) or isinstance(turn_start, bool):
-                raise PipelineStageError(f"Invalid boundary turnStart: index={index}.{case_index}")
+            raise PipelineStageError(f"Invalid boundary turnStart: index={index}.{case_index}")
         if not isinstance(turn_end, int) or isinstance(turn_end, bool):
-                raise PipelineStageError(f"Invalid boundary turnEnd: index={index}.{case_index}")
+            raise PipelineStageError(f"Invalid boundary turnEnd: index={index}.{case_index}")
         expected_caselets.append(
             {
                 "turnStart": turn_start,

@@ -267,9 +267,7 @@ def test_s3_client_uses_endpoint_credentials_and_path_style(monkeypatch: pytest.
     assert captured["config"].s3["addressing_style"] == "path"
 
 
-def test_read_raw_object_streams_body_to_scratch_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_read_raw_object_streams_body_to_scratch_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     class Body:
         def __init__(self) -> None:
             self._chunks = iter([b"pay", b"load", b""])
@@ -294,9 +292,7 @@ def test_read_raw_object_streams_body_to_scratch_file(
         raw_path.unlink(missing_ok=True)
 
 
-def test_read_raw_object_rejects_oversized_object(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_read_raw_object_rejects_oversized_object(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     class Body:
         def __init__(self) -> None:
             self._chunks = iter([b"a" * 8, b"b" * 8, b""])
@@ -403,9 +399,7 @@ def test_write_jsonl_streams_conversations_and_reports_count(tmp_path: Path) -> 
     assert [json.loads(line)["id"] for line in lines] == ["a", "b"]
 
 
-def test_parse_raw_payload_rejects_zip_with_too_many_entries(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_parse_raw_payload_rejects_zip_with_too_many_entries(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(ingestion, "MAX_ZIP_ENTRY_COUNT", 1)
     zip_path = tmp_path / "parsed.zip"
     _write_zip(
@@ -420,9 +414,7 @@ def test_parse_raw_payload_rejects_zip_with_too_many_entries(
         list(ingestion._parse_raw_payload(zip_path, "dataset-1"))
 
 
-def test_parse_raw_payload_rejects_zip_entry_over_size_limit(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_parse_raw_payload_rejects_zip_entry_over_size_limit(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(ingestion, "MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES", 16)
     zip_path = tmp_path / "parsed.zip"
     _write_zip(
@@ -499,9 +491,7 @@ def test_parse_raw_payload_rejects_when_conversation_count_exceeds_limit(
         list(ingestion._parse_raw_payload(zip_path, "dataset-1"))
 
 
-def test_run_rejects_oversized_dataset_and_cleans_scratch_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_run_rejects_oversized_dataset_and_cleans_scratch_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(ingestion, "MAX_INGESTION_CONVERSATIONS", 1)
     raw_path = tmp_path / "raw.json"
     raw_path.write_text(
