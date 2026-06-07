@@ -62,6 +62,11 @@ interface LogUploadFormProps {
   paidUploadCooldown?: PaidUploadCooldown;
 }
 
+interface GenerationRequestToken {
+  readonly id: number;
+  readonly datasetId: number;
+}
+
 const FREE_ONBOARDING_STATUS_META: Record<
   FreeOnboardingStatus,
   { label: string; copy: string }
@@ -135,6 +140,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     kind: "idle",
   });
   const generationRequestInFlightRef = useRef(false);
+  const generationRequestIdRef = useRef(0);
+  const activeGenerationRequestRef = useRef<GenerationRequestToken | null>(null);
 
   const queryGenerationDataset =
     generationDatasetId !== null && generationDatasetId !== ignoredGenerationDatasetId
@@ -154,32 +161,20 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     "INGESTION",
   );
 
-  const generationMutation = useTriggerDomainPackGeneration({
-    mutation: {
-      onSuccess: (response) => {
-        generationRequestInFlightRef.current = false;
-        setGenerationStatus({
-          kind: "success",
-          ...readGenerationResponse(response),
-        });
-        toast.success("도메인팩 초안 생성 요청 완료");
-      },
-      onError: (error) => {
-        generationRequestInFlightRef.current = false;
-        const message = getErrorMessage(
-          error,
-          "도메인팩 초안 생성 요청에 실패했습니다.",
-        );
-        setGenerationStatus({ kind: "error", message });
-        toast.error(message, {
-          action: {
-            label: "재시도",
-            onClick: () => handleStartGeneration(),
-          },
-        });
-      },
-    },
-  });
+  const generationMutation = useTriggerDomainPackGeneration();
+
+  const clearActiveGenerationRequest = () => {
+    activeGenerationRequestRef.current = null;
+    generationRequestInFlightRef.current = false;
+  };
+
+  const isActiveGenerationRequest = (request: GenerationRequestToken) => {
+    const activeRequest = activeGenerationRequestRef.current;
+    return (
+      activeRequest?.id === request.id &&
+      activeRequest.datasetId === request.datasetId
+    );
+  };
 
   const freeOnboardingMeta = FREE_ONBOARDING_STATUS_META[freeOnboardingStatus];
   const isPaidCooldownBlocked = Boolean(
@@ -218,7 +213,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setStatus("idle");
     setUploadedDataset(null);
     setGenerationStatus({ kind: "idle" });
-    generationRequestInFlightRef.current = false;
+    clearActiveGenerationRequest();
     rawFileUpload.reset();
     generationMutation.reset();
   };
@@ -241,7 +236,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
           fileName: fileToUpload.name,
         });
         setGenerationStatus({ kind: "idle" });
-        generationRequestInFlightRef.current = false;
+        clearActiveGenerationRequest();
         setStatus("success");
         toast.success("업로드 완료");
       },
@@ -249,7 +244,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         setStatus("idle");
         setUploadedDataset(null);
         setGenerationStatus({ kind: "idle" });
-        generationRequestInFlightRef.current = false;
+        clearActiveGenerationRequest();
         toast.error(message, {
           action: {
             label: "재시도",
@@ -263,6 +258,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   const handleCancelUpload = () => {
     rawFileUpload.cancel();
     setStatus("idle");
+    clearActiveGenerationRequest();
   };
 
   function handleStartGeneration() {
@@ -280,12 +276,50 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
       return;
     }
 
+    const generationRequest = {
+      id: generationRequestIdRef.current + 1,
+      datasetId: activeUploadedDataset.datasetId,
+    };
+    generationRequestIdRef.current = generationRequest.id;
+    activeGenerationRequestRef.current = generationRequest;
     generationRequestInFlightRef.current = true;
     setGenerationStatus({ kind: "triggering" });
-    generationMutation.mutate({
-      workspaceId,
-      datasetId: activeUploadedDataset.datasetId,
-    });
+    generationMutation.mutate(
+      {
+        workspaceId,
+        datasetId: activeUploadedDataset.datasetId,
+      },
+      {
+        onSuccess: (response) => {
+          if (!isActiveGenerationRequest(generationRequest)) {
+            return;
+          }
+          clearActiveGenerationRequest();
+          setGenerationStatus({
+            kind: "success",
+            ...readGenerationResponse(response),
+          });
+          toast.success("도메인팩 초안 생성 요청 완료");
+        },
+        onError: (error) => {
+          if (!isActiveGenerationRequest(generationRequest)) {
+            return;
+          }
+          clearActiveGenerationRequest();
+          const message = getErrorMessage(
+            error,
+            "도메인팩 초안 생성 요청에 실패했습니다.",
+          );
+          setGenerationStatus({ kind: "error", message });
+          toast.error(message, {
+            action: {
+              label: "재시도",
+              onClick: () => handleStartGeneration(),
+            },
+          });
+        },
+      },
+    );
   }
 
   const handleReset = () => {
@@ -295,7 +329,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setUploadedDataset(null);
     setStatus("idle");
     setGenerationStatus({ kind: "idle" });
-    generationRequestInFlightRef.current = false;
+    clearActiveGenerationRequest();
     setIgnoredGenerationDatasetId(generationDatasetId);
     if (generationDatasetId !== null && workspaceId != null) {
       navigate(`/workspaces/${workspaceId}/upload`, { replace: true });

@@ -15,6 +15,12 @@ export const CTA_GO_DOMAIN_PACK = "도메인팩 관리로 이동";
 /** 상담 로그 업로드 화면으로 이동 */
 export const CTA_UPLOAD_LOGS = "상담 로그 업로드";
 
+/** 업로드된 상담 로그로 도메인팩 생성을 시작 */
+export const CTA_START_GENERATION = "지식팩 생성 시작";
+
+/** 실패한 도메인팩 생성 요청을 재시도 */
+export const CTA_RETRY_GENERATION = "지식팩 생성 재시도";
+
 /** 현재 업로드 흐름을 초기화하고 다른 파일을 올린다 */
 export const CTA_UPLOAD_AGAIN = "다른 파일 업로드";
 

@@ -35,6 +35,10 @@ type StartParams = {
   onError: (message: string) => void;
 };
 type TriggerVariables = { workspaceId: number; datasetId: number };
+type TriggerCallbacks = {
+  onSuccess?: (response: unknown, variables: TriggerVariables) => void;
+  onError?: (error: unknown, variables: TriggerVariables) => void;
+};
 
 let startBehavior: "success" | "error" | "pending" = "success";
 let startError = "업로드 실패";
@@ -42,7 +46,11 @@ let lastStartParams: StartParams | null = null;
 let callTriggerOnSuccess:
   | ((response: unknown, variables: TriggerVariables) => void)
   | null = null;
-let callTriggerOnError: ((error: unknown) => void) | null = null;
+let callTriggerOnError:
+  | ((error: unknown, variables: TriggerVariables) => void)
+  | null = null;
+let lastTriggerVariables: TriggerVariables | null = null;
+let lastTriggerCallbacks: TriggerCallbacks | null = null;
 let mockTriggerIsPending = false;
 let mockIngestionQuery = {
   data: { pipelineJob: null },
@@ -89,17 +97,18 @@ vi.mock("../model/useLatestDatasetPipelineJob", () => ({
 vi.mock(
   "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller",
   () => ({
-    useTriggerDomainPackGeneration: (config: {
-      mutation?: {
-        onSuccess?: (response: unknown, variables: TriggerVariables) => void;
-        onError?: (error: unknown) => void;
+    useTriggerDomainPackGeneration: () => {
+      callTriggerOnSuccess = (response: unknown, variables: TriggerVariables) => {
+        lastTriggerCallbacks?.onSuccess?.(response, variables);
       };
-    }) => {
-      callTriggerOnSuccess = config?.mutation?.onSuccess ?? null;
-      callTriggerOnError = config?.mutation?.onError ?? null;
+      callTriggerOnError = (error: unknown, variables: TriggerVariables) => {
+        lastTriggerCallbacks?.onError?.(error, variables);
+      };
       return {
-        mutate: (...args: unknown[]) => {
-          mockTriggerMutate(...args);
+        mutate: (variables: TriggerVariables, callbacks?: TriggerCallbacks) => {
+          lastTriggerVariables = variables;
+          lastTriggerCallbacks = callbacks ?? null;
+          mockTriggerMutate(variables);
         },
         isPending: mockTriggerIsPending,
         reset: mockTriggerReset,
@@ -166,6 +175,8 @@ describe("LogUploadForm", () => {
     lastStartParams = null;
     callTriggerOnSuccess = null;
     callTriggerOnError = null;
+    lastTriggerVariables = null;
+    lastTriggerCallbacks = null;
     mockTriggerIsPending = false;
     mockIngestionQuery = {
       data: { pipelineJob: null },
@@ -460,6 +471,32 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("파일을 먼저 선택해 주세요.")).toBeInTheDocument();
   });
 
+  it("ignores a late generation response after the query-backed dataset is reset", () => {
+    render(
+      <MemoryRouter initialEntries={["/workspaces/1/upload?datasetId=42"]}>
+        <LogUploadForm workspaceId={1} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
+
+    expect(lastTriggerVariables).toEqual({ workspaceId: 1, datasetId: 42 });
+
+    fireEvent.click(screen.getByText("다른 파일 업로드"));
+
+    act(() => {
+      callTriggerOnSuccess?.(
+        { pipelineJobId: 11, status: "REQUESTED" },
+        { workspaceId: 1, datasetId: 42 },
+      );
+    });
+
+    expect(screen.queryByText("생성 요청 완료")).not.toBeInTheDocument();
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalledWith(
+      "도메인팩 초안 생성 요청 완료",
+    );
+  });
+
   it("shows automatic ingestion pipeline status and opens status screen", () => {
     mockIngestionQuery = {
       data: {
@@ -619,7 +656,10 @@ describe("LogUploadForm", () => {
     fireEvent.click(screen.getByText("처리 시작"));
     fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
     act(() => {
-      callTriggerOnError?.(new Error("Airflow 연결 실패"));
+      callTriggerOnError?.(new Error("Airflow 연결 실패"), {
+        workspaceId: 1,
+        datasetId: 42,
+      });
     });
 
     expect(screen.getByText("생성 요청 실패")).toBeInTheDocument();

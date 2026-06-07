@@ -1,5 +1,10 @@
 import type { WorkspaceDashboardHealth } from "../api/workspaceDashboardHealthApi";
-import { CTA_GO_REVIEW, CTA_UPLOAD_LOGS } from "@/shared/lib/ctaLabels";
+import {
+  CTA_GO_REVIEW,
+  CTA_RETRY_GENERATION,
+  CTA_START_GENERATION,
+  CTA_UPLOAD_LOGS,
+} from "@/shared/lib/ctaLabels";
 
 export type HealthTone = "normal" | "warning" | "danger";
 export type HealthCtaKind = "upload" | "review" | "generate";
@@ -119,7 +124,7 @@ export function buildWorkspaceDashboardHealthView(
   } else if (canStartGeneration) {
     ctas.push({
       kind: "generate",
-      label: isGenerationFailed ? "지식팩 생성 재시도" : "지식팩 생성 시작",
+      label: isGenerationFailed ? CTA_RETRY_GENERATION : CTA_START_GENERATION,
       to: `/workspaces/${workspaceId}/upload?datasetId=${generationDatasetId}`,
     });
   }
