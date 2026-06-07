@@ -114,6 +114,13 @@ def test_generation_fallback_can_be_explicitly_enabled(monkeypatch: pytest.Monke
     assert main._allow_generation_fallback(runtime_config)
 
 
+def test_generation_fallback_can_be_explicitly_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    runtime_config = type("RuntimeConfig", (), {"llm_runtime_base_url": None})()
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_ALLOW_LLM_FALLBACK", "false")
+
+    assert not main._allow_generation_fallback(runtime_config)
+
+
 def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     runtime_config = type(
         "RuntimeConfig",

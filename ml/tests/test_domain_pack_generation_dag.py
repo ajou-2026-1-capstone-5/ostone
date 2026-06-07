@@ -239,6 +239,23 @@ def test_initial_llm_lifecycle_stops_only_for_initial_run(monkeypatch: pytest.Mo
     assert calls == ["stop"]
 
 
+def test_set_task_dependency_links_airflow_task_like_objects(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    linked: list[tuple[str, str]] = []
+
+    class FakeTask:
+        def __init__(self, task_id: str) -> None:
+            self.task_id = task_id
+
+        def __rshift__(self, downstream: "FakeTask") -> "FakeTask":
+            linked.append((self.task_id, downstream.task_id))
+            return downstream
+
+    dag_module._set_task_dependency(FakeTask("start"), FakeTask("stop"))
+
+    assert linked == [("start", "stop")]
+
+
 @pytest.mark.parametrize("value", ["true", "TRUE", " 1 ", "yes", "Y", "on"])
 def test_conf_bool_accepts_true_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
     dag_module = _import_dag_module(monkeypatch)
