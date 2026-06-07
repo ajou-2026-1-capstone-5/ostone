@@ -116,13 +116,9 @@
 
 .customDateGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(160px, 1fr));
-  gap: var(--s-2);
-}
-
-.customDateGrid {
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(160px, 240px));
+  gap: var(--s-2);
 }
 
 .field {
