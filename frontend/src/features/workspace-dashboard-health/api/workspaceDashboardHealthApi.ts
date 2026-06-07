@@ -38,6 +38,7 @@ export interface WorkspaceDashboardHealth {
   lastLogUpload?: WorkspaceDashboardLogUpload | null;
   lastKnowledgePackGeneration?: WorkspaceDashboardGeneration | null;
   pendingReviewCount: number;
+  latestOpenReviewPipelineJobId?: number | null;
 }
 
 export interface WorkspaceDashboardActionRecommendation {

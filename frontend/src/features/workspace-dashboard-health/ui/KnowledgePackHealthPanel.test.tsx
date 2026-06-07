@@ -52,6 +52,7 @@ describe("KnowledgePackHealthPanel", () => {
           requestedAt: "2026-06-03T09:10:00Z",
         },
         pendingReviewCount: 2,
+        latestOpenReviewPipelineJobId: 77,
       },
     } as ReturnType<typeof useWorkspaceDashboardHealth>);
 

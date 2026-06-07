@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { AdminPipelineJobsPage } from "./AdminPipelineJobsPage";
 import { ApiRequestError } from "@/shared/api";
@@ -42,7 +43,9 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AdminPipelineJobsPage />
+      <MemoryRouter>
+        <AdminPipelineJobsPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -90,6 +93,46 @@ describe("AdminPipelineJobsPage", () => {
     expect(screen.getByText("5m")).toBeInTheDocument();
     expect(screen.getByText("retry #12")).toBeInTheDocument();
     expect(screen.getByText("Airflow failed")).toBeInTheDocument();
+  });
+
+  it("검토 대기 job에 review 화면 링크를 표시한다", async () => {
+    mocks.listAdminPipelineJobs.mockResolvedValueOnce({
+      items: [
+        {
+          pipelineJobId: 42,
+          workspaceId: 2,
+          datasetId: 38,
+          domainPackId: null,
+          jobType: "INGESTION",
+          status: "WAITING_HUMAN_FEEDBACK",
+          airflowDagId: "domain_pack_generation",
+          airflowRunId: "pipeline_job_42",
+          requestedAt: "2026-06-07T09:00:00Z",
+          startedAt: "2026-06-07T09:01:00Z",
+          finishedAt: null,
+          queueLagSeconds: 60,
+          runningDurationSeconds: null,
+          totalDurationSeconds: null,
+          lagExceeded: false,
+          lastErrorMessage: null,
+          retriedFromPipelineJobId: null,
+          retryPipelineJobId: null,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("#42")).toBeInTheDocument();
+    expect(screen.getAllByText("WAITING_HUMAN_FEEDBACK").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: "pipeline job 42 검토 화면" })).toHaveAttribute(
+      "href",
+      "/workspaces/2/pipeline-jobs/42/review",
+    );
   });
 
   it("필터 입력 후 조회하면 query parameter 상태로 목록 API를 호출한다", async () => {

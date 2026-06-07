@@ -229,7 +229,8 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
                 11L, "CS Pack", 22L, 4, odt("2026-04-01T00:00:00+09:00"), now, 77L),
             new WorkspaceDashboardLogUploadResult(8L, "june-log", "6월 상담 로그", "READY", now),
             new WorkspaceDashboardGenerationResult(77L, 8L, 11L, "FAILED", now, now, now, "boom"),
-            0);
+            0,
+            null);
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-05-29T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
@@ -245,7 +246,7 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-06-04T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
-        new WorkspaceDashboardHealthResult(null, null, null, 0),
+        new WorkspaceDashboardHealthResult(null, null, null, 0, null),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         null,
@@ -260,7 +261,8 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
             null,
             null,
             new WorkspaceDashboardGenerationResult(77L, 8L, 11L, "FAILED", now, now, now, "boom"),
-            0);
+            0,
+            null);
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-06-04T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
@@ -276,7 +278,7 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-06-04T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
-        new WorkspaceDashboardHealthResult(null, null, null, 0),
+        new WorkspaceDashboardHealthResult(null, null, null, 0, null),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         null,
@@ -289,7 +291,7 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-06-04T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
-        new WorkspaceDashboardHealthResult(null, null, null, 0),
+        new WorkspaceDashboardHealthResult(null, null, null, 0, null),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         null,
@@ -301,7 +303,7 @@ class GetWorkspaceDashboardActionRecommendationsUseCaseTest {
     return new WorkspaceDashboardRecommendationSignalsResult(
         odt("2026-06-04T00:00:00+09:00"),
         odt("2026-06-05T00:00:00+09:00"),
-        new WorkspaceDashboardHealthResult(null, null, null, 0),
+        new WorkspaceDashboardHealthResult(null, null, null, 0, null),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         new WorkspaceDashboardDecisionSignalResult(0, 0, 0, 0),
         null,
