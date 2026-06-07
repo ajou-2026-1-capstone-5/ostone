@@ -11,6 +11,7 @@ from typing import Any
 from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
+from pipeline.stages.feedback_candidate_generation.review_question_enrichment import enrich_review_questions
 from pipeline.stages.flow_splitting.constants import CLUSTERS_ARTIFACT, WORKFLOW_ENTRYPOINTS_ARTIFACT
 from pipeline.stages.preprocessing.io import read_stage_context
 
@@ -72,6 +73,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         limit=_question_limit(),
     )
     quality_kpis = _quality_kpis(questions)
+    enrichment_summary = enrich_review_questions(questions, runtime_config)
     payload: dict[str, object] = {
         "schemaVersion": "feedback-review-questions.v1",
         "stage": "feedback_candidate_generation",
@@ -81,6 +83,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         "questionCount": len(questions),
         "qualityKpis": quality_kpis,
         "questions": questions,
+        "enrichmentSummary": enrichment_summary,
         "durationSeconds": round(time.monotonic() - started_at, 4),
     }
     artifact_path = output_dir / ARTIFACT_NAME
@@ -94,6 +97,14 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             "recordCount": len(questions),
             "metrics": {
                 "feedbackQuestionCount": len(questions),
+                "reviewQuestionEnrichmentEnabled": bool(enrichment_summary.get("enabled")),
+                "reviewQuestionEnrichmentAppliedCount": int(enrichment_summary.get("appliedCount", 0)),
+                "reviewQuestionEnrichmentFallbackCount": int(enrichment_summary.get("fallbackCount", 0)),
+                "reviewQuestionEnrichmentAbstainCount": int(enrichment_summary.get("abstainCount", 0)),
+                "reviewQuestionEnrichmentSchemaFailureCount": int(enrichment_summary.get("schemaFailureCount", 0)),
+                "reviewQuestionEnrichmentGroundingFailureCount": int(
+                    enrichment_summary.get("groundingFailureCount", 0)
+                ),
                 "qualityKpis": quality_kpis,
             },
         },
