@@ -8,6 +8,9 @@ describe("demoRoutes", () => {
     expect(buildWorkspaceSimulationPath("space key")).toBe(
       "/workspaces/space%20key/simulation",
     );
+    expect(buildWorkspaceSimulationPath("a/b?c&d")).toBe(
+      "/workspaces/a%2Fb%3Fc%26d/simulation",
+    );
   });
 
   it("buildDemoChatPath가 고객용 데모 채팅 경로와 query string을 만든다", () => {
