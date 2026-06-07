@@ -44,10 +44,7 @@
 
 .filterBar {
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) minmax(
-      420px,
-      1.45fr
-    );
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr);
   align-items: end;
   gap: var(--s-3);
   padding: var(--s-4);
@@ -117,14 +114,14 @@
   color: var(--paper);
 }
 
-.customDateGrid,
-.selectGrid {
+.customDateGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(160px, 1fr));
   gap: var(--s-2);
 }
 
 .customDateGrid {
+  grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(160px, 240px));
 }
 
@@ -159,7 +156,7 @@
 
 .filterSummary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--s-2);
 }
 
@@ -800,10 +797,6 @@
 
   .coverageHeader {
     flex-direction: column;
-  }
-
-  .selectGrid {
-    grid-template-columns: 1fr;
   }
 
   .ctaGrid {
