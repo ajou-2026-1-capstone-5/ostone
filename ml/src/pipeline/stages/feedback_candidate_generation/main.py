@@ -15,6 +15,15 @@ from pipeline.stages.feedback_candidate_generation.review_question_enrichment im
 from pipeline.stages.flow_splitting.constants import CLUSTERS_ARTIFACT, WORKFLOW_ENTRYPOINTS_ARTIFACT
 from pipeline.stages.preprocessing.io import read_stage_context
 
+from .selection import (
+    CANNOT_LINK_KIND,
+    SELECTION_METRICS_ARTIFACT,
+    QuestionCandidate,
+    SelectionResult,
+    collect_candidates,
+    select_candidates,
+)
+
 ARTIFACT_NAME = "feedback_review_questions.json"
 MAX_QUESTIONS = 12
 QUESTION_TYPE_INTENT_BOUNDARY = "INTENT_BOUNDARY"
@@ -66,7 +75,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     clusters_payload = _read_json(flow_dir / CLUSTERS_ARTIFACT)
     entrypoints_payload = _read_json(flow_dir / WORKFLOW_ENTRYPOINTS_ARTIFACT)
     preprocessed_index = _read_preprocessed_index(runtime_config, stage_context)
-    questions = _build_questions(
+    questions, selection = _build_questions(
         clusters_payload,
         entrypoints_payload,
         preprocessed_index,
@@ -88,12 +97,18 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     }
     artifact_path = output_dir / ARTIFACT_NAME
     artifact_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    selection_metrics_path = output_dir / SELECTION_METRICS_ARTIFACT
+    selection_metrics_path.write_text(
+        json.dumps(selection.metrics, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     manifest_path = write_stage_manifest(
         stage_context,
         runtime_config,
         {
             "upstream_manifest_path": upstream_manifest_path,
             "feedbackQuestionsPath": artifact_path.name,
+            "reportPath": selection_metrics_path.name,
             "recordCount": len(questions),
             "metrics": {
                 "feedbackQuestionCount": len(questions),
@@ -106,6 +121,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
                     enrichment_summary.get("groundingFailureCount", 0)
                 ),
                 "qualityKpis": quality_kpis,
+                "selection": selection.metrics,
             },
         },
     )
@@ -118,101 +134,57 @@ def _build_questions(
     preprocessed_index: dict[str, dict[str, Any]],
     *,
     limit: int,
-) -> list[dict[str, object]]:
-    questions: list[dict[str, object]] = []
+) -> tuple[list[dict[str, object]], SelectionResult]:
     entrypoints = [item for item in entrypoints_payload.get("workflowEntryPoints", []) if isinstance(item, dict)]
     clusters = [item for item in clusters_payload.get("clusters", []) if isinstance(item, dict)]
-    questions.extend(_cannot_link_questions(entrypoints, preprocessed_index, limit=limit))
-    if len(questions) < limit:
-        questions.extend(_must_link_questions(clusters, preprocessed_index, limit=limit - len(questions)))
-    return questions[:limit]
+    candidates = collect_candidates(entrypoints, clusters, limit=limit)
+    selection = select_candidates(candidates, limit=limit)
+    return _questions_from_selection(selection.selected, preprocessed_index), selection
 
 
-def _cannot_link_questions(
-    entrypoints: list[dict[str, Any]],
+def _questions_from_selection(
+    selected: list[QuestionCandidate],
     preprocessed_index: dict[str, dict[str, Any]],
-    *,
-    limit: int,
 ) -> list[dict[str, object]]:
-    output: list[dict[str, object]] = []
-    for source, items in _entrypoints_by_source(entrypoints).items():
-        if len(items) < 2:
-            continue
-        output.extend(_cannot_link_questions_for_source(source, items, preprocessed_index, limit - len(output)))
-        if len(output) >= limit:
-            return output[:limit]
-    return output
-
-
-def _entrypoints_by_source(entrypoints: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    by_source: dict[str, list[dict[str, Any]]] = {}
-    for entrypoint in entrypoints:
-        source = _text_id(entrypoint.get("sourceClusterId"))
-        if source:
-            by_source.setdefault(source, []).append(entrypoint)
-    return by_source
-
-
-def _cannot_link_questions_for_source(
-    source: str,
-    items: list[dict[str, Any]],
-    preprocessed_index: dict[str, dict[str, Any]],
-    limit: int,
-) -> list[dict[str, object]]:
-    output: list[dict[str, object]] = []
-    ordered = sorted(items, key=lambda item: float(item.get("confidence") or 0.0))
-    for index, left in enumerate(ordered):
-        for right in ordered[index + 1 :]:
-            pair = _representative_pair(left, right)
-            if pair is None:
-                continue
-            output.append(
+    questions: list[dict[str, object]] = []
+    cannot_link_sequence: Counter[str] = Counter()
+    must_link_count = 0
+    for candidate in selected:
+        if candidate.kind == CANNOT_LINK_KIND:
+            cannot_link_sequence[candidate.source_cluster_id] += 1
+            questions.append(
                 _question(
-                    question_id=f"workflow-boundary-{source}-{len(output) + 1}",
-                    source_id=pair[0],
-                    target_id=pair[1],
+                    question_id=(
+                        f"workflow-boundary-{candidate.source_cluster_id}"
+                        f"-{cannot_link_sequence[candidate.source_cluster_id]}"
+                    ),
+                    source_id=candidate.source_id,
+                    target_id=candidate.target_id,
                     preprocessed_index=preprocessed_index,
                     question_type=QUESTION_TYPE_WORKFLOW_BOUNDARY,
                     decision_scope=DECISION_SCOPE_WORKFLOW,
                     reason="same_source_cluster_split",
-                    priority="HIGH",
-                    source_cluster_id=source,
+                    priority="LOW" if candidate.is_weak else "HIGH",
+                    source_cluster_id=candidate.source_cluster_id,
                 )
             )
-            if len(output) >= limit:
-                return output
-    return output
-
-
-def _must_link_questions(
-    clusters: list[dict[str, Any]],
-    preprocessed_index: dict[str, dict[str, Any]],
-    *,
-    limit: int,
-) -> list[dict[str, object]]:
-    output: list[dict[str, object]] = []
-    ordered = sorted(clusters, key=lambda item: float(item.get("workflow_confidence") or item.get("confidence") or 0.0))
-    for cluster in ordered:
-        member_ids = _string_list(cluster.get("exemplar_conv_ids")) or _string_list(cluster.get("member_conv_ids"))
-        if len(member_ids) < 2:
             continue
-        source_cluster_id = _text_id(cluster.get("cluster_id")) or _text_id(cluster.get("source_cluster_id"))
-        output.append(
+        must_link_count += 1
+        cluster_key = candidate.cluster_id or candidate.source_cluster_id or str(must_link_count - 1)
+        questions.append(
             _question(
-                question_id=f"must-link-{cluster.get('cluster_id', len(output))}-{len(output) + 1}",
-                source_id=member_ids[0],
-                target_id=member_ids[1],
+                question_id=f"must-link-{cluster_key}-{must_link_count}",
+                source_id=candidate.source_id,
+                target_id=candidate.target_id,
                 preprocessed_index=preprocessed_index,
                 question_type=QUESTION_TYPE_INTENT_BOUNDARY,
                 decision_scope=DECISION_SCOPE_INTENT,
                 reason="low_confidence_cluster_boundary",
-                priority="NORMAL",
-                source_cluster_id=source_cluster_id,
+                priority="LOW" if candidate.is_weak else "NORMAL",
+                source_cluster_id=candidate.source_cluster_id,
             )
         )
-        if len(output) >= limit:
-            break
-    return output
+    return questions
 
 
 def _question(
@@ -416,14 +388,6 @@ def _reason_label(reason: str) -> str:
         "same_source_cluster_split": "같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다.",
         "low_confidence_cluster_boundary": "같은 클러스터로 묶였지만 경계 신뢰도가 낮습니다.",
     }.get(reason, "클러스터 경계 판단이 필요합니다.")
-
-
-def _representative_pair(left: dict[str, Any], right: dict[str, Any]) -> tuple[str, str] | None:
-    left_ids = _string_list(left.get("exemplarConversationIds")) or _string_list(left.get("memberConversationIds"))
-    right_ids = _string_list(right.get("exemplarConversationIds")) or _string_list(right.get("memberConversationIds"))
-    if not left_ids or not right_ids:
-        return None
-    return left_ids[0], right_ids[0]
 
 
 def _read_preprocessed_index(
