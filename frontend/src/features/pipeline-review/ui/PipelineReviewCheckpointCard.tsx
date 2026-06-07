@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  type FeedbackAnswerOption,
   type ReviewCaseContext,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
@@ -17,9 +18,22 @@ interface Props {
 }
 
 const FEEDBACK_DRAFT_KEY_PREFIX = "ostone:pipeline-review:feedback-draft";
-const FEEDBACK_DECISION_VALUES = ["must_link", "cannot_link", "unsure"] as const;
+const INTENT_FEEDBACK_ANSWER_OPTIONS = [
+  { value: "must_link", label: "같은 intent로 묶기" },
+  { value: "cannot_link", label: "분리하기" },
+  { value: "unsure", label: "판단 보류" },
+];
+const WORKFLOW_FEEDBACK_ANSWER_OPTIONS = [
+  { value: "same_workflow", label: "같은 workflow로 합치기" },
+  {
+    value: "same_intent_separate_workflow",
+    label: "같은 intent지만 workflow는 분리",
+  },
+  { value: "different_intent", label: "다른 intent로 분리" },
+  { value: "unsure", label: "판단 보류" },
+];
 
-type FeedbackDecision = (typeof FEEDBACK_DECISION_VALUES)[number];
+type FeedbackDecision = string;
 type FeedbackDecisions = Record<number, FeedbackDecision>;
 
 export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Props) {
@@ -40,18 +54,29 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
     [query.data?.tasks],
   );
   const openTaskIds = useMemo(() => openTasks.map((task) => task.id), [openTasks]);
+  const openTaskDecisionValues = useMemo(
+    () =>
+      new Map(
+        openTasks.map((task) => [
+          task.id,
+          new Set(feedbackAnswerOptions(task.payload).map((option) => option.value)),
+        ]),
+      ),
+    [openTasks],
+  );
   const storedFeedbackDecisions = useMemo(() => {
     if (query.data?.reviewKind !== "HUMAN_FEEDBACK" || !draftStorageKey) {
       return {};
     }
-    return readFeedbackDraft(draftStorageKey, openTaskIds);
-  }, [draftStorageKey, openTaskIds, query.data?.reviewKind]);
+    return readFeedbackDraft(draftStorageKey, openTaskIds, openTaskDecisionValues);
+  }, [draftStorageKey, openTaskDecisionValues, openTaskIds, query.data?.reviewKind]);
   const activeFeedbackDecisions = filterFeedbackDecisions(
     {
       ...storedFeedbackDecisions,
       ...(feedbackDraft.storageKey === draftStorageKey ? feedbackDraft.decisions : {}),
     },
     openTaskIds,
+    openTaskDecisionValues,
   );
   const answeredFeedbackCount = openTasks.filter(
     (task) => activeFeedbackDecisions[task.id] !== undefined,
@@ -90,6 +115,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
       const next = filterFeedbackDecisions(
         { ...currentDecisions, [taskId]: decision },
         openTaskIds,
+        openTaskDecisionValues,
       );
       if (draftStorageKey) {
         writeFeedbackDraft(draftStorageKey, next);
@@ -265,7 +291,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
             애매한 클러스터 경계를 확인합니다.
           </h2>
           <p className={styles.description}>
-            답변은 같은 업무/다른 업무 제약으로 replay에 반영됩니다.
+            답변은 검토 유형에 맞는 intent 또는 workflow scope로 기록됩니다.
           </p>
         </div>
         <span className={styles.badge}>
@@ -279,6 +305,9 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               <p className={styles.question}>
                 {task.payload.questionText ?? "두 상담을 같은 intent로 묶어도 되나요?"}
               </p>
+              <span className={styles.reason}>
+                {questionScopeLabel(task.payload.questionType, task.payload.decisionScope)}
+              </span>
               <span className={styles.reason}>
                 {task.payload.reasonLabel ?? reasonLabel(task.payload.reason)}
               </span>
@@ -296,13 +325,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
               />
             </div>
             <div className={styles.choiceRow}>
-              {(
-                [
-                  ["must_link", "같은 intent로 묶기"],
-                  ["cannot_link", "분리하기"],
-                  ["unsure", "판단 보류"],
-                ] satisfies Array<[FeedbackDecision, string]>
-              ).map(([value, label]) => (
+              {feedbackAnswerOptions(task.payload).map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
@@ -448,6 +471,38 @@ function reasonLabel(reason?: string): string {
   return "클러스터 경계 판단이 필요합니다.";
 }
 
+function questionScopeLabel(questionType?: string, decisionScope?: string): string {
+  if (questionType === "WORKFLOW_BOUNDARY") {
+    return `Workflow boundary · ${decisionScope || "workflow"} scope`;
+  }
+  if (questionType === "INTENT_BOUNDARY") {
+    return `Intent boundary · ${decisionScope || "intent"} scope`;
+  }
+  return `${decisionScope || "intent"} scope`;
+}
+
+function feedbackAnswerOptions(payload: {
+  questionType?: string;
+  answerOptions?: FeedbackAnswerOption[];
+}): Array<{ value: FeedbackDecision; label: string }> {
+  const options =
+    payload.answerOptions
+      ?.map((option) => ({
+        value: option.value?.trim() ?? "",
+        label: option.label?.trim() ?? option.value?.trim() ?? "",
+      }))
+      .filter((option) => option.value && option.label) ?? [];
+
+  if (options.length > 0) {
+    return options;
+  }
+
+  if (payload.questionType === "WORKFLOW_BOUNDARY") {
+    return WORKFLOW_FEEDBACK_ANSWER_OPTIONS;
+  }
+  return INTENT_FEEDBACK_ANSWER_OPTIONS;
+}
+
 function createFeedbackDraftStorageKey(
   workspaceId?: number,
   pipelineJobId?: number,
@@ -458,7 +513,11 @@ function createFeedbackDraftStorageKey(
   return `${FEEDBACK_DRAFT_KEY_PREFIX}:${workspaceId}:${pipelineJobId}`;
 }
 
-function readFeedbackDraft(storageKey: string, openTaskIds: number[]): FeedbackDecisions {
+function readFeedbackDraft(
+  storageKey: string,
+  openTaskIds: number[],
+  allowedValuesByTaskId: Map<number, Set<string>>,
+): FeedbackDecisions {
   if (typeof window === "undefined") {
     return {};
   }
@@ -469,7 +528,11 @@ function readFeedbackDraft(storageKey: string, openTaskIds: number[]): FeedbackD
       return {};
     }
 
-    return filterFeedbackDecisions(JSON.parse(raw) as Record<string, unknown>, openTaskIds);
+    return filterFeedbackDecisions(
+      JSON.parse(raw) as Record<string, unknown>,
+      openTaskIds,
+      allowedValuesByTaskId,
+    );
   } catch {
     return {};
   }
@@ -506,12 +569,18 @@ function removeFeedbackDraft(storageKey: string) {
 function filterFeedbackDecisions(
   decisions: Record<string, unknown>,
   openTaskIds: number[],
+  allowedValuesByTaskId: Map<number, Set<string>>,
 ): FeedbackDecisions {
   const openTaskIdSet = new Set(openTaskIds);
 
   return Object.entries(decisions).reduce<FeedbackDecisions>((filtered, [taskId, decision]) => {
     const numericTaskId = Number(taskId);
-    if (openTaskIdSet.has(numericTaskId) && isFeedbackDecision(decision)) {
+    const allowedValues = allowedValuesByTaskId.get(numericTaskId);
+    if (
+      openTaskIdSet.has(numericTaskId) &&
+      isFeedbackDecision(decision) &&
+      allowedValues?.has(decision)
+    ) {
       filtered[numericTaskId] = decision;
     }
     return filtered;
@@ -519,7 +588,7 @@ function filterFeedbackDecisions(
 }
 
 function isFeedbackDecision(value: unknown): value is FeedbackDecision {
-  return FEEDBACK_DECISION_VALUES.some((decision) => decision === value);
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function checkpointStateTitle(pipelineStatus?: string): string {
