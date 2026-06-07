@@ -12,10 +12,6 @@ import httpx
 
 from pipeline.common.config import PipelineRuntimeConfig
 
-DESCRIPTION_ENRICHMENT_ENV = "ML_DESCRIPTION_ENRICHMENT"
-NAME_ENRICHMENT_ENV = "ML_NAME_ENRICHMENT"
-DISABLE_THINKING_ENV = "ML_LLM_DISABLE_THINKING"
-ENABLED_VALUES = {"1", "true", "yes", "on", "local_llm", "llm"}
 MAX_EVIDENCE_ITEMS = 6
 MAX_EVIDENCE_CHARS = 300
 FORBIDDEN_DESCRIPTION_PHRASES = (
@@ -49,19 +45,13 @@ def enrich_candidate_descriptions(
     candidate: dict[str, Any],
     runtime_config: PipelineRuntimeConfig,
     logger: logging.Logger | None = None,
-) -> dict[str, Any] | None:
-    description_mode = _env_mode(DESCRIPTION_ENRICHMENT_ENV)
-    name_mode = _env_mode(NAME_ENRICHMENT_ENV)
-    description_enabled = description_mode in ENABLED_VALUES
-    name_enabled = name_mode in ENABLED_VALUES
-    if not description_enabled and not name_enabled:
-        return None
+) -> dict[str, Any]:
     started_at = time.monotonic()
     summary: dict[str, Any] = {
         "enabled": True,
-        "mode": description_mode if description_enabled else name_mode,
-        "descriptionMode": description_mode if description_enabled else "off",
-        "nameMode": name_mode if name_enabled else "off",
+        "mode": "always_on",
+        "descriptionMode": "always_on",
+        "nameMode": "always_on",
         "provider": "openai_compatible",
         "model": runtime_config.llm_model_name,
         "schemaTotalCount": 0,
@@ -97,40 +87,38 @@ def enrich_candidate_descriptions(
     seen_names: dict[str, set[str]] = {entity_type: set() for entity_type in NAME_ENTITY_TYPES}
 
     with httpx.Client(timeout=timeout) as client:
-        if name_enabled:
-            for entity in entities:
-                if entity.entity_type not in NAME_ENTITY_TYPES:
-                    continue
-                if _limit_reached(summary, limit):
-                    break
-                _enrich_entity_field(
-                    client,
-                    endpoint,
-                    headers,
-                    runtime_config,
-                    entity,
-                    field_name="name",
-                    summary=summary,
-                    logger=logger,
-                    seen_names=seen_names,
-                )
-                seen_names[entity.entity_type].add(str(entity.payload.get("name") or entity.name))
+        for entity in entities:
+            if entity.entity_type not in NAME_ENTITY_TYPES:
+                continue
+            if _limit_reached(summary, limit):
+                break
+            _enrich_entity_field(
+                client,
+                endpoint,
+                headers,
+                runtime_config,
+                entity,
+                field_name="name",
+                summary=summary,
+                logger=logger,
+                seen_names=seen_names,
+            )
+            seen_names[entity.entity_type].add(str(entity.payload.get("name") or entity.name))
 
-        if description_enabled:
-            for entity in entities:
-                if _limit_reached(summary, limit):
-                    break
-                _enrich_entity_field(
-                    client,
-                    endpoint,
-                    headers,
-                    runtime_config,
-                    entity,
-                    field_name="description",
-                    summary=summary,
-                    logger=logger,
-                    seen_names=seen_names,
-                )
+        for entity in entities:
+            if _limit_reached(summary, limit):
+                break
+            _enrich_entity_field(
+                client,
+                endpoint,
+                headers,
+                runtime_config,
+                entity,
+                field_name="description",
+                summary=summary,
+                logger=logger,
+                seen_names=seen_names,
+            )
 
     summary["durationSeconds"] = round(time.monotonic() - started_at, 4)
     return summary
@@ -240,10 +228,6 @@ def _record_fallback(summary: dict[str, Any], field_name: str) -> None:
 
 def _increment(summary: dict[str, Any], key: str) -> None:
     summary[key] = int(summary.get(key, 0)) + 1
-
-
-def _env_mode(name: str) -> str:
-    return os.getenv(name, "off").strip().lower()
 
 
 def _normalized_text(value: str) -> str:
@@ -422,8 +406,7 @@ def _request_payload(model_name: str, entity: DescriptionEntity, field_name: str
             },
         ],
     }
-    if _disable_thinking_enabled():
-        payload["options"] = {"think": False}
+    payload["options"] = {"think": False}
     return payload
 
 
@@ -659,10 +642,6 @@ def _entity_limit() -> int | None:
     except ValueError:
         return None
     return parsed if parsed > 0 else None
-
-
-def _disable_thinking_enabled() -> bool:
-    return _env_mode(DISABLE_THINKING_ENV) in ENABLED_VALUES
 
 
 def _compact_json(value: dict[str, Any]) -> str:

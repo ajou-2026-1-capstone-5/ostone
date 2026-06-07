@@ -12,27 +12,38 @@ from pipeline.stages.draft_generation import description_enrichment
 from pipeline.stages.draft_generation.description_enrichment import enrich_candidate_descriptions
 
 
-def test_description_enrichment_is_disabled_by_default(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.delenv("ML_DESCRIPTION_ENRICHMENT", raising=False)
+def test_description_enrichment_falls_back_without_runtime_url_by_default(tmp_path: Path) -> None:
+    summary = enrich_candidate_descriptions(
+        _candidate(),
+        PipelineRuntimeConfig(
+            artifact_root=tmp_path,
+            backend_base_url="http://backend:8080",
+            llm_runtime_base_url=None,
+            llm_model_name="gemma-local",
+        ),
+    )
 
-    summary = enrich_candidate_descriptions(_candidate(), _runtime_config(tmp_path))
-
-    assert summary is None
+    assert summary is not None
+    assert summary["enabled"] is True
+    assert summary["mode"] == "always_on"
+    assert summary["requestFailureCount"] == 1
+    assert summary["fallbackReason"] == "missing_llm_runtime_base_url"
 
 
 def test_description_enrichment_applies_valid_local_llm_response(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
-    monkeypatch.setattr(description_enrichment.httpx, "Client", _fake_client_factory(_response(abstain=False)))
+    fake_client = _RecordingClient([_name_response("결제 금액 확인"), _response(abstain=False)])
+    monkeypatch.setattr(description_enrichment.httpx, "Client", _recording_client_factory(fake_client))
     candidate = _candidate()
     runtime_config = _runtime_config(tmp_path)
 
     summary = enrich_candidate_descriptions(candidate, runtime_config)
 
     assert summary is not None
-    assert summary["schemaTotalCount"] == 1
-    assert summary["schemaValidCount"] == 1
+    assert summary["schemaTotalCount"] == 2
+    assert summary["schemaValidCount"] == 2
     assert summary["schemaFailureCount"] == 0
-    assert summary["appliedCount"] == 1
+    assert summary["appliedCount"] == 2
+    assert candidate["intentDraft"]["intents"][0]["name"] == "결제 금액 확인"
     assert (
         candidate["intentDraft"]["intents"][0]["description"]
         == "고객의 결제 금액 문의를 확인하고 처리 기준을 안내합니다."
@@ -41,8 +52,7 @@ def test_description_enrichment_applies_valid_local_llm_response(monkeypatch, tm
 
 
 def test_name_enrichment_applies_valid_local_llm_response(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_NAME_ENRICHMENT", "local_llm")
-    monkeypatch.delenv("ML_DESCRIPTION_ENRICHMENT", raising=False)
+    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT_LIMIT", "1")
     monkeypatch.setattr(description_enrichment.httpx, "Client", _fake_client_factory(_name_response("결제 금액 확인")))
     candidate = _candidate()
 
@@ -60,7 +70,7 @@ def test_name_enrichment_applies_valid_local_llm_response(monkeypatch, tmp_path:
 
 
 def test_name_enrichment_normalizes_list_style_and_rejects_duplicate_names(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_NAME_ENRICHMENT", "local_llm")
+    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT_LIMIT", "3")
     fake_client = _RecordingClient(
         [
             _name_response("결제 / 금액 문의"),
@@ -88,7 +98,7 @@ def test_name_enrichment_repairs_rough_current_name_when_llm_name_is_rejected(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("ML_NAME_ENRICHMENT", "local_llm")
+    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT_LIMIT", "2")
     fake_client = _RecordingClient(
         [
             _name_response("결제 금액 확인"),
@@ -119,31 +129,35 @@ def test_description_enrichment_keeps_original_description_when_model_abstains(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
-    monkeypatch.setattr(description_enrichment.httpx, "Client", _fake_client_factory(_response(abstain=True)))
+    fake_client = _RecordingClient([_name_response("결제 금액 확인"), _response(abstain=True)])
+    monkeypatch.setattr(description_enrichment.httpx, "Client", _recording_client_factory(fake_client))
     candidate = _candidate()
 
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path))
 
     assert summary is not None
-    assert summary["schemaValidCount"] == 1
+    assert summary["schemaValidCount"] == 2
     assert summary["abstainCount"] == 1
     assert summary["fallbackCount"] == 1
-    assert summary["appliedCount"] == 0
+    assert summary["appliedCount"] == 1
     assert candidate["intentDraft"]["intents"][0]["description"] == "결제 문의 클러스터"
 
 
 def test_description_enrichment_rejects_unknown_evidence_ids(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         description_enrichment.httpx,
         "Client",
-        _fake_client_factory(
-            {
-                "description": "고객의 결제 금액 문의를 확인하고 처리 기준을 안내합니다.",
-                "usedEvidenceIds": ["unknown"],
-                "abstain": False,
-            }
+        _recording_client_factory(
+            _RecordingClient(
+                [
+                    _name_response("결제 금액 확인"),
+                    {
+                        "description": "고객의 결제 금액 문의를 확인하고 처리 기준을 안내합니다.",
+                        "usedEvidenceIds": ["unknown"],
+                        "abstain": False,
+                    },
+                ]
+            )
         ),
     )
     candidate = _candidate()
@@ -151,7 +165,7 @@ def test_description_enrichment_rejects_unknown_evidence_ids(monkeypatch, tmp_pa
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path))
 
     assert summary is not None
-    assert summary["schemaValidCount"] == 1
+    assert summary["schemaValidCount"] == 2
     assert summary["schemaFailureCount"] == 0
     assert summary["evidenceMismatchCount"] == 1
     assert summary["fallbackCount"] == 1
@@ -159,16 +173,20 @@ def test_description_enrichment_rejects_unknown_evidence_ids(monkeypatch, tmp_pa
 
 
 def test_description_enrichment_rejects_meta_generation_phrases(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         description_enrichment.httpx,
         "Client",
-        _fake_client_factory(
-            {
-                "description": "결제 문의를 처리하는 자동 생성 워크플로우입니다.",
-                "usedEvidenceIds": ["c1"],
-                "abstain": False,
-            }
+        _recording_client_factory(
+            _RecordingClient(
+                [
+                    _name_response("결제 금액 확인"),
+                    {
+                        "description": "결제 문의를 처리하는 자동 생성 워크플로우입니다.",
+                        "usedEvidenceIds": ["c1"],
+                        "abstain": False,
+                    },
+                ]
+            )
         ),
     )
     candidate = _candidate()
@@ -176,14 +194,13 @@ def test_description_enrichment_rejects_meta_generation_phrases(monkeypatch, tmp
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path))
 
     assert summary is not None
-    assert summary["schemaValidCount"] == 1
+    assert summary["schemaValidCount"] == 2
     assert summary["contentValidationFailureCount"] == 1
     assert summary["fallbackCount"] == 1
     assert candidate["intentDraft"]["intents"][0]["description"] == "결제 문의 클러스터"
 
 
-def test_description_enrichment_reports_missing_runtime_url(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
+def test_description_enrichment_reports_missing_runtime_url(tmp_path: Path) -> None:
     runtime_config = PipelineRuntimeConfig(
         artifact_root=tmp_path,
         backend_base_url="http://backend:8080",
@@ -199,9 +216,8 @@ def test_description_enrichment_reports_missing_runtime_url(monkeypatch, tmp_pat
 
 
 def test_description_enrichment_respects_limit_and_api_key(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT_LIMIT", "1")
-    fake_client = _RecordingClient([_response(abstain=False)])
+    fake_client = _RecordingClient([_name_response("결제 금액 확인")])
     monkeypatch.setattr(description_enrichment.httpx, "Client", _recording_client_factory(fake_client))
     candidate = _candidate_with_workflow()
     runtime_config = _runtime_config(tmp_path, api_key="secret")
@@ -215,9 +231,8 @@ def test_description_enrichment_respects_limit_and_api_key(monkeypatch, tmp_path
     assert fake_client.requests[0]["headers"]["Authorization"] == "Bearer secret"
 
 
-def test_description_enrichment_can_disable_model_thinking(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_NAME_ENRICHMENT", "local_llm")
-    monkeypatch.setenv("ML_LLM_DISABLE_THINKING", "1")
+def test_description_enrichment_sends_model_options_by_default(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT_LIMIT", "1")
     fake_client = _RecordingClient([_name_response("카드 한도 상향")])
     monkeypatch.setattr(description_enrichment.httpx, "Client", _recording_client_factory(fake_client))
 
@@ -229,7 +244,6 @@ def test_description_enrichment_can_disable_model_thinking(monkeypatch, tmp_path
 
 
 def test_description_enrichment_handles_request_failure(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         description_enrichment.httpx,
         "Client",
@@ -240,22 +254,26 @@ def test_description_enrichment_handles_request_failure(monkeypatch, tmp_path: P
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path), logger=logging.getLogger(__name__))
 
     assert summary is not None
-    assert summary["requestFailureCount"] == 1
-    assert summary["fallbackCount"] == 1
+    assert summary["requestFailureCount"] == 2
+    assert summary["fallbackCount"] == 2
     assert candidate["intentDraft"]["intents"][0]["description"] == "결제 문의 클러스터"
 
 
 def test_description_enrichment_counts_schema_failures(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         description_enrichment.httpx,
         "Client",
-        _fake_client_factory(
-            {
-                "description": "고객의 결제 금액 문의를 확인하고 처리 기준을 안내합니다.",
-                "usedEvidenceIds": ["c1"],
-                "abstain": "false",
-            }
+        _recording_client_factory(
+            _RecordingClient(
+                [
+                    _name_response("결제 금액 확인"),
+                    {
+                        "description": "고객의 결제 금액 문의를 확인하고 처리 기준을 안내합니다.",
+                        "usedEvidenceIds": ["c1"],
+                        "abstain": "false",
+                    },
+                ]
+            )
         ),
     )
     candidate = _candidate()
@@ -263,7 +281,7 @@ def test_description_enrichment_counts_schema_failures(monkeypatch, tmp_path: Pa
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path), logger=logging.getLogger(__name__))
 
     assert summary is not None
-    assert summary["schemaValidCount"] == 0
+    assert summary["schemaValidCount"] == 1
     assert summary["schemaFailureCount"] == 1
     assert summary["fallbackCount"] == 1
 
@@ -285,9 +303,10 @@ def test_description_enrichment_parses_fenced_json_content() -> None:
 
 
 def test_description_enrichment_rejects_empty_and_too_long_content(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     fake_client = _RecordingClient(
         [
+            _name_response("결제 금액 확인"),
+            {"name": "결제 금액 처리", "usedEvidenceIds": ["workflow-graph"], "abstain": False},
             {"description": "", "usedEvidenceIds": ["c1"], "abstain": False},
             {"description": "가" * 221, "usedEvidenceIds": ["workflow-graph"], "abstain": False},
         ]
@@ -298,15 +317,16 @@ def test_description_enrichment_rejects_empty_and_too_long_content(monkeypatch, 
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path))
 
     assert summary is not None
-    assert summary["schemaValidCount"] == 2
+    assert summary["schemaValidCount"] == 4
     assert summary["contentValidationFailureCount"] == 2
     assert summary["fallbackCount"] == 2
 
 
 def test_description_enrichment_uses_workflow_evidence_from_graph(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("ML_DESCRIPTION_ENRICHMENT", "local_llm")
     fake_client = _RecordingClient(
         [
+            _name_response("결제 금액 확인"),
+            {"name": "결제 금액 처리", "usedEvidenceIds": ["workflow-graph"], "abstain": False},
             _response(abstain=False),
             {
                 "description": "본인 확인 후 결제 금액 문의를 처리합니다.",
@@ -321,10 +341,10 @@ def test_description_enrichment_uses_workflow_evidence_from_graph(monkeypatch, t
     summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path))
 
     assert summary is not None
-    assert summary["appliedCount"] == 2
+    assert summary["appliedCount"] == 4
     workflow = candidate["workflowDraft"]["workflows"][0]
     assert workflow["description"] == "본인 확인 후 결제 금액 문의를 처리합니다."
-    assert "id=workflow-graph" in fake_client.requests[1]["json"]["messages"][1]["content"]
+    assert "id=workflow-graph" in fake_client.requests[3]["json"]["messages"][1]["content"]
 
 
 def test_description_enrichment_helpers_handle_malformed_inputs(monkeypatch) -> None:

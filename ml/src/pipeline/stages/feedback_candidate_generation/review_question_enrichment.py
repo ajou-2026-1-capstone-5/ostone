@@ -11,9 +11,6 @@ import httpx
 
 from pipeline.common.config import PipelineRuntimeConfig
 
-REVIEW_QUESTION_ENRICHMENT_ENV = "ML_REVIEW_QUESTION_ENRICHMENT"
-DISABLE_THINKING_ENV = "ML_LLM_DISABLE_THINKING"
-ENABLED_VALUES = {"1", "true", "yes", "on", "local_llm", "llm"}
 MAX_EVIDENCE_ITEMS = 8
 MAX_EVIDENCE_CHARS = 420
 CHOICE_KEYS = ("must_link", "cannot_link", "unsure")
@@ -56,13 +53,11 @@ def enrich_review_questions(
     runtime_config: PipelineRuntimeConfig,
     logger: logging.Logger | None = None,
 ) -> dict[str, Any]:
-    mode = _env_mode(REVIEW_QUESTION_ENRICHMENT_ENV)
-    enabled = mode in ENABLED_VALUES
     started_at = time.monotonic()
     summary: dict[str, Any] = {
-        "enabled": enabled,
-        "mode": mode,
-        "provider": "openai_compatible" if enabled else "disabled",
+        "enabled": True,
+        "mode": "always_on",
+        "provider": "openai_compatible",
         "model": runtime_config.llm_model_name,
         "schemaTotalCount": 0,
         "schemaValidCount": 0,
@@ -75,9 +70,6 @@ def enrich_review_questions(
         "fallbackCount": 0,
         "lowPriorityCount": 0,
     }
-    if not enabled:
-        summary["durationSeconds"] = 0.0
-        return summary
 
     base_url = runtime_config.llm_runtime_base_url
     if not base_url:
@@ -276,8 +268,7 @@ def _request_payload(
             },
         ],
     }
-    if _disable_thinking_enabled():
-        payload["options"] = {"think": False}
+    payload["options"] = {"think": False}
     return payload
 
 
@@ -463,10 +454,6 @@ def _compact_json(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
-def _env_mode(name: str) -> str:
-    return os.getenv(name, "off").strip().lower()
-
-
 def _timeout_seconds() -> float:
     raw = os.getenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "30").strip()
     try:
@@ -485,10 +472,6 @@ def _question_limit() -> int:
     except ValueError:
         return 50
     return max(0, min(50, value))
-
-
-def _disable_thinking_enabled() -> bool:
-    return _env_mode(DISABLE_THINKING_ENV) in {"1", "true", "yes", "on"}
 
 
 __all__ = ["enrich_review_questions"]
