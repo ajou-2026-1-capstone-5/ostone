@@ -377,29 +377,10 @@ describe("WorkspaceDashboardPage", () => {
 
     renderPage();
 
-    expect(await screen.findByTestId("dashboard-empty")).toBeInTheDocument();
-    expect(screen.getByText("계측 필요")).toBeInTheDocument();
+    expect(await screen.findByText("계측 필요")).toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-empty")).not.toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByText("전 기간 --").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByTestId("dashboard-upload-cta")).toHaveAttribute(
-      "href",
-      "/workspaces/1/upload",
-    );
-    expect(screen.getByTestId("dashboard-pack-cta")).toHaveAttribute(
-      "href",
-      "/workspaces/1/domain-packs",
-    );
-    expect(screen.getByRole("link", { name: /지식팩 검토/ })).toBeInTheDocument();
-    expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute(
-      "href",
-      "/workspaces/1/simulation",
-    );
-    expect(screen.getByRole("link", { name: /시뮬레이션 시작/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /공개 데모 체험/ })).toBeInTheDocument();
-    expect(screen.getByTestId("dashboard-customer-preview-cta")).toHaveAttribute(
-      "href",
-      "/demo/chat/1",
-    );
     expect(screen.getByTestId("recommendation-empty")).toHaveTextContent("현재 큰 이상 없음");
   });
 
@@ -436,21 +417,21 @@ describe("WorkspaceDashboardPage", () => {
   it("loading, error, partial 상태 패널이 같은 shell 영역에서 렌더링된다", () => {
     const { rerender } = render(
       <MemoryRouter>
-        <DashboardStatePanel state="loading" workspaceId={1} />
+        <DashboardStatePanel state="loading" />
       </MemoryRouter>,
     );
     expect(screen.getByTestId("dashboard-loading")).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <DashboardStatePanel state="error" workspaceId={1} />
+        <DashboardStatePanel state="error" />
       </MemoryRouter>,
     );
     expect(screen.getByTestId("dashboard-error")).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <DashboardStatePanel state="partial" workspaceId={1} />
+        <DashboardStatePanel state="partial" />
       </MemoryRouter>,
     );
     expect(screen.getByTestId("dashboard-partial")).toBeInTheDocument();

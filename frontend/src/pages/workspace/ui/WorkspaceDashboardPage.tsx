@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useOutletContext, useParams } from "react-router-dom";
-import {
-  ArrowRightIcon,
-  CheckCircle2Icon,
-  FileUpIcon,
-  FlaskConicalIcon,
-  MonitorSmartphoneIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { ArrowRightIcon, CheckCircle2Icon, RefreshCwIcon } from "lucide-react";
 
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type {
@@ -23,11 +16,7 @@ import {
   type WorkspaceDashboardActionRecommendations,
 } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import {
-  buildDemoChatPath,
-  buildWorkspaceSimulationPath,
-  PUBLIC_DEMO_CHAT_LABEL,
-} from "@/shared/lib/demoRoutes";
+import { buildWorkspaceSimulationPath } from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -51,8 +40,7 @@ interface FilterOption<T extends string = string> {
 }
 
 interface DashboardStatePanelProps {
-  state: DashboardDataState;
-  workspaceId: number;
+  state: Exclude<DashboardDataState, "empty">;
 }
 
 interface DashboardMetricCardProps {
@@ -757,7 +745,7 @@ function DashboardFilters({
   );
 }
 
-export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelProps) {
+export function DashboardStatePanel({ state }: DashboardStatePanelProps) {
   if (state === "loading") {
     return (
       <section className={styles.statePanel} data-testid="dashboard-loading" aria-live="polite">
@@ -775,61 +763,17 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
     );
   }
 
-  if (state === "partial") {
-    return (
-      <section className={styles.partialPanel} data-testid="dashboard-partial">
-        <div>
-          <span className={styles.panelEyebrow}>PARTIAL DATA</span>
-          <h2>일부 운영 데이터만 확인됩니다.</h2>
-          <p>
-            선택 기간에 수집된 상담 로그 기준으로 확인 가능한 지표를 먼저 표시합니다. 값이 없는
-            항목은 해당 운영 기록이 쌓이면 계산됩니다.
-          </p>
-        </div>
-        <RefreshCwIcon aria-hidden="true" className={styles.panelIcon} />
-      </section>
-    );
-  }
-
   return (
-    <section className={styles.emptyPanel} data-testid="dashboard-empty">
-      <div className={styles.emptyCopy}>
-        <span className={styles.panelEyebrow}>GET STARTED</span>
-        <h2>아직 대시보드에 표시할 운영 데이터가 없습니다.</h2>
+    <section className={styles.partialPanel} data-testid="dashboard-partial">
+      <div>
+        <span className={styles.panelEyebrow}>PARTIAL DATA</span>
+        <h2>일부 운영 데이터만 확인됩니다.</h2>
         <p>
-          상담 로그를 업로드하고 운영 지식팩 검토를 마친 뒤, 시뮬레이션으로 워크플로우 흐름을
-          확인하세요.
+          선택 기간에 수집된 상담 로그 기준으로 확인 가능한 지표를 먼저 표시합니다. 값이 없는 항목은
+          해당 운영 기록이 쌓이면 계산됩니다.
         </p>
       </div>
-      <div className={styles.ctaGrid}>
-        <Button asChild variant="default">
-          <Link to={`/workspaces/${workspaceId}/upload`} data-testid="dashboard-upload-cta">
-            <FileUpIcon aria-hidden="true" />
-            상담 업로드
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to={`/workspaces/${workspaceId}/domain-packs`} data-testid="dashboard-pack-cta">
-            <CheckCircle2Icon aria-hidden="true" />
-            지식팩 검토
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link
-            to={buildWorkspaceSimulationPath(workspaceId)}
-            data-testid="dashboard-simulation-cta"
-          >
-            <FlaskConicalIcon aria-hidden="true" />
-            시뮬레이션 시작
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to={buildDemoChatPath(workspaceId)} data-testid="dashboard-customer-preview-cta">
-            <MonitorSmartphoneIcon aria-hidden="true" />
-            {PUBLIC_DEMO_CHAT_LABEL}
-          </Link>
-        </Button>
-      </div>
+      <RefreshCwIcon aria-hidden="true" className={styles.panelIcon} />
     </section>
   );
 }
@@ -1077,7 +1021,7 @@ export function WorkspaceDashboardPage() {
         state={workflowRankingState}
         error={workflowRankingsError}
       />
-      {dataState ? <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} /> : null}
+      {dataState && dataState !== "empty" ? <DashboardStatePanel state={dataState} /> : null}
     </div>
   );
 }
