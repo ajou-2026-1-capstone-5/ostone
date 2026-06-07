@@ -6,19 +6,12 @@ import { toast } from "sonner";
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import { fetchWorkspaceDashboardActionRecommendations } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 
-import {
-  DashboardStatePanel,
-  WorkspaceDashboardPage,
-} from "./WorkspaceDashboardPage";
+import { DashboardStatePanel, WorkspaceDashboardPage } from "./WorkspaceDashboardPage";
 
 const setCrumbs = vi.fn();
 const mockedGetMetrics = vi.mocked(consultationApi.getMetrics);
-const mockedGetWorkflowRankings = vi.mocked(
-  consultationApi.getWorkflowRankings,
-);
-const mockedFetchActionRecommendations = vi.mocked(
-  fetchWorkspaceDashboardActionRecommendations,
-);
+const mockedGetWorkflowRankings = vi.mocked(consultationApi.getWorkflowRankings);
+const mockedFetchActionRecommendations = vi.mocked(fetchWorkspaceDashboardActionRecommendations);
 const mockedToastError = vi.mocked(toast.error);
 
 const metricsResponse = {
@@ -167,8 +160,7 @@ const actionRecommendationResponse = {
       priority: 95,
       sourceLabel: "시뮬레이션에서 발견됨",
       title: "개선 후보 생성",
-      description:
-        "미처리 시뮬레이션 피드백이 있어 지식팩 개선 후보로 정리할 수 있습니다.",
+      description: "미처리 시뮬레이션 피드백이 있어 지식팩 개선 후보로 정리할 수 있습니다.",
       evidenceLabel: "Open feedback",
       evidenceValue: "4건",
       targetPath: "/workspaces/1/simulation?feedbackStatus=OPEN",
@@ -181,24 +173,15 @@ function renderPage(path = "/workspaces/1/dashboard") {
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route
-          path="/workspaces/:workspaceId/dashboard"
-          element={<WorkspaceDashboardPage />}
-        />
-        <Route
-          path="/workspaces"
-          element={<div data-testid="workspace-root" />}
-        />
+        <Route path="/workspaces/:workspaceId/dashboard" element={<WorkspaceDashboardPage />} />
+        <Route path="/workspaces" element={<div data-testid="workspace-root" />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
 vi.mock("react-router-dom", async () => {
-  const actual =
-    await vi.importActual<typeof import("react-router-dom")>(
-      "react-router-dom",
-    );
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
     ...actual,
     useOutletContext: () => ({
@@ -215,12 +198,9 @@ vi.mock("@/features/consultation/api/consultationApi", () => ({
   },
 }));
 
-vi.mock(
-  "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi",
-  () => ({
-    fetchWorkspaceDashboardActionRecommendations: vi.fn(),
-  }),
-);
+vi.mock("@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi", () => ({
+  fetchWorkspaceDashboardActionRecommendations: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -230,9 +210,7 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/features/workspace-dashboard-health", () => ({
   KnowledgePackHealthPanel: ({ workspaceId }: { workspaceId: number }) => (
-    <section data-testid="knowledge-health-panel">
-      workspace {workspaceId} health
-    </section>
+    <section data-testid="knowledge-health-panel">workspace {workspaceId} health</section>
   ),
 }));
 
@@ -244,9 +222,7 @@ describe("WorkspaceDashboardPage", () => {
     mockedFetchActionRecommendations.mockReset();
     mockedGetMetrics.mockResolvedValue(metricsResponse);
     mockedGetWorkflowRankings.mockResolvedValue(workflowRankingResponse);
-    mockedFetchActionRecommendations.mockResolvedValue(
-      actionRecommendationResponse,
-    );
+    mockedFetchActionRecommendations.mockResolvedValue(actionRecommendationResponse);
   });
 
   it("잘못된 workspaceId면 /workspaces로 리다이렉트한다", () => {
@@ -260,89 +236,58 @@ describe("WorkspaceDashboardPage", () => {
   it("기간 필터와 상담 처리 KPI, 추천 액션, 운영 지식팩 건강도, 핫패스 랭킹을 표시한다", async () => {
     renderPage();
 
-    expect(
-      screen.getByRole("heading", { name: "대시보드" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
     expect(
       screen.getByText(
         "상담 처리 흐름, 자동화 커버리지, 운영 지식팩 상태를 한 화면에서 확인합니다.",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/필터와 배치 구조를 먼저 고정합니다/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/필터와 배치 구조를 먼저 고정합니다/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("기간 필터")).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("운영 지식팩 버전 필터"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("운영 지식팩 버전 필터")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("채널 필터")).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("워크플로우 상태 필터"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("워크플로우 상태 필터")).not.toBeInTheDocument();
     expect(screen.getByText("총 상담")).toBeInTheDocument();
     expect(await screen.findByText("120")).toBeInTheDocument();
     expect(screen.getByText("1분 15초")).toBeInTheDocument();
     expect(screen.getByText("전 기간 +20.0%")).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "자동화 커버리지" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "자동화 커버리지" })).toBeInTheDocument();
     expect(screen.getByText("계측 확인")).toBeInTheDocument();
     expect(screen.getByText("60.0%")).toBeInTheDocument();
     expect(screen.getByText("21.7%")).toBeInTheDocument();
     expect(screen.getByText("72.9%")).toBeInTheDocument();
     expect(screen.getByText("2026-05-29")).toBeInTheDocument();
-    expect(
-      await screen.findByRole("heading", { name: "추천 액션" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "추천 액션" })).toBeInTheDocument();
     expect(screen.getByText("환불 처리 workflow 점검")).toBeInTheDocument();
     expect(screen.getByText("+33.3%")).toBeInTheDocument();
     expect(screen.getByText("시뮬레이션에서 발견됨")).toBeInTheDocument();
     expect(screen.getByText("4건")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /환불 처리 workflow 점검/ }),
-    ).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /환불 처리 workflow 점검/ })).toHaveAttribute(
       "href",
-      "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+      "/workspaces/1/simulation?packId=11&versionId=22&workflowId=100",
     );
-    expect(
-      screen.getByRole("link", { name: /개선 후보 생성/ }),
-    ).toHaveAttribute("href", "/workspaces/1/simulation?feedbackStatus=OPEN");
-    expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent(
-      "workspace 1 health",
+    expect(screen.getByRole("link", { name: /개선 후보 생성/ })).toHaveAttribute(
+      "href",
+      "/workspaces/1/simulation?feedbackStatus=OPEN",
     );
-    expect(
-      await screen.findByText("핫패스 워크플로우 랭킹"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent("workspace 1 health");
+    expect(await screen.findByText("핫패스 워크플로우 랭킹")).toBeInTheDocument();
     expect(screen.getByTestId("hotpath-top-1")).toHaveTextContent("환불 처리");
     expect(screen.getByTestId("hotpath-row-1")).toHaveTextContent("급증");
-    expect(
-      screen.getAllByRole("link", { name: /환불 처리/ })[0],
-    ).toHaveAttribute(
+    expect(screen.getByTestId("hotpath-top-1")).toHaveAttribute(
       "href",
       "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
     );
-    expect(screen.getByTestId("hotpath-row-2")).toHaveTextContent(
-      "상세 준비 중",
-    );
-    expect(
-      screen.queryByLabelText("대시보드 카드와 차트 배치 영역"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("hotpath-row-2")).toHaveTextContent("상세 준비 중");
+    expect(screen.queryByLabelText("대시보드 카드와 차트 배치 영역")).not.toBeInTheDocument();
     expect(screen.queryByText(/연결될 자리입니다/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("dashboard-partial")).not.toBeInTheDocument();
+    await waitFor(() => expect(mockedGetMetrics).toHaveBeenCalledWith(1, expect.any(Object)));
     await waitFor(() =>
-      expect(mockedGetMetrics).toHaveBeenCalledWith(1, expect.any(Object)),
+      expect(mockedGetWorkflowRankings).toHaveBeenCalledWith(1, expect.any(Object)),
     );
     await waitFor(() =>
-      expect(mockedGetWorkflowRankings).toHaveBeenCalledWith(
-        1,
-        expect.any(Object),
-      ),
-    );
-    await waitFor(() =>
-      expect(mockedFetchActionRecommendations).toHaveBeenCalledWith(
-        1,
-        expect.any(Object),
-      ),
+      expect(mockedFetchActionRecommendations).toHaveBeenCalledWith(1, expect.any(Object)),
     );
   });
 
@@ -444,28 +389,18 @@ describe("WorkspaceDashboardPage", () => {
       "href",
       "/workspaces/1/domain-packs",
     );
-    expect(
-      screen.getByRole("link", { name: /지식팩 검토/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /지식팩 검토/ })).toBeInTheDocument();
     expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute(
       "href",
       "/workspaces/1/simulation",
     );
-    expect(
-      screen.getByRole("link", { name: /시뮬레이션 시작/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /고객 화면 미리보기/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("dashboard-customer-preview-cta"),
-    ).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /시뮬레이션 시작/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /고객 화면 미리보기/ })).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-customer-preview-cta")).toHaveAttribute(
       "href",
       "/demo/chat/1",
     );
-    expect(screen.getByTestId("recommendation-empty")).toHaveTextContent(
-      "현재 큰 이상 없음",
-    );
+    expect(screen.getByTestId("recommendation-empty")).toHaveTextContent("현재 큰 이상 없음");
   });
 
   it("상담 KPI가 실패해도 워크플로우 랭킹은 같은 화면에 남긴다", async () => {
@@ -473,9 +408,7 @@ describe("WorkspaceDashboardPage", () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText("핫패스 워크플로우 랭킹"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("핫패스 워크플로우 랭킹")).toBeInTheDocument();
     expect(screen.getByTestId("hotpath-row-1")).toHaveTextContent("환불 처리");
     expect(screen.getByTestId("dashboard-partial")).toHaveTextContent(
       "일부 운영 데이터만 확인됩니다.",
@@ -485,18 +418,12 @@ describe("WorkspaceDashboardPage", () => {
 
   it("passive load 실패는 화면 상태로 표시하고 toast를 띄우지 않는다", async () => {
     mockedGetMetrics.mockRejectedValueOnce(new Error("metrics failed"));
-    mockedGetWorkflowRankings.mockRejectedValueOnce(
-      new Error("rankings failed"),
-    );
-    mockedFetchActionRecommendations.mockRejectedValueOnce(
-      new Error("recommendations failed"),
-    );
+    mockedGetWorkflowRankings.mockRejectedValueOnce(new Error("rankings failed"));
+    mockedFetchActionRecommendations.mockRejectedValueOnce(new Error("recommendations failed"));
 
     renderPage();
 
-    expect(
-      await screen.findByText("대시보드 데이터를 불러오지 못했습니다."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("대시보드 데이터를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByTestId("recommendation-error")).toHaveTextContent(
       "추천 액션을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
     );
