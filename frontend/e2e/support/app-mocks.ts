@@ -47,7 +47,7 @@ export interface AppApiMockOptions {
   readonly uploadLatestPipelineJob?: "default" | "none";
   readonly uploadTransferDelayMs?: number;
   readonly domainPackGenerationFailureAttempts?: number;
-  readonly dashboardKnowledgePackHealth?: "default" | "error";
+  readonly dashboardKnowledgePackHealth?: "default" | "error" | "open-review";
   readonly generatedPipelineJob?: "domain-confirmation" | "running";
   readonly workspaceOneFreeOnboardingStatus?: FreeOnboardingStatus;
   readonly workspaceOneSubscriptionStatus?: WorkspaceOneSubscriptionStatus | null;
@@ -1413,7 +1413,23 @@ async function fulfillWorkspaceOperations(
     return true;
   }
 
-  if (method === "GET" && path === "/workspaces/1/dashboard/knowledge-pack-health") {
+  const knowledgePackHealthMatch = path.match(
+    /^\/workspaces\/(?<workspaceId>\d+)\/dashboard\/knowledge-pack-health$/,
+  );
+  if (method === "GET" && knowledgePackHealthMatch != null) {
+    const workspaceId = Number(knowledgePackHealthMatch.groups?.workspaceId);
+
+    if (workspaceId !== WORKSPACE_ID) {
+      await fulfillJson(route, {
+        activeKnowledgePack: null,
+        lastLogUpload: null,
+        lastKnowledgePackGeneration: null,
+        pendingReviewCount: 0,
+        latestOpenReviewPipelineJobId: null,
+      });
+      return true;
+    }
+
     if (options.dashboardKnowledgePackHealth === "error") {
       await fulfillJson(
         route,
@@ -1454,6 +1470,8 @@ async function fulfillWorkspaceOperations(
         lastErrorMessage: null,
       },
       pendingReviewCount: 1,
+      latestOpenReviewPipelineJobId:
+        options.dashboardKnowledgePackHealth === "open-review" ? PIPELINE_JOB_ID : null,
     });
     return true;
   }

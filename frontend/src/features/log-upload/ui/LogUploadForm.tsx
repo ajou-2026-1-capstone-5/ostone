@@ -1,6 +1,7 @@
 import React, { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { ListChecksIcon } from "lucide-react";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
@@ -57,12 +58,18 @@ export interface PaidUploadCooldown {
   readonly nextAvailableAt?: string | null;
 }
 
+export interface OpenReviewCta {
+  readonly path: string;
+  readonly pendingReviewCount: number;
+}
+
 interface LogUploadFormProps {
   workspaceId?: number;
   freeOnboardingStatus?: FreeOnboardingStatus;
   hasActiveSubscription?: boolean;
   isEntitlementLoading?: boolean;
   paidUploadCooldown?: PaidUploadCooldown;
+  openReviewCta?: OpenReviewCta | null;
 }
 
 interface GenerationRequestToken {
@@ -127,6 +134,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   hasActiveSubscription = false,
   isEntitlementLoading = false,
   paidUploadCooldown,
+  openReviewCta,
 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -508,6 +516,26 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
           </div>
         )}
       </div>
+
+      {openReviewCta ? (
+        <div className={styles.openReviewNotice}>
+          <div>
+            <span className={styles.statusLabel}>검토 대기</span>
+            <p>
+              {openReviewCta.pendingReviewCount > 0
+                ? `검토 대기 항목 ${openReviewCta.pendingReviewCount}개가 남아 있습니다.`
+                : "검토가 필요한 파이프라인이 열려 있습니다."}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(openReviewCta.path)}
+          >
+            <ListChecksIcon aria-hidden="true" size={16} />
+            {CTA_GO_REVIEW}
+          </Button>
+        </div>
+      ) : null}
 
       <div className={styles.uploadArea}>
         <FileUploader

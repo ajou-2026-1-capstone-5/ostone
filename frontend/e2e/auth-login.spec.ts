@@ -331,6 +331,20 @@ test.describe("Login screen", () => {
             return;
           }
 
+          if (
+            method === "GET" &&
+            path === "/workspaces/42/dashboard/knowledge-pack-health"
+          ) {
+            await fulfillJson(route, {
+              activeKnowledgePack: null,
+              lastLogUpload: null,
+              lastKnowledgePackGeneration: null,
+              pendingReviewCount: 0,
+              latestOpenReviewPipelineJobId: null,
+            });
+            return;
+          }
+
           if (method === "GET" && path === "/workspaces/99/domain-packs") {
             await fulfillJson(route, {
               data: [

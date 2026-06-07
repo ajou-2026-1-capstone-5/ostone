@@ -5,6 +5,7 @@ import { WorkspaceUploadPage } from "./WorkspaceUploadPage";
 
 const mockUseGetWorkspace = vi.fn();
 const mockUseSubscription = vi.fn();
+const mockUseWorkspaceDashboardHealth = vi.fn();
 const mockWorkspaceRefetch = vi.fn();
 const mockSubscriptionRefetch = vi.fn();
 
@@ -15,19 +16,23 @@ vi.mock("../../../features/log-upload/ui/LogUploadForm", () => ({
     hasActiveSubscription,
     isEntitlementLoading,
     paidUploadCooldown,
+    openReviewCta,
   }: {
     workspaceId?: number;
     freeOnboardingStatus?: string;
     hasActiveSubscription?: boolean;
     isEntitlementLoading?: boolean;
     paidUploadCooldown?: { isBlocked?: boolean; nextAvailableAt?: string | null };
+    openReviewCta?: { path: string; pendingReviewCount: number } | null;
   }) => (
     <div data-testid="upload-form">
       workspace:{workspaceId} onboarding:{freeOnboardingStatus} active:
       {String(hasActiveSubscription)} loading:{String(isEntitlementLoading)}{" "}
       cooldown:
       {String(paidUploadCooldown?.isBlocked)} next:
-      {paidUploadCooldown?.nextAvailableAt ?? "none"}
+      {paidUploadCooldown?.nextAvailableAt ?? "none"} review:
+      {openReviewCta?.path ?? "none"} pending:
+      {openReviewCta?.pendingReviewCount ?? "none"}
     </div>
   ),
 }));
@@ -43,6 +48,11 @@ vi.mock("@/entities/billing", () => ({
   useSubscription: (...args: unknown[]) => mockUseSubscription(...args),
   isSubscriptionEngaged: (status: string | undefined) =>
     status === "ACTIVE" || status === "PAST_DUE",
+}));
+
+vi.mock("@/features/workspace-dashboard-health", () => ({
+  useWorkspaceDashboardHealth: (...args: unknown[]) =>
+    mockUseWorkspaceDashboardHealth(...args),
 }));
 
 function renderRoute(initialEntry: string) {
@@ -77,6 +87,10 @@ describe("WorkspaceUploadPage", () => {
       isLoading: false,
       refetch: mockSubscriptionRefetch,
     });
+    mockUseWorkspaceDashboardHealth.mockReturnValue({
+      data: null,
+      isLoading: false,
+    });
   });
 
   afterEach(() => {
@@ -93,7 +107,23 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:AVAILABLE active:false loading:false cooldown:false next:none",
+      "workspace:1 onboarding:AVAILABLE active:false loading:false cooldown:false next:none review:none pending:none",
+    );
+  });
+
+  it("passes open review pipeline CTA to the upload form", () => {
+    mockUseWorkspaceDashboardHealth.mockReturnValue({
+      data: {
+        pendingReviewCount: 3,
+        latestOpenReviewPipelineJobId: 43,
+      },
+      isLoading: false,
+    });
+
+    renderRoute("/workspaces/2/upload");
+
+    expect(screen.getByTestId("upload-form")).toHaveTextContent(
+      "review:/workspaces/2/pipeline-jobs/43/review pending:3",
     );
   });
 
@@ -112,7 +142,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:true loading:false cooldown:false next:none",
+      "workspace:1 onboarding:CONSUMED active:true loading:false cooldown:false next:none review:none pending:none",
     );
   });
 
@@ -136,7 +166,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:AVAILABLE active:true loading:false cooldown:true next:2026-06-04T10:30:00+09:00",
+      "workspace:1 onboarding:AVAILABLE active:true loading:false cooldown:true next:2026-06-04T10:30:00+09:00 review:none pending:none",
     );
   });
 
@@ -160,7 +190,7 @@ describe("WorkspaceUploadPage", () => {
     renderRoute("/workspaces/1/upload");
 
     expect(screen.getByTestId("upload-form")).toHaveTextContent(
-      "workspace:1 onboarding:CONSUMED active:false loading:false cooldown:false next:none",
+      "workspace:1 onboarding:CONSUMED active:false loading:false cooldown:false next:none review:none pending:none",
     );
 
     act(() => {

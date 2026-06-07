@@ -52,6 +52,26 @@
   margin-top: 4px;
 }
 
+.openReviewNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: var(--radius-md);
+}
+
+.openReviewNotice p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
 .uploadArea {
   margin-bottom: 24px;
 }
@@ -133,6 +153,7 @@
 }
 
 .onboardingStatus .statusLabel,
+.openReviewNotice .statusLabel,
 .uploadSummary .statusLabel,
 .generationPanel .statusLabel {
   color: var(--text-color);
@@ -175,6 +196,10 @@
   .filePreview {
     flex-direction: column;
     gap: 16px;
+  }
+  .openReviewNotice {
+    align-items: stretch;
+    flex-direction: column;
   }
   .fileInfo {
     width: 100%;

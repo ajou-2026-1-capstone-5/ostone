@@ -9,6 +9,7 @@ import {
   LogUploadForm,
   type FreeOnboardingStatus,
 } from "../../../features/log-upload/ui/LogUploadForm";
+import { useWorkspaceDashboardHealth } from "@/features/workspace-dashboard-health";
 import { selectApiData } from "@/shared/api";
 import { useGetWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -60,6 +61,7 @@ export function WorkspaceUploadPage() {
     query: { enabled: parsedWorkspaceId !== null },
   });
   const subscriptionQuery = useSubscription(parsedWorkspaceId);
+  const dashboardHealthQuery = useWorkspaceDashboardHealth(parsedWorkspaceId);
 
   const workspace =
     (selectApiData(workspaceQuery.data) as
@@ -69,6 +71,15 @@ export function WorkspaceUploadPage() {
     (subscriptionQuery.data as SubscriptionResponse | null) ?? null;
   const hasActiveSubscription = isSubscriptionEngaged(subscription?.status);
   const paidUploadCooldown = resolvePaidUploadCooldown(subscription);
+  const latestOpenReviewPipelineJobId =
+    dashboardHealthQuery.data?.latestOpenReviewPipelineJobId ?? null;
+  const openReviewCta =
+    parsedWorkspaceId !== null && latestOpenReviewPipelineJobId !== null
+      ? {
+          path: `/workspaces/${parsedWorkspaceId}/pipeline-jobs/${latestOpenReviewPipelineJobId}/review`,
+          pendingReviewCount: dashboardHealthQuery.data?.pendingReviewCount ?? 0,
+        }
+      : null;
   const refetchWorkspace = workspaceQuery.refetch;
   const refetchSubscription = subscriptionQuery.refetch;
   const isEntitlementLoading = Boolean(
@@ -118,6 +129,7 @@ export function WorkspaceUploadPage() {
         hasActiveSubscription={hasActiveSubscription}
         isEntitlementLoading={isEntitlementLoading}
         paidUploadCooldown={paidUploadCooldown}
+        openReviewCta={openReviewCta}
       />
     </div>
   );
