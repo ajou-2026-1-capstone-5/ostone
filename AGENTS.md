@@ -163,12 +163,13 @@ ml/
 **포트 컨벤션**: `5173` = 로컬 개발 (Vite dev server, `frontend/Dockerfile.dev`). `3000` = production 이미지 내부 nginx 포트 (`frontend/Dockerfile`). 로컬에서 3000 으로 접근할 일은 없다.
 
 ```bash
-# 최초 1회 env 파일 준비
-cp .env.example .env
-
 # light 실행 (postgres + minio(+init) + backend + frontend)
-# preflight가 backend jar 신선도를 자동 확인·빌드하고, minio-init가 개발 버킷을 자동 생성한다.
+# dev:setup 부트스트랩이 .env 자동 생성(JWT_SECRET 랜덤 채움)·필수 env 점검·jar preflight·
+# compose config 검증·포트 사전 점검을 수행하고, 기동 후 접속 URL을 출력한다.
 pnpm run dev            # = pnpm run up:light
+
+# 기동 없이 준비·점검만
+pnpm run dev:setup
 
 # 모드별
 pnpm run up:pipeline    # + Airflow 스택
@@ -186,7 +187,8 @@ pnpm run logs
 기본 원칙:
 
 - 실행 모드는 compose profile로 분리: light(기본/runtime) / pipeline(+Airflow) / full(전체). 인자 없는 `docker compose up -d`는 light. `COMPOSE_PROFILES`는 셸 환경변수로만 profile을 활성화한다(.env에 적은 값은 미반영). npm `up:*` 스크립트가 이를 처리한다.
-- `backend` 로컬 컨테이너는 `pnpm run preflight:backend-jar`가 jar 존재·신선도를 확인해 필요 시 자동 `bootJar`한다(`up:light`/`up:full`에 내장). 수동 빌드는 `pnpm run build:backend:jar`.
+- `up:light`/`up:full`은 `scripts/dev-setup.mjs` 부트스트랩을 내장한다: `.env` 자동 생성(없을 때만, `JWT_SECRET` 랜덤 채움), 필수 env(`DB_PASSWORD`/`JWT_SECRET`/`AIRFLOW_WEBHOOK_SECRET`) 점검, jar preflight, `docker compose config --quiet` 검증, 호스트 포트 사전 경고. `up:pipeline` 등 나머지 경로는 기존 `env:check`를 유지한다.
+- `backend` 로컬 컨테이너는 `pnpm run preflight:backend-jar`가 jar 존재·신선도를 확인해 필요 시 자동 `bootJar`한다(dev:setup에 내장). 수동 빌드는 `pnpm run build:backend:jar`.
 - MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성한다(수동 `mc mb` 불필요).
 - Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
 - production frontend 이미지를 로컬에서 검증할 때만 `docker build -f frontend/Dockerfile -t init-frontend-prod ./frontend` 로 별도 빌드한다 (compose 와 무관).
@@ -255,6 +257,7 @@ pnpm run ci:backend
 | 의존성 설치       | `pnpm install`           |
 | Husky 설치        | `pnpm run prepare`       |
 | 로컬 전체 실행    | `pnpm run dev`           |
+| 로컬 부트스트랩   | `pnpm run dev:setup`     |
 | 전체 품질 검사    | `pnpm run check`         |
 | API 코드 생성     | `pnpm run codegen`       |
 | 최소 구동 확인    | `pnpm run smoke`         |

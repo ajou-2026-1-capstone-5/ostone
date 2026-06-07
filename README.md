@@ -392,10 +392,11 @@ pnpm install
 
 자주 쓰는 개발 태스크는 루트 package scripts를 우선 진입점으로 사용한다. 기존 backend/frontend/ML 세부 명령은 유지되며, 아래 상위 명령이 필요한 하위 명령으로 위임한다.
 
-| 목적                | 루트 명령          | 수행 내용                                                 |
-| ------------------- | ------------------ | --------------------------------------------------------- |
-| 전체 로컬 스택 실행 | `pnpm run dev`     | `.env` 확인, `backend` JAR 패키징 후 Docker Compose 서비스 실행 |
-| 전체 품질 검사      | `pnpm run check`   | `check:backend` → `check:frontend` → `check:ml` 순차 실행 |
+| 목적                 | 루트 명령            | 수행 내용                                                 |
+| -------------------- | -------------------- | --------------------------------------------------------- |
+| 전체 로컬 스택 실행  | `pnpm run dev`       | 부트스트랩(`dev:setup`) 후 Docker Compose 기동, 접속 URL 출력 |
+| 로컬 개발 부트스트랩 | `pnpm run dev:setup` | `.env` 생성/점검, backend JAR preflight, Compose 설정 검증, 포트 점검 |
+| 전체 품질 검사       | `pnpm run check`     | `check:backend` → `check:frontend` → `check:ml` 순차 실행 |
 | API 코드 생성       | `pnpm run codegen` | `.env` 확인 후 backend OpenAPI 생성 및 frontend Orval API 재생성 |
 | 최소 구동 확인      | `pnpm run smoke`   | `.env` 확인 후 주요 Docker Compose 서비스 running 검증    |
 | 주요 로그 확인      | `pnpm run logs`    | `.env` 확인 후 backend/frontend/Airflow 로그 follow       |
@@ -403,14 +404,19 @@ pnpm install
 ### 실행
 
 ```bash
-# 최초 1회 env 파일 준비
-cp .env.example .env
-
 # 제품 런타임(light) 실행 — postgres + minio + backend + frontend
+# .env가 없으면 .env.example 기반으로 자동 생성된다(최초 1회 수동 준비 불필요)
 pnpm run dev          # = pnpm run up:light
 ```
 
-`pnpm run dev`(=`up:light`)는 `.env`를 확인하고, backend JAR가 없거나 오래된 경우에만 자동으로 다시 패키징(preflight)한 뒤 `docker compose up -d`로 **light** 모드를 기동한다. MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성하므로 수동 `mc mb`가 필요 없다.
+`pnpm run dev`(=`up:light`)는 부트스트랩(`pnpm run dev:setup`)을 먼저 수행한 뒤 `docker compose up -d`로 **light** 모드를 기동하고, 성공 시 접속 URL을 출력한다. 부트스트랩은 다음을 한 번에 처리한다.
+
+- `.env`가 없으면 `.env.example` 기반으로 생성한다. 이때 `JWT_SECRET`은 로컬 전용 랜덤 값으로 자동 채워진다(기존 `.env`는 수정하지 않음).
+- 필수 환경 변수(`DB_PASSWORD`, `JWT_SECRET`, `AIRFLOW_WEBHOOK_SECRET`)의 누락·빈 값·placeholder를 점검하고, 실패 시 필요한 값과 조치를 로그로 안내한다.
+- backend JAR가 없거나 오래된 경우에만 자동으로 다시 패키징(preflight)한다.
+- `docker compose config --quiet`로 Compose 설정을 검증하고, 주요 호스트 포트 점유를 사전 경고한다.
+
+기동 없이 준비·점검만 하려면 `pnpm run dev:setup`을 단독 실행한다. MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성하므로 수동 `mc mb`가 필요 없다.
 
 **실행 모드** — Airflow는 compose profile로 분리되어 opt-in이다.
 
