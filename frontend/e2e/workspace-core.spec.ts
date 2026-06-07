@@ -703,6 +703,10 @@ test.describe("Workspace core operator screens", () => {
         await expect(rejectionCard).toBeVisible();
 
         const approveButton = approvalCard.getByRole("button", { name: "승인" });
+        await expect(approveButton).toBeDisabled();
+        await approvalCard.getByRole("button", { name: "변경 상세 확인" }).click();
+        await expect(approvalCard.getByRole("button", { name: "변경 확인 완료" })).toBeDisabled();
+        await expect(approveButton).toBeEnabled();
         await approveButton.click();
         await expect(approveButton).toBeDisabled();
         await expect(approvalCard.getByRole("button", { name: "반려" })).toBeDisabled();

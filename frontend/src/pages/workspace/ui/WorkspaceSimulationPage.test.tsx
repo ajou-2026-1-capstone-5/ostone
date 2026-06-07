@@ -150,6 +150,28 @@ const candidate = {
   updatedAt: "2026-06-04T10:45:00Z",
 } as const;
 
+const validDraftPatchJson = JSON.stringify({
+  schemaVersion: "simulation-candidate-draft-patch.v1",
+  operation: "UPDATE_DESCRIPTION",
+  targetElementType: "SLOT",
+  targetElementId: 55,
+  targetElementKey: "orderNo",
+  beforeSummary: "주문번호를 묻지 않았습니다.",
+  afterSummary: "주문번호를 먼저 요청합니다.",
+  evidenceSummary: "simulation feedback #900 (session #10, turn #1)",
+});
+
+const arrayDraftPatchJson = JSON.stringify({
+  changes: [
+    null,
+    { field: "빈 변경" },
+    {
+      beforeValue: { required: false },
+      afterValue: true,
+    },
+  ],
+});
+
 const goldenCase = {
   id: 950,
   workspaceId: 1,
@@ -842,6 +864,144 @@ describe("WorkspaceSimulationPage", () => {
     expect(screen.getAllByText("근거").length).toBeGreaterThan(0);
   });
 
+  it("개선 후보 draft patch 변경 상세를 표시하고 확인 전 승인을 막는다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+          draftPatchJson: validDraftPatchJson,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    expect(await screen.findByText("Draft patch 검토")).toBeInTheDocument();
+    expect(screen.getByText("UPDATE_DESCRIPTION")).toBeInTheDocument();
+    expect(screen.getAllByText("SLOT · #55 · orderNo").length).toBeGreaterThan(0);
+    expect(screen.getByText("초안 변경 요약")).toBeInTheDocument();
+    expect(screen.getAllByText("주문번호를 묻지 않았습니다.").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("주문번호를 먼저 요청합니다.").length).toBeGreaterThan(0);
+    expect(screen.getByText("simulation feedback #900 (session #10, turn #1)")).toBeInTheDocument();
+
+    const approveButton = screen.getByRole("button", { name: "승인" });
+    expect(approveButton).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "변경 상세 확인" }));
+    expect(screen.getByRole("button", { name: "변경 확인 완료" })).toBeDisabled();
+    expect(approveButton).not.toBeDisabled();
+  });
+
+  it("draft patch changes 배열의 변경값과 기본 표시를 검토한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+          draftPatchJson: arrayDraftPatchJson,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    expect(await screen.findByText("작업 미지정")).toBeInTheDocument();
+    expect(screen.getAllByText("SLOT").length).toBeGreaterThan(0);
+    expect(screen.getByText("변경 3")).toBeInTheDocument();
+    expect(screen.getByText('{"required":false}')).toBeInTheDocument();
+    expect(screen.getByText("true")).toBeInTheDocument();
+    expect(screen.getAllByText("simulation feedback #900").length).toBeGreaterThan(0);
+  });
+
+  it("draft patch 정보가 없으면 승인할 수 없음을 표시한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+          draftPatchJson: "{}",
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    expect(
+      await screen.findByText("draft patch 정보가 없습니다. 변경 전/후 필드를 확인할 수 없습니다."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "변경 상세 확인" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+  });
+
+  it("draft patch가 객체 형식이 아니면 승인할 수 없음을 표시한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+          draftPatchJson: '"not-object"',
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    expect(
+      await screen.findByText("draft patch가 객체 형식이 아니거나 비어 있습니다."),
+    ).toBeInTheDocument();
+    expect(screen.getByText('"not-object"')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+  });
+
+  it("draft patch JSON이 파싱되지 않으면 원문과 오류 상태를 표시한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+          draftPatchJson: "{invalid-json",
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openCandidateTab();
+    expect(await screen.findByText("draft patch JSON을 해석할 수 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("{invalid-json")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+  });
+
   it("개선 후보 목록 로드 실패는 패널 내부 오류와 재시도를 제공한다", async () => {
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(new Error("load failed"));
     renderPage();
@@ -902,6 +1062,7 @@ describe("WorkspaceSimulationPage", () => {
           status: "READY_FOR_REVIEW",
           reviewSessionId: 200,
           reviewTaskId: 300,
+          draftPatchJson: validDraftPatchJson,
         },
       ],
       page: 0,
@@ -912,6 +1073,7 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await openCandidateTab();
+    fireEvent.click(await screen.findByRole("button", { name: "변경 상세 확인" }));
     fireEvent.click(await screen.findByRole("button", { name: "승인" }));
 
     await waitFor(() => {
@@ -919,7 +1081,10 @@ describe("WorkspaceSimulationPage", () => {
         reason: "시뮬레이션 리뷰 승인",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보를 초안 버전에 반영했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("적용 version #102"));
+    expect(await screen.findByRole("status")).toHaveTextContent("적용 version #102");
+    expect(screen.getByRole("status")).toHaveTextContent("review session #200");
+    expect(screen.getByRole("status")).toHaveTextContent("review task #300");
     await waitFor(() => {
       expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);

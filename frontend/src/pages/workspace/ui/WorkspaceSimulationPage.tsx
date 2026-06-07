@@ -124,6 +124,33 @@ interface CandidateWorkflowTarget {
   workflowName: string;
 }
 
+interface CandidatePatchChange {
+  label: string;
+  before: string;
+  after: string;
+}
+
+type CandidatePatchReviewModel =
+  | {
+      kind: "ready";
+      operation: string;
+      targetLabel: string;
+      changes: CandidatePatchChange[];
+      evidence: string;
+      impactItems: string[];
+      rawJson: string;
+    }
+  | {
+      kind: "missing";
+      message: string;
+      rawJson?: string;
+    }
+  | {
+      kind: "invalid";
+      message: string;
+      rawJson: string;
+    };
+
 const SIDE_TABS: Array<{ value: SimulationSideTab; label: string }> = [
   { value: "state", label: "상태" },
   { value: "feedback", label: "피드백" },
@@ -453,6 +480,199 @@ function parseSlotValuesInput(value: string): Record<string, unknown> | null {
   return parsed as Record<string, unknown>;
 }
 
+function patchText(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : null;
+  if (typeof value === "boolean") return value ? "true" : "false";
+  try {
+    const json = JSON.stringify(value);
+    return typeof json === "string" ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+function firstPatchText(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = patchText(value);
+    if (text) return text;
+  }
+  return null;
+}
+
+function formatDraftPatchRaw(raw: unknown): string {
+  if (typeof raw === "string") {
+    try {
+      return JSON.stringify(JSON.parse(raw), null, 2);
+    } catch {
+      return raw;
+    }
+  }
+  try {
+    return JSON.stringify(raw, null, 2);
+  } catch {
+    return String(raw);
+  }
+}
+
+function readPatchObject(raw: string): Record<string, unknown> | null {
+  const parsed = JSON.parse(raw) as unknown;
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function readPatchChanges(patch: Record<string, unknown>): CandidatePatchChange[] {
+  const changes: CandidatePatchChange[] = [];
+  const rawChanges = patch.changes;
+
+  if (Array.isArray(rawChanges)) {
+    rawChanges.forEach((rawChange, index) => {
+      if (typeof rawChange !== "object" || rawChange === null || Array.isArray(rawChange)) {
+        return;
+      }
+      const change = rawChange as Record<string, unknown>;
+      const before = firstPatchText(
+        change.before,
+        change.beforeValue,
+        change.old,
+        change.oldValue,
+        change.from,
+      );
+      const after = firstPatchText(
+        change.after,
+        change.afterValue,
+        change.new,
+        change.newValue,
+        change.to,
+      );
+      if (!before && !after) return;
+      changes.push({
+        label:
+          firstPatchText(change.field, change.path, change.name, change.label) ??
+          `변경 ${index + 1}`,
+        before: before ?? "값 없음",
+        after: after ?? "값 없음",
+      });
+    });
+  }
+
+  const beforeSummary = firstPatchText(patch.beforeSummary, patch.before);
+  const afterSummary = firstPatchText(patch.afterSummary, patch.after);
+  if (beforeSummary || afterSummary) {
+    changes.push({
+      label: "초안 변경 요약",
+      before: beforeSummary ?? "값 없음",
+      after: afterSummary ?? "값 없음",
+    });
+  }
+
+  return changes;
+}
+
+function patchTargetLabel(
+  patch: Record<string, unknown>,
+  candidate: SimulationImprovementCandidate,
+): string {
+  const targetType = firstPatchText(patch.targetElementType) ?? candidate.targetElementType;
+  const targetId = firstPatchText(patch.targetElementId) ?? patchText(candidate.targetElementId);
+  const targetKey = firstPatchText(patch.targetElementKey) ?? candidate.targetElementKey;
+  return [targetType, targetId ? `#${targetId}` : null, targetKey].filter(Boolean).join(" · ");
+}
+
+function buildCandidatePatchReview(
+  candidate: SimulationImprovementCandidate,
+): CandidatePatchReviewModel {
+  const raw = candidate.draftPatchJson?.trim();
+  if (!raw || raw === "{}" || raw === "[]" || raw === "null") {
+    return {
+      kind: "missing",
+      message: "draft patch 정보가 없습니다. 변경 전/후 필드를 확인할 수 없습니다.",
+    };
+  }
+
+  let patch: Record<string, unknown> | null;
+  try {
+    patch = readPatchObject(raw);
+  } catch {
+    return {
+      kind: "invalid",
+      message: "draft patch JSON을 해석할 수 없습니다.",
+      rawJson: raw,
+    };
+  }
+
+  if (!patch || Object.keys(patch).length === 0) {
+    return {
+      kind: "missing",
+      message: "draft patch가 객체 형식이 아니거나 비어 있습니다.",
+      rawJson: formatDraftPatchRaw(raw),
+    };
+  }
+
+  const changes = readPatchChanges(patch);
+  if (changes.length === 0) {
+    return {
+      kind: "missing",
+      message: "draft patch에 변경 전/후 필드가 없습니다.",
+      rawJson: formatDraftPatchRaw(raw),
+    };
+  }
+
+  const targetLabel = patchTargetLabel(patch, candidate);
+  const evidence =
+    firstPatchText(patch.evidenceSummary, patch.evidence) ?? candidate.evidenceSummary;
+  const impactItems = [
+    `Domain Pack version #${candidate.domainPackVersionId}`,
+    targetLabel ? `변경 대상: ${targetLabel}` : null,
+    `세션 #${candidate.sessionId}`,
+    candidate.chatMessageId ? `메시지 #${candidate.chatMessageId}` : null,
+    candidate.feedbackId ? `피드백 #${candidate.feedbackId}` : null,
+  ].filter((item): item is string => Boolean(item));
+
+  return {
+    kind: "ready",
+    operation: firstPatchText(patch.operation) ?? "작업 미지정",
+    targetLabel: targetLabel || candidateTargetLabel(candidate),
+    changes,
+    evidence,
+    impactItems,
+    rawJson: formatDraftPatchRaw(raw),
+  };
+}
+
+function canApproveCandidate(
+  candidate: SimulationImprovementCandidate,
+  confirmed: boolean,
+): boolean {
+  return confirmed && buildCandidatePatchReview(candidate).kind === "ready";
+}
+
+function candidatePatchConfirmationKey(candidate: SimulationImprovementCandidate): string {
+  return `${candidate.id}:${candidate.draftPatchJson ?? ""}`;
+}
+
+function candidateApprovalGuide(candidate: SimulationImprovementCandidate): string {
+  const versionPart = candidate.appliedDomainPackVersionId
+    ? `적용 version #${candidate.appliedDomainPackVersionId}`
+    : "적용 version 응답 대기";
+  const reviewPart =
+    candidate.reviewSessionId || candidate.reviewTaskId
+      ? [
+          candidate.reviewSessionId ? `review session #${candidate.reviewSessionId}` : null,
+          candidate.reviewTaskId ? `review task #${candidate.reviewTaskId}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "review 대상은 응답에 포함되지 않았습니다";
+  return `${versionPart} · ${reviewPart}. 변경 확인 후 검증 케이스 replay로 재검증하세요.`;
+}
+
 export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
   const location = useLocation();
@@ -529,6 +749,10 @@ export function WorkspaceSimulationPage() {
   >({});
   const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
   const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
+  const [confirmedCandidatePatchKeys, setConfirmedCandidatePatchKeys] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const [candidateApprovalNotice, setCandidateApprovalNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const workflows = useListAllWorkspaceWorkflows({
@@ -963,16 +1187,36 @@ export function WorkspaceSimulationPage() {
   const handleApproveCandidate = async (candidate: SimulationImprovementCandidate) => {
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.approveImprovementCandidate(parsedWorkspaceId, candidate.id, {
-        reason: "시뮬레이션 리뷰 승인",
+      const approved = await simulationApi.approveImprovementCandidate(
+        parsedWorkspaceId,
+        candidate.id,
+        {
+          reason: "시뮬레이션 리뷰 승인",
+        },
+      );
+      const guide = candidateApprovalGuide({
+        ...approved,
+        reviewSessionId: approved.reviewSessionId ?? candidate.reviewSessionId,
+        reviewTaskId: approved.reviewTaskId ?? candidate.reviewTaskId,
       });
-      toast.success("개선 후보를 초안 버전에 반영했습니다.");
+      setCandidateApprovalNotice(guide);
+      toast.success(`개선 후보를 초안 버전에 반영했습니다. ${guide}`);
       await reloadFeedbackAndCandidates();
     } catch {
       toast.error("개선 후보를 승인하지 못했습니다.");
     } finally {
       setUpdatingCandidateId(null);
     }
+  };
+
+  const handleConfirmCandidatePatch = (candidate: SimulationImprovementCandidate) => {
+    const confirmationKey = candidatePatchConfirmationKey(candidate);
+    setConfirmedCandidatePatchKeys((current) => {
+      if (current.has(confirmationKey)) return current;
+      const next = new Set(current);
+      next.add(confirmationKey);
+      return next;
+    });
   };
 
   const handleRejectCandidate = async (candidate: SimulationImprovementCandidate) => {
@@ -1765,6 +2009,11 @@ export function WorkspaceSimulationPage() {
                     ))}
                   </NativeSelect>
                 </div>
+                {candidateApprovalNotice ? (
+                  <output className={styles.candidateApprovalNotice}>
+                    {candidateApprovalNotice}
+                  </output>
+                ) : null}
                 {isLoadingCandidates ? (
                   <p className={styles.feedbackMuted}>개선 후보를 불러오는 중입니다.</p>
                 ) : candidateError ? (
@@ -1817,6 +2066,13 @@ export function WorkspaceSimulationPage() {
                             </dd>
                           </div>
                         </dl>
+                        <CandidatePatchReview
+                          candidate={candidate}
+                          confirmed={confirmedCandidatePatchKeys.has(
+                            candidatePatchConfirmationKey(candidate),
+                          )}
+                          onConfirm={() => handleConfirmCandidatePatch(candidate)}
+                        />
                         {candidate.status === "DRAFT" ? (
                           <div className={styles.candidateActions}>
                             <Button
@@ -1861,7 +2117,15 @@ export function WorkspaceSimulationPage() {
                               <Button
                                 type="button"
                                 size="sm"
-                                disabled={updatingCandidateId === candidate.id}
+                                disabled={
+                                  updatingCandidateId === candidate.id ||
+                                  !canApproveCandidate(
+                                    candidate,
+                                    confirmedCandidatePatchKeys.has(
+                                      candidatePatchConfirmationKey(candidate),
+                                    ),
+                                  )
+                                }
                                 onClick={() => void handleApproveCandidate(candidate)}
                               >
                                 <span>승인</span>
@@ -1884,6 +2148,106 @@ export function WorkspaceSimulationPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+interface CandidatePatchReviewProps {
+  candidate: SimulationImprovementCandidate;
+  confirmed: boolean;
+  onConfirm: () => void;
+}
+
+function CandidatePatchReview({
+  candidate,
+  confirmed,
+  onConfirm,
+}: Readonly<CandidatePatchReviewProps>) {
+  const patchReview = buildCandidatePatchReview(candidate);
+
+  return (
+    <section className={styles.candidatePatchPanel} aria-label="draft patch 검토">
+      <div className={styles.candidatePatchHeader}>
+        <div>
+          <strong>Draft patch 검토</strong>
+          <span>승인 전 실제 변경 내용을 확인하세요.</span>
+        </div>
+        {patchReview.kind === "ready" ? (
+          <span className={styles.patchStatusReady}>확인 가능</span>
+        ) : (
+          <span className={styles.patchStatusBlocked}>확인 불가</span>
+        )}
+      </div>
+
+      {patchReview.kind === "ready" ? (
+        <>
+          <dl className={styles.patchMetaList}>
+            <div>
+              <dt>작업</dt>
+              <dd>{patchReview.operation}</dd>
+            </div>
+            <div>
+              <dt>대상</dt>
+              <dd>{patchReview.targetLabel}</dd>
+            </div>
+          </dl>
+          <dl className={styles.patchChangeList}>
+            {patchReview.changes.map((change, index) => (
+              <div key={`${change.label}-${index}`}>
+                <dt>{change.label}</dt>
+                <dd>
+                  <span>Before</span>
+                  <p>{change.before}</p>
+                </dd>
+                <dd>
+                  <span>After</span>
+                  <p>{change.after}</p>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className={styles.patchEvidenceBlock}>
+            <span>근거</span>
+            <p>{patchReview.evidence}</p>
+          </div>
+          <div className={styles.patchEvidenceBlock}>
+            <span>영향 범위</span>
+            <ul>
+              {patchReview.impactItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <details className={styles.patchRawDetails}>
+            <summary>원본 patch JSON</summary>
+            <pre>
+              <code>{patchReview.rawJson}</code>
+            </pre>
+          </details>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onConfirm}
+            disabled={confirmed}
+          >
+            <span>{confirmed ? "변경 확인 완료" : "변경 상세 확인"}</span>
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className={styles.patchUnavailableMessage}>{patchReview.message}</p>
+          {patchReview.rawJson ? (
+            <pre className={styles.patchRawPreview}>
+              <code>{patchReview.rawJson}</code>
+            </pre>
+          ) : null}
+          <p className={styles.patchConfirmHint}>
+            patch 내용을 확인할 수 없어 승인할 수 없습니다. 리뷰 요청 상태나 후보 생성 데이터를 먼저
+            확인하세요.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

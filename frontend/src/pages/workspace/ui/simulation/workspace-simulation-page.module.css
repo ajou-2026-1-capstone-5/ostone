@@ -882,6 +882,205 @@
   margin-top: 4px;
 }
 
+.candidatePatchPanel {
+  display: grid;
+  gap: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper-2);
+  padding: var(--s-3);
+}
+
+.candidatePatchHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.candidatePatchHeader > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.candidatePatchHeader strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+}
+
+.candidatePatchHeader > div span {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.patchStatusReady,
+.patchStatusBlocked {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 540;
+  line-height: 1;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.patchStatusReady {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.candidatePatchHeader .patchStatusReady,
+.candidatePatchHeader .patchStatusBlocked {
+  color: var(--ink-2);
+}
+
+.candidatePatchHeader .patchStatusReady {
+  color: var(--ink);
+}
+
+.patchStatusBlocked {
+  background: var(--paper);
+}
+
+.patchMetaList,
+.patchChangeList {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.patchMetaList div,
+.patchChangeList div {
+  display: grid;
+  gap: 4px;
+}
+
+.patchMetaList dt,
+.patchChangeList dt,
+.patchEvidenceBlock span {
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 540;
+  text-transform: uppercase;
+}
+
+.patchMetaList dd,
+.patchChangeList dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.patchChangeList dd {
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  padding: var(--s-2);
+}
+
+.patchChangeList dd span {
+  display: block;
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 540;
+  text-transform: uppercase;
+}
+
+.patchChangeList dd p,
+.patchEvidenceBlock p {
+  margin: 3px 0 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.patchEvidenceBlock {
+  display: grid;
+  gap: 3px;
+}
+
+.patchEvidenceBlock ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.patchEvidenceBlock li {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.patchRawDetails {
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-2);
+}
+
+.patchRawDetails summary {
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 540;
+}
+
+.patchRawDetails summary:focus-visible {
+  outline: none;
+  border-radius: var(--r-2);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 10%);
+}
+
+.patchRawDetails pre,
+.patchRawPreview {
+  max-height: 180px;
+  overflow: auto;
+  margin: var(--s-2) 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  padding: var(--s-2);
+  white-space: pre-wrap;
+}
+
+.patchUnavailableMessage,
+.patchConfirmHint,
+.candidateApprovalNotice {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.patchUnavailableMessage {
+  color: var(--ink);
+  font-weight: 540;
+}
+
+.patchConfirmHint {
+  color: var(--ink-3);
+}
+
+.candidateApprovalNotice {
+  border: 1px solid var(--ink);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--s-3);
+}
+
 .candidateReviewForm {
   display: grid;
   gap: var(--s-2);
