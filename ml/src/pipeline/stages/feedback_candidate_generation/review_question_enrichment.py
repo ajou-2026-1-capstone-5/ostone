@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -115,7 +114,7 @@ def _enrich_question(
         )
         response.raise_for_status()
         parsed = _parse_response(response.json())
-    except (httpx.HTTPError, json.JSONDecodeError, ValueError, TypeError, KeyError) as exc:
+    except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
         _increment(summary, "requestFailureCount")
         _record_fallback(question, summary, "request_failure")
         if logger is not None:
@@ -294,9 +293,10 @@ def _parse_response(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _json_content(content: str) -> str:
     text = content.strip()
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.DOTALL | re.IGNORECASE)
-    if fenced:
-        return fenced.group(1)
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if len(lines) >= 3 and lines[-1].strip() == "```":
+            return "\n".join(lines[1:-1]).strip()
     return text
 
 
