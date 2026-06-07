@@ -3,6 +3,7 @@ export type {
   CreateSimulationSessionPayload,
   CreateSimulationFeedbackPayload,
   CreateSimulationGoldenCasePayload,
+  CreateSimulationImprovementCandidatePayload,
   SimulationFeedback,
   SimulationFeedbackPage,
   SimulationFeedbackSeverity,

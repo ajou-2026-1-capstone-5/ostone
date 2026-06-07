@@ -4,7 +4,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 
 import { WorkspaceSimulationPage } from "./WorkspaceSimulationPage";
-import { simulationApi, type SimulationImprovementCandidate } from "@/features/simulation";
+import {
+  simulationApi,
+  type SimulationFeedbackType,
+  type SimulationImprovementCandidate,
+} from "@/features/simulation";
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
 
 const setCrumbs = vi.fn();
@@ -190,6 +194,14 @@ function candidateWithType(
     ...candidate,
     id,
     candidateType,
+  };
+}
+
+function feedbackWithType(id: number, feedbackType: SimulationFeedbackType) {
+  return {
+    ...detail.feedback.items[0],
+    id,
+    feedbackType,
   };
 }
 
@@ -568,6 +580,9 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await openFeedbackTab();
+    expect(await screen.findByLabelText("피드백 #900 개선 대상 선택")).toHaveValue("SLOT");
+    expect(screen.getByText("세부 element 미선택")).toBeInTheDocument();
+    expect(screen.getByText("현재 화면은 세부 element 선택을 지원하지 않아 target type까지만 후보에 저장합니다.")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "후보" }));
 
     await waitFor(() => {
@@ -575,9 +590,8 @@ describe("WorkspaceSimulationPage", () => {
         1,
         900,
         expect.objectContaining({
-          targetElementType: "WORKFLOW",
-          targetElementId: 100,
-          targetElementKey: "refund_workflow",
+          targetElementType: "SLOT",
+          beforeSummary: "Slot 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
           afterSummary: "주문번호를 먼저 요청합니다.",
         }),
       );
@@ -587,6 +601,127 @@ describe("WorkspaceSimulationPage", () => {
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
       expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("개선 후보 target을 workflow로 바꾸면 기존 workflow context payload를 유지한다", async () => {
+    renderPage();
+
+    await openFeedbackTab();
+    fireEvent.change(await screen.findByLabelText("피드백 #900 개선 대상 선택"), {
+      target: { value: "WORKFLOW" },
+    });
+    expect(screen.getByText("#100 · refund_workflow")).toBeInTheDocument();
+    expect(screen.getByText("환불 처리 workflow id/key를 후보에 함께 저장합니다.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+        1,
+        900,
+        expect.objectContaining({
+          targetElementType: "WORKFLOW",
+          targetElementId: 100,
+          targetElementKey: "refund_workflow",
+          beforeSummary: "Workflow 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+          afterSummary: "주문번호를 먼저 요청합니다.",
+        }),
+      );
+    });
+  });
+
+  it("개선 후보 target을 policy로 바꿔 생성할 수 있다", async () => {
+    renderPage();
+
+    await openFeedbackTab();
+    fireEvent.change(await screen.findByLabelText("피드백 #900 개선 대상 선택"), {
+      target: { value: "POLICY" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+        1,
+        900,
+        expect.objectContaining({
+          targetElementType: "POLICY",
+          beforeSummary: "Policy 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+        }),
+      );
+    });
+  });
+
+  it("feedback type별 기본 개선 대상을 서로 다르게 표시한다", async () => {
+    mockedSimulationApi.listFeedback.mockResolvedValue({
+      content: [
+        feedbackWithType(901, "INTENT_MISMATCH"),
+        feedbackWithType(902, "MISSING_SLOT_QUESTION"),
+        feedbackWithType(903, "POLICY_CONDITION_MISSING"),
+        feedbackWithType(904, "RISK_HANDOFF_REQUIRED"),
+        feedbackWithType(905, "WORKFLOW_BRANCH_ERROR"),
+        feedbackWithType(906, "INAPPROPRIATE_RESPONSE"),
+        feedbackWithType(907, "OTHER"),
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 7,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openFeedbackTab();
+
+    expect(await screen.findByLabelText("피드백 #901 개선 대상 선택")).toHaveValue("INTENT");
+    expect(screen.getByLabelText("피드백 #902 개선 대상 선택")).toHaveValue("SLOT");
+    expect(screen.getByLabelText("피드백 #903 개선 대상 선택")).toHaveValue("POLICY");
+    expect(screen.getByLabelText("피드백 #904 개선 대상 선택")).toHaveValue("RISK_RULE");
+    expect(screen.getByLabelText("피드백 #905 개선 대상 선택")).toHaveValue("WORKFLOW");
+    expect(screen.getByLabelText("피드백 #906 개선 대상 선택")).toHaveValue("RESPONSE");
+    expect(screen.getByLabelText("피드백 #907 개선 대상 선택")).toHaveValue("UNKNOWN");
+    expect(screen.getByText("기타 피드백은 구체 대상이 확정되지 않은 제한 상태로 후보화됩니다.")).toBeInTheDocument();
+  });
+
+  it("workflow 맥락이 없으면 workflow target type만 후보 payload에 보존한다", async () => {
+    mockedWorkflows.mockReturnValue({
+      loading: false,
+      error: null,
+      entries: [],
+    });
+    mockedSimulationApi.getSession.mockResolvedValue({
+      ...detail,
+      matchedWorkflow: null,
+    });
+    mockedSimulationApi.listFeedback.mockResolvedValue({
+      content: [feedbackWithType(905, "WORKFLOW_BRANCH_ERROR")],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openFeedbackTab();
+    expect(
+      await screen.findByText("workflow 맥락이 확인되지 않아 target type만 후보에 저장됩니다."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+        1,
+        905,
+        expect.objectContaining({
+          targetElementType: "WORKFLOW",
+          beforeSummary: "Workflow 개선 후보: 주문번호를 묻지 않았습니다.",
+        }),
+      );
+    });
+    expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(
+      1,
+      905,
+      expect.not.objectContaining({
+        targetElementId: expect.any(Number),
+      }),
+    );
   });
 
   it("개선 후보 생성 후 목록 새로고침 실패는 생성 실패로 처리하지 않는다", async () => {
@@ -604,8 +739,7 @@ describe("WorkspaceSimulationPage", () => {
         1,
         900,
         expect.objectContaining({
-          targetElementType: "WORKFLOW",
-          targetElementId: 100,
+          targetElementType: "SLOT",
         }),
       );
     });
