@@ -469,7 +469,7 @@ test.describe("Workspace core operator screens", () => {
 
         await startButton.click();
         await expect(page.getByText("업로드 완료").first()).toBeVisible();
-        await expect(page.getByText("자동 생성 파이프라인")).toBeVisible();
+        await expect(page.getByText("검토 대기 중")).toBeVisible();
         expect(seen).toContain("POST /workspaces/1/datasets/uploads:init");
         expect(seen).toContain("PUT /e2e-upload/raw-log.zip");
         expect(seen).toContain("POST /workspaces/1/datasets/uploads/77:complete");
@@ -491,7 +491,7 @@ test.describe("Workspace core operator screens", () => {
         });
         await page.getByRole("button", { name: "처리 시작" }).click();
         await expect(page.getByText("업로드 완료").first()).toBeVisible();
-        await expect(page.getByText("자동 생성 파이프라인")).toBeVisible();
+        await expect(page.getByText("검토 대기 중")).toBeVisible();
         await page.getByRole("button", { name: "검토 화면으로 이동" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/900\/review/);

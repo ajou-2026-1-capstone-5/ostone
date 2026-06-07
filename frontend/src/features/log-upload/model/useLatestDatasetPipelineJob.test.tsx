@@ -17,6 +17,7 @@ vi.mock("../api/pipelineJobStatusApi", async () => {
 
 import { getLatestDatasetPipelineJob } from "../api/pipelineJobStatusApi";
 import {
+  derivePipelineJobViewState,
   latestDatasetPipelineJobKeys,
   shouldPollPipelineJob,
   useLatestDatasetPipelineJob,
@@ -104,5 +105,93 @@ describe("useLatestDatasetPipelineJob", () => {
     expect(shouldPollPipelineJob({ ...runningJob, status: "CANCELLED" })).toBe(
       false,
     );
+  });
+});
+
+describe("derivePipelineJobViewState", () => {
+  const settledQuery = { isLoading: false, isError: false };
+
+  it("조회 중에는 uploaded 상태로 둔다", () => {
+    expect(
+      derivePipelineJobViewState({ isLoading: true, isError: false }, null),
+    ).toBe("uploaded");
+  });
+
+  it("조회 실패는 status_unavailable로 구분한다", () => {
+    expect(
+      derivePipelineJobViewState({ isLoading: false, isError: true }, null),
+    ).toBe("status_unavailable");
+  });
+
+  it("job이 없거나 QUEUED면 pipeline_pending이다", () => {
+    expect(derivePipelineJobViewState(settledQuery, null)).toBe(
+      "pipeline_pending",
+    );
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "QUEUED",
+      }),
+    ).toBe("pipeline_pending");
+  });
+
+  it("검토 입력 대기 상태는 review_required로 묶는다", () => {
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "WAITING_DOMAIN_CONFIRMATION",
+      }),
+    ).toBe("review_required");
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "WAITING_HUMAN_FEEDBACK",
+      }),
+    ).toBe("review_required");
+  });
+
+  it("종료 상태는 succeeded/failed/cancelled로 구분한다", () => {
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "SUCCEEDED",
+      }),
+    ).toBe("succeeded");
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "FAILED",
+      }),
+    ).toBe("failed");
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "CANCELLED",
+      }),
+    ).toBe("cancelled");
+  });
+
+  it("실행과 내부 콜백 대기, 미지정 상태는 running으로 본다", () => {
+    expect(derivePipelineJobViewState(settledQuery, runningJob)).toBe(
+      "running",
+    );
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "WAITING_INTENT_CALLBACK",
+      }),
+    ).toBe("running");
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "WAITING_WORKFLOW_CALLBACK",
+      }),
+    ).toBe("running");
+    expect(
+      derivePipelineJobViewState(settledQuery, {
+        ...runningJob,
+        status: "UNKNOWN_FUTURE_STATUS",
+      }),
+    ).toBe("running");
   });
 });
