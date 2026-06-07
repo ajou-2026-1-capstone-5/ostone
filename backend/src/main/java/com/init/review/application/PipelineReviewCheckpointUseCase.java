@@ -22,6 +22,7 @@ import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -190,23 +191,24 @@ public class PipelineReviewCheckpointUseCase {
       JsonNode question = jsonSupport.readJson(task.getTargetRefJson());
       task.resolve(command.userId(), now);
       reviewTaskRepository.save(task);
-      String decisionType = normalizeFeedbackDecision(decision.decisionType());
+      FeedbackDecisionMapping decisionMapping =
+          mapFeedbackDecision(decision.decisionType(), question);
       ReviewDecision savedDecision =
           ReviewDecision.create(
               session.getId(),
               ReviewTask.TARGET_FEEDBACK_PAIR,
               task.getId(),
-              decisionType,
+              decisionMapping.decisionType(),
               decision.reason(),
               command.userId(),
-              jsonSupport.toJson(decisionPayload(decisionType, question)),
+              jsonSupport.toJson(decisionPayload(decisionMapping, question)),
               now);
       savedDecision = reviewDecisionRepository.save(savedDecision);
-      if (!"unsure".equals(decisionType)) {
+      if (!decisionMapping.constraintType().isBlank()) {
         ObjectNode constraint = constraints.addObject();
         constraint.put("sourceId", jsonSupport.text(question, "sourceId"));
         constraint.put("targetId", jsonSupport.text(question, "targetId"));
-        constraint.put("type", decisionType);
+        constraint.put("type", decisionMapping.constraintType());
         constraint.put("confidence", 1.0);
         constraint.put("scope", "intent");
         constraint.put("reviewTaskId", task.getId());
@@ -334,22 +336,108 @@ public class PipelineReviewCheckpointUseCase {
   }
 
   private String normalizeFeedbackDecision(String decisionType) {
-    String normalized = decisionType == null ? "" : decisionType.trim().toLowerCase();
-    if (normalized.equals("same") || normalized.equals("must_link")) {
-      return "must_link";
-    }
-    if (normalized.equals("different") || normalized.equals("cannot_link")) {
-      return "cannot_link";
-    }
-    return "unsure";
+    String normalized = decisionType == null ? "" : decisionType.trim().toLowerCase(Locale.ROOT);
+    return switch (normalized) {
+      case "same", "must_link" -> "must_link";
+      case "different", "cannot_link" -> "cannot_link";
+      case "same_workflow", "same_intent_separate_workflow", "different_intent" -> normalized;
+      default -> "unsure";
+    };
   }
 
-  private ObjectNode decisionPayload(String decisionType, JsonNode question) {
+  private FeedbackDecisionMapping mapFeedbackDecision(String decisionType, JsonNode question) {
+    String normalizedDecision = normalizeFeedbackDecision(decisionType);
+    JsonNode option = answerOption(question, normalizedDecision);
+    String questionType = jsonSupport.text(question, "questionType");
+    String questionDecisionScope = jsonSupport.text(question, "decisionScope");
+    String decisionScope =
+        firstPresent(
+            jsonSupport.text(option, "decisionScope"),
+            scopeForDecision(normalizedDecision, questionType, questionDecisionScope));
+    String constraintType =
+        firstPresent(
+            jsonSupport.text(option, "constraintType"),
+            legacyIntentConstraint(normalizedDecision, questionType));
+    if (!"intent".equals(decisionScope)) {
+      constraintType = "";
+    }
+    if (!constraintType.equals("must_link") && !constraintType.equals("cannot_link")) {
+      constraintType = "";
+    }
+    return new FeedbackDecisionMapping(
+        normalizedDecision, decisionScope, constraintType, questionType, questionDecisionScope);
+  }
+
+  private JsonNode answerOption(JsonNode question, String decisionType) {
+    JsonNode options = question.path("answerOptions");
+    if (!options.isArray()) {
+      return jsonSupport.objectNode();
+    }
+    for (JsonNode option : options) {
+      if (decisionType.equals(jsonSupport.text(option, "value"))) {
+        return option;
+      }
+    }
+    return jsonSupport.objectNode();
+  }
+
+  private String scopeForDecision(
+      String decisionType, String questionType, String questionDecisionScope) {
+    if ("unsure".equals(decisionType)) {
+      return "none";
+    }
+    if ("different_intent".equals(decisionType)) {
+      return "intent";
+    }
+    if ("WORKFLOW_BOUNDARY".equals(questionType)) {
+      return firstPresent(questionDecisionScope, "workflow");
+    }
+    return switch (decisionType) {
+      case "must_link", "cannot_link" -> "intent";
+      case "same_workflow", "same_intent_separate_workflow" -> "workflow";
+      default -> firstPresent(questionDecisionScope, "none");
+    };
+  }
+
+  private String legacyIntentConstraint(String decisionType, String questionType) {
+    if ("WORKFLOW_BOUNDARY".equals(questionType) && !"different_intent".equals(decisionType)) {
+      return "";
+    }
+    return switch (decisionType) {
+      case "must_link" -> "must_link";
+      case "cannot_link", "different_intent" -> "cannot_link";
+      default -> "";
+    };
+  }
+
+  private String firstPresent(String... values) {
+    for (String value : values) {
+      if (value != null && !value.isBlank()) {
+        return value;
+      }
+    }
+    return "";
+  }
+
+  private ObjectNode decisionPayload(FeedbackDecisionMapping decisionMapping, JsonNode question) {
     ObjectNode payload = jsonSupport.objectNode();
-    payload.put("decisionType", decisionType);
+    payload.put("decisionType", decisionMapping.decisionType());
+    payload.put("decisionScope", decisionMapping.decisionScope());
+    payload.put("questionType", decisionMapping.questionType());
+    payload.put("questionDecisionScope", decisionMapping.questionDecisionScope());
+    if (!decisionMapping.constraintType().isBlank()) {
+      payload.put("constraintType", decisionMapping.constraintType());
+    }
     payload.set("question", question);
     return payload;
   }
+
+  private record FeedbackDecisionMapping(
+      String decisionType,
+      String decisionScope,
+      String constraintType,
+      String questionType,
+      String questionDecisionScope) {}
 
   public record CheckpointCallbackCommand(
       Long jobId,

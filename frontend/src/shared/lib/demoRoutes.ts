@@ -1,3 +1,5 @@
+export const DEMO_SELECTION_PATH = "/demo";
+
 export function buildWorkspaceSimulationPath(
   workspaceId: number | string,
 ): string {
@@ -9,5 +11,5 @@ export function buildDemoChatPath(
   searchParams?: URLSearchParams,
 ): string {
   const search = searchParams?.toString();
-  return `/demo/chat/${encodeURIComponent(String(workspaceId))}${search ? `?${search}` : ""}`;
+  return `${DEMO_SELECTION_PATH}/chat/${encodeURIComponent(String(workspaceId))}${search ? `?${search}` : ""}`;
 }

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -432,6 +433,123 @@ class PipelineReviewCheckpointUseCaseTest {
         .contains("\"type\":\"must_link\"", "\"type\":\"cannot_link\"");
     assertThat(triggerCaptor.getValue().runMode()).isEqualTo("FEEDBACK_REPLAY");
     assertThat(triggerCaptor.getValue().skipFeedbackCheckpoint()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "workflow boundary feedback preserves decision scope without direct intent constraint")
+  void submitFeedback_workflowBoundaryFeedback_mapsOnlyExplicitIntentDecisionToConstraint()
+      throws Exception {
+    PipelineJob job =
+        job(
+            PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK,
+            "{\"upstreamManifestPath\":\"/artifacts/domain-replay/manifest.json\"}");
+    ReviewSession session =
+        session(ReviewSession.KIND_HUMAN_FEEDBACK, ReviewSession.STATUS_OPEN, 56L);
+    ReviewTask workflowMerge =
+        task(
+            201L,
+            ReviewTask.TARGET_FEEDBACK_PAIR,
+            """
+            {
+              "sourceId": "wf1",
+              "targetId": "wf2",
+              "questionType": "WORKFLOW_BOUNDARY",
+              "decisionScope": "workflow",
+              "questionText": "같은 intent 안에서 두 상담을 같은 workflow로 합쳐도 되나요?",
+              "answerOptions": [
+                {"value": "same_workflow", "label": "같은 workflow로 합치기", "decisionScope": "workflow"},
+                {"value": "different_intent", "label": "다른 intent로 분리", "decisionScope": "intent", "constraintType": "cannot_link"}
+              ]
+            }
+            """);
+    ReviewTask intentSplit =
+        task(
+            202L,
+            ReviewTask.TARGET_FEEDBACK_PAIR,
+            """
+            {
+              "sourceId": "wf3",
+              "targetId": "wf4",
+              "questionType": "WORKFLOW_BOUNDARY",
+              "decisionScope": "workflow",
+              "questionText": "같은 intent 안에서 두 상담을 같은 workflow로 합쳐도 되나요?",
+              "answerOptions": [
+                {"value": "same_workflow", "label": "같은 workflow로 합치기", "decisionScope": "workflow"},
+                {"value": "different_intent", "label": "다른 intent로 분리", "decisionScope": "intent", "constraintType": "cannot_link"}
+              ]
+            }
+            """);
+    PipelineArtifact confirmedProfile =
+        PipelineArtifact.create(
+            7L,
+            "domain_confirmation",
+            "CONFIRMED_DOMAIN_PROFILE",
+            null,
+            null,
+            "{\"domain\":\"card\"}",
+            NOW);
+
+    givenReviewAccess(job);
+    given(
+            reviewSessionRepository.findFirstByPipelineJobIdAndReviewKindOrderByOpenedAtDesc(
+                7L, ReviewSession.KIND_HUMAN_FEEDBACK))
+        .willReturn(Optional.of(session));
+    given(reviewTaskRepository.findByReviewSessionIdOrderByIdAsc(56L))
+        .willReturn(List.of(workflowMerge, intentSplit));
+    given(reviewDecisionRepository.save(any(ReviewDecision.class)))
+        .willAnswer(
+            invocation -> {
+              ReviewDecision decision = invocation.getArgument(0);
+              ReflectionTestUtils.setField(decision, "id", 77L);
+              return decision;
+            });
+    given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(
+            pipelineArtifactRepository.findByPipelineJobIdAndArtifactTypeOrderByCreatedAtDesc(
+                7L, "CONFIRMED_DOMAIN_PROFILE"))
+        .willReturn(List.of(confirmedProfile));
+    given(triggerPort.trigger(any(DomainPackGenerationTriggerCommand.class)))
+        .willReturn(new DomainPackGenerationTriggerResult("domain_pack_generation", "run-3"));
+
+    useCase.submitFeedback(
+        new PipelineReviewCheckpointUseCase.SubmitFeedbackCommand(
+            1L,
+            7L,
+            9L,
+            List.of(
+                new PipelineReviewCheckpointUseCase.FeedbackDecisionInput(
+                    201L, "same_workflow", "workflow 합치기"),
+                new PipelineReviewCheckpointUseCase.FeedbackDecisionInput(
+                    202L, "different_intent", "intent 분리"))));
+
+    ArgumentCaptor<PipelineArtifact> artifactCaptor =
+        ArgumentCaptor.forClass(PipelineArtifact.class);
+    ArgumentCaptor<ReviewDecision> decisionCaptor = ArgumentCaptor.forClass(ReviewDecision.class);
+    verify(pipelineArtifactRepository).save(artifactCaptor.capture());
+    verify(reviewDecisionRepository, times(2)).save(decisionCaptor.capture());
+
+    JsonNode constraints =
+        objectMapper.readTree(artifactCaptor.getValue().getPayloadJson()).path("constraints");
+    List<String> decisionPayloads =
+        decisionCaptor.getAllValues().stream()
+            .map(decision -> (String) ReflectionTestUtils.getField(decision, "decisionPayloadJson"))
+            .toList();
+
+    assertThat(constraints).hasSize(1);
+    assertThat(constraints.get(0).path("sourceId").asText()).isEqualTo("wf3");
+    assertThat(constraints.get(0).path("type").asText()).isEqualTo("cannot_link");
+    assertThat(decisionPayloads.getFirst())
+        .contains(
+            "\"decisionType\":\"same_workflow\"",
+            "\"decisionScope\":\"workflow\"",
+            "\"questionType\":\"WORKFLOW_BOUNDARY\"");
+    assertThat(decisionPayloads.get(1))
+        .contains(
+            "\"decisionType\":\"different_intent\"",
+            "\"decisionScope\":\"intent\"",
+            "\"constraintType\":\"cannot_link\"");
   }
 
   @Test

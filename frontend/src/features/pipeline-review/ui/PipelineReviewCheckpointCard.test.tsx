@@ -202,6 +202,115 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(mutate.mock.calls[0]?.[0]).toEqual([{ reviewTaskId: 201, decisionType: "cannot_link" }]);
   });
 
+  it("renders workflow boundary choices from the question payload", () => {
+    const mutate = vi.fn();
+    mockedUseSubmitFeedback.mockReturnValue({
+      isPending: false,
+      mutate,
+    } as never);
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_HUMAN_FEEDBACK",
+        reviewKind: "HUMAN_FEEDBACK",
+        tasks: [
+          {
+            id: 202,
+            targetType: "FEEDBACK_PAIR",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "workflow 경계 확인",
+            payload: {
+              questionType: "WORKFLOW_BOUNDARY",
+              decisionScope: "workflow",
+              questionText: "같은 intent 안에서 두 상담을 같은 workflow로 합쳐도 되나요?",
+              reason: "same_source_cluster_split",
+              answerOptions: [
+                { value: "same_workflow", label: "같은 workflow로 합치기" },
+                {
+                  value: "same_intent_separate_workflow",
+                  label: "같은 intent지만 workflow는 분리",
+                },
+                { value: "different_intent", label: "다른 intent로 분리" },
+                { value: "unsure", label: "판단 보류" },
+              ],
+              sourceReviewContext: {
+                conversationId: "A-2",
+                summary: "환불 전 결제 확인",
+              },
+              targetReviewContext: {
+                conversationId: "B-2",
+                summary: "환불 전 본인 확인",
+              },
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+
+    expect(screen.getByText("Workflow boundary · workflow scope")).toBeInTheDocument();
+    expect(
+      screen.getByText("같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "같은 intent지만 workflow는 분리" }));
+    fireEvent.click(screen.getByRole("button", { name: "피드백 반영 후 replay" }));
+
+    expect(mutate.mock.calls[0]?.[0]).toEqual([
+      { reviewTaskId: 202, decisionType: "same_intent_separate_workflow" },
+    ]);
+  });
+
+  it("ignores saved feedback choices outside the current question options", async () => {
+    window.localStorage.setItem(feedbackDraftKey, JSON.stringify({ 202: "cannot_link" }));
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_HUMAN_FEEDBACK",
+        reviewKind: "HUMAN_FEEDBACK",
+        tasks: [
+          {
+            id: 202,
+            targetType: "FEEDBACK_PAIR",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "workflow 경계 확인",
+            payload: {
+              questionType: "WORKFLOW_BOUNDARY",
+              decisionScope: "workflow",
+              questionText: "같은 intent 안에서 두 상담을 같은 workflow로 합쳐도 되나요?",
+              answerOptions: [
+                { value: "same_workflow", label: "같은 workflow로 합치기" },
+                {
+                  value: "same_intent_separate_workflow",
+                  label: "같은 intent지만 workflow는 분리",
+                },
+                { value: "different_intent", label: "다른 intent로 분리" },
+                { value: "unsure", label: "판단 보류" },
+              ],
+              sourceReviewContext: { summary: "환불 전 결제 확인" },
+              targetReviewContext: { summary: "환불 전 본인 확인" },
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+
+    await waitFor(() => expect(screen.getByText("0/1 answered")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "다른 intent로 분리" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "피드백 반영 후 replay" })).toBeDisabled();
+  });
+
   it("restores saved feedback choices for the current pipeline job", async () => {
     window.localStorage.setItem(feedbackDraftKey, JSON.stringify({ 201: "cannot_link" }));
     mockedUseCheckpoint.mockReturnValue({
