@@ -533,6 +533,9 @@ def _evaluation_inputs(
         value = _float_metric(same_intent_graph, "overmergeRisk")
         if value is not None:
             output["sameIntentOvermergeRisk"] = value
+        value = _float_metric(same_intent_graph, "conflictPairRate")
+        if value is not None:
+            output["sameIntentGraphConflictPairRate"] = value
     for output_key, source, metric_key in (
         ("slotEvidenceCoverage", slot_metrics, "slot_evidence_coverage"),
         ("policyCoverage", knowledge_metrics, "policy_coverage"),
