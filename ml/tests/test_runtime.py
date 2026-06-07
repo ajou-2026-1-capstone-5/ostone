@@ -115,6 +115,64 @@ def test_flag_embedding_runtime_reports_missing_optional_dependency(monkeypatch)
         FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
 
 
+def test_flag_embedding_runtime_requires_cuda_before_model_load(monkeypatch) -> None:
+    class FakeCuda:
+        @staticmethod
+        def is_available() -> bool:
+            return False
+
+    fake_torch = types.ModuleType("torch")
+    fake_torch.cuda = FakeCuda()  # type: ignore[attr-defined]
+
+    class FakeBGEM3FlagModel:
+        def __init__(self, _model_name: str, **_kwargs: object) -> None:
+            raise AssertionError("model must not load when CUDA is unavailable")
+
+    fake_module = types.ModuleType("FlagEmbedding")
+    fake_module.BGEM3FlagModel = FakeBGEM3FlagModel  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "FlagEmbedding", fake_module)
+    monkeypatch.setenv("EMBEDDING_REQUIRE_ACCELERATOR", "true")
+
+    with pytest.raises(PipelineConfigurationError, match="CUDA is unavailable"):
+        FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
+
+
+def test_flag_embedding_runtime_requires_cuda_device_when_accelerator_required(monkeypatch) -> None:
+    monkeypatch.setenv("EMBEDDING_REQUIRE_ACCELERATOR", "true")
+    monkeypatch.setenv("EMBEDDING_DEVICE", "cpu")
+
+    with pytest.raises(PipelineConfigurationError, match="EMBEDDING_DEVICE to be cuda"):
+        FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
+
+
+def test_flag_embedding_runtime_passes_cuda_device_when_accelerator_available(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCuda:
+        @staticmethod
+        def is_available() -> bool:
+            return True
+
+    fake_torch = types.ModuleType("torch")
+    fake_torch.cuda = FakeCuda()  # type: ignore[attr-defined]
+
+    class FakeBGEM3FlagModel:
+        def __init__(self, _model_name: str, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+    fake_module = types.ModuleType("FlagEmbedding")
+    fake_module.BGEM3FlagModel = FakeBGEM3FlagModel  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "FlagEmbedding", fake_module)
+    monkeypatch.setenv("EMBEDDING_REQUIRE_ACCELERATOR", "true")
+
+    runtime = FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
+
+    assert runtime.device == "cuda"
+    assert captured["devices"] == "cuda"
+
+
 def test_flag_embedding_runtime_uses_profile_default_max_length(monkeypatch) -> None:
     captured: dict[str, int] = {}
 

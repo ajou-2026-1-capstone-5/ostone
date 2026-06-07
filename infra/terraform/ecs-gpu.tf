@@ -194,6 +194,10 @@ resource "aws_ecs_task_definition" "ml_embedder" {
           value = "flag_embedding"
         },
         {
+          name  = "EMBEDDING_REQUIRE_ACCELERATOR"
+          value = "true"
+        },
+        {
           name  = "EMBEDDING_MODEL_NAME"
           value = var.embedding_model_name
         },
