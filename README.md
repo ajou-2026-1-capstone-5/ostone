@@ -394,6 +394,7 @@ pnpm install
 
 | 목적                 | 루트 명령            | 수행 내용                                                 |
 | -------------------- | -------------------- | --------------------------------------------------------- |
+| 개발 환경 진단       | `pnpm run doctor`    | 도구 버전, `.env`, 포트, Compose 설정, backend JAR 상태를 비파괴 점검 |
 | 전체 로컬 스택 실행  | `pnpm run dev`       | 부트스트랩(`dev:setup`) 후 Docker Compose 기동, 접속 URL 출력 |
 | 로컬 개발 부트스트랩 | `pnpm run dev:setup` | `.env` 생성/점검, backend JAR preflight, Compose 설정 검증, 포트 점검 |
 | 전체 품질 검사       | `pnpm run check`     | `check:backend` → `check:frontend` → `check:ml` 순차 실행 |
@@ -404,10 +405,14 @@ pnpm install
 ### 실행
 
 ```bash
+pnpm run doctor       # 개발 도구/포트/env/JAR 사전 진단
+
 # 제품 런타임(light) 실행 — postgres + minio + backend + frontend
 # .env가 없으면 .env.example 기반으로 자동 생성된다(최초 1회 수동 준비 불필요)
 pnpm run dev          # = pnpm run up:light
 ```
+
+`pnpm run doctor`는 파일을 생성하거나 backend JAR를 빌드하지 않는 사전 진단 명령이다. 기본은 full profile 기준으로 주요 포트(5432/5173/8080/8081/9000/9001)를 확인하며, light만 확인하려면 `pnpm run doctor -- --profile light`를 사용한다.
 
 `pnpm run dev`(=`up:light`)는 부트스트랩(`pnpm run dev:setup`)을 먼저 수행한 뒤 `docker compose up -d`로 **light** 모드를 기동하고, 성공 시 접속 URL을 출력한다. 부트스트랩은 다음을 한 번에 처리한다.
 
