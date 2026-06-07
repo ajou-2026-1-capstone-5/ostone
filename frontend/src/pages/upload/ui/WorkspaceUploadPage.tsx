@@ -74,17 +74,22 @@ export function WorkspaceUploadPage() {
   const dashboardHealth = dashboardHealthQuery.data ?? null;
   const latestOpenReviewPipelineJobId =
     dashboardHealth?.latestOpenReviewPipelineJobId ?? null;
+  const reviewDatasetId =
+    dashboardHealth?.lastKnowledgePackGeneration?.datasetId ??
+    dashboardHealth?.lastLogUpload?.datasetId ??
+    null;
+  const reviewDatasetName =
+    dashboardHealth?.lastLogUpload?.datasetId === reviewDatasetId
+      ? dashboardHealth.lastLogUpload.datasetName
+      : null;
   const openReviewRecord =
     parsedWorkspaceId !== null && latestOpenReviewPipelineJobId !== null
       ? {
           path: `/workspaces/${parsedWorkspaceId}/pipeline-jobs/${latestOpenReviewPipelineJobId}/review`,
           pipelineJobId: latestOpenReviewPipelineJobId,
           pendingReviewCount: dashboardHealth?.pendingReviewCount ?? 0,
-          datasetId:
-            dashboardHealth?.lastKnowledgePackGeneration?.datasetId ??
-            dashboardHealth?.lastLogUpload?.datasetId ??
-            null,
-          datasetName: dashboardHealth?.lastLogUpload?.datasetName ?? null,
+          datasetId: reviewDatasetId,
+          datasetName: reviewDatasetName,
           status: dashboardHealth?.lastKnowledgePackGeneration?.status ?? null,
           requestedAt:
             dashboardHealth?.lastKnowledgePackGeneration?.requestedAt ??
