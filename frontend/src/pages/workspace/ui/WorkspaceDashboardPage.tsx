@@ -5,6 +5,7 @@ import {
   CheckCircle2Icon,
   FileUpIcon,
   FlaskConicalIcon,
+  MonitorSmartphoneIcon,
   RefreshCwIcon,
 } from "lucide-react";
 
@@ -22,7 +23,10 @@ import {
   type WorkspaceDashboardActionRecommendations,
 } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
+import {
+  buildDemoChatPath,
+  buildWorkspaceSimulationPath,
+} from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
@@ -959,11 +963,20 @@ export function DashboardStatePanel({
         </Button>
         <Button asChild variant="outline">
           <Link
-            to={buildDemoChatPath(workspaceId)}
+            to={buildWorkspaceSimulationPath(workspaceId)}
             data-testid="dashboard-simulation-cta"
           >
             <FlaskConicalIcon aria-hidden="true" />
             시뮬레이션 시작
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link
+            to={buildDemoChatPath(workspaceId)}
+            data-testid="dashboard-customer-preview-cta"
+          >
+            <MonitorSmartphoneIcon aria-hidden="true" />
+            고객 화면 미리보기
           </Link>
         </Button>
       </div>
