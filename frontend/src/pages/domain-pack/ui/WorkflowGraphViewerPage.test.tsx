@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import type { WorkflowDefinitionDetail } from "@/shared/api/generated/zod";
 import { WorkflowGraphViewerPage } from "./WorkflowGraphViewerPage";
 
@@ -12,37 +19,41 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
 }));
 
 vi.mock("@/entities/workflow", () => ({
-  useGetWorkflowDefinition: (...args: unknown[]) => mockUseGetWorkflowDefinition(...args),
+  useGetWorkflowDefinition: (...args: unknown[]) =>
+    mockUseGetWorkflowDefinition(...args),
 }));
 
 vi.mock("@/features/workflow-viewer/ui/GraphViewer", () => ({
   GraphViewer: () => <div data-testid="graph-viewer">Graph</div>,
 }));
 
-vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({
-    active,
-    children,
-  }: {
-    active: string;
-    crumbs: unknown[];
-    children: React.ReactNode;
-  }) => (
-    <div>
-      <div data-testid="shell-active">{active}</div>
-      {children}
-    </div>
-  ),
-}));
-
-const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/workflows/:workflowId/graph";
-
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
+  return (
+    <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+  );
 }
 
-function renderPage(path = "/workspaces/1/domain-packs/2/workflows/4/graph?versionId=3") {
+function ShellHost() {
+  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
+  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
+
+  return (
+    <>
+      <div data-testid="shell-crumbs">
+        {crumbs
+          .map((crumb) => (typeof crumb === "string" ? crumb : crumb.label))
+          .join(" / ")}
+      </div>
+      <div data-testid="shell-topbar">{topbarRight}</div>
+      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
+    </>
+  );
+}
+
+function renderPage(
+  path = "/workspaces/1/domain-packs/2/workflows/4/graph?versionId=3",
+) {
   render(
     <MemoryRouter
       initialEntries={[
@@ -54,14 +65,19 @@ function renderPage(path = "/workspaces/1/domain-packs/2/workflows/4/graph?versi
     >
       <Routes>
         <Route
-          path={ROUTE}
-          element={
-            <>
-              <WorkflowGraphViewerPage />
-              <LocationProbe />
-            </>
-          }
-        />
+          path="/workspaces/:workspaceId/domain-packs/:packId"
+          element={<ShellHost />}
+        >
+          <Route
+            path="workflows/:workflowId/graph"
+            element={
+              <>
+                <WorkflowGraphViewerPage />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Route>
         <Route path="*" element={<LocationProbe />} />
       </Routes>
     </MemoryRouter>,
@@ -89,7 +105,7 @@ describe("WorkflowGraphViewerPage", () => {
 
     renderPage();
     expect(screen.getByTestId("loading-state")).toBeInTheDocument();
-    expect(screen.getByTestId("shell-active")).toHaveTextContent("workflows");
+    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent("워크플로우");
   });
 
   it("shows error state when error is present", () => {
@@ -162,7 +178,9 @@ describe("WorkflowGraphViewerPage", () => {
     });
 
     renderPage("/workspaces/1/domain-packs/2/workflows/4/graph");
-    expect(screen.getByTestId("url-error-state")).toHaveTextContent("잘못된 URL 파라미터입니다.");
+    expect(screen.getByTestId("url-error-state")).toHaveTextContent(
+      "잘못된 URL 파라미터입니다.",
+    );
   });
 
   it("shows graph data error state when graphJson is malformed", () => {

@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { SlotDraftReadPage } from "./SlotDraftReadPage";
 
 const navigate = vi.fn();
 
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
     useNavigate: () => navigate,
@@ -29,15 +33,34 @@ vi.mock("@/features/slot-draft-read/ui", () => ({
   ),
 }));
 
+function ShellHost() {
+  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
+  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
+
+  return (
+    <>
+      <div data-testid="shell-crumbs">
+        {crumbs
+          .map((crumb) => (typeof crumb === "string" ? crumb : crumb.label))
+          .join(" / ")}
+      </div>
+      <div data-testid="shell-topbar">{topbarRight}</div>
+      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
+    </>
+  );
+}
+
 function renderPage(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/slots"
-          element={<SlotDraftReadPage />}
+          path="/workspaces/:workspaceId/domain-packs/:packId"
+          element={<ShellHost />}
         >
-          <Route path=":slotId" />
+          <Route path="slots" element={<SlotDraftReadPage />}>
+            <Route path=":slotId" />
+          </Route>
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -51,7 +74,9 @@ describe("SlotDraftReadPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "select slot" }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/slots/4?versionId=101");
+    expect(navigate).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/7/slots/4?versionId=101",
+    );
   });
 
   it("슬롯 상세에서 다른 슬롯 선택 시 현재 상세 route를 replace한다", () => {
@@ -60,14 +85,19 @@ describe("SlotDraftReadPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "select slot" }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/slots/4?versionId=101", {
-      replace: true,
-    });
+    expect(navigate).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/7/slots/4?versionId=101",
+      {
+        replace: true,
+      },
+    );
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
     renderPage("/workspaces/abc/domain-packs/7/slots?versionId=101");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "잘못된 URL 파라미터입니다.",
+    );
   });
 });

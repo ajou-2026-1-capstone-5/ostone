@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { toast } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiRequestError } from "@/shared/api";
@@ -10,28 +17,14 @@ import {
   type ActivateMutationResult,
 } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
-import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
+import {
+  usePackDetail,
+  useVersionDetail,
+} from "@/features/domain-pack-summary-read";
 import { DomainPackSummaryPage } from "./DomainPackSummaryPage";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
-}));
-
-vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({
-    children,
-    crumbs,
-  }: {
-    children: React.ReactNode;
-    crumbs?: Array<string | { label: string }>;
-  }) => (
-    <div>
-      <div data-testid="shell-crumbs">
-        {crumbs?.map((crumb) => (typeof crumb === "string" ? crumb : crumb.label)).join(" / ")}
-      </div>
-      {children}
-    </div>
-  ),
 }));
 
 vi.mock("@/shared/ui/ostone/atoms/LoadingSpinner", () => ({
@@ -39,7 +32,13 @@ vi.mock("@/shared/ui/ostone/atoms/LoadingSpinner", () => ({
 }));
 
 vi.mock("@/shared/ui/ostone/atoms/ErrorState", () => ({
-  ErrorState: ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+  ErrorState: ({
+    message,
+    onRetry,
+  }: {
+    message: string;
+    onRetry?: () => void;
+  }) => (
     <div data-testid="error-state" role="alert">
       <span>{message}</span>
       {onRetry && (
@@ -88,7 +87,10 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
       <button type="button" onClick={() => onDeploy(4)}>
         deploy version
       </button>
-      <button type="button" onClick={() => onApplyDraft(5, "변경사항 정리 메모")}>
+      <button
+        type="button"
+        onClick={() => onApplyDraft(5, "변경사항 정리 메모")}
+      >
         apply draft
       </button>
       <button type="button" onClick={() => onApplyDraft(5, "")}>
@@ -136,7 +138,9 @@ function makePackQuery(overrides: Record<string, unknown> = {}): any {
   };
 }
 
-type ActivateMockData = ActivateMutationResult["data"] & { description?: string };
+type ActivateMockData = ActivateMutationResult["data"] & {
+  description?: string;
+};
 
 function makeActivateResponse(data: ActivateMockData): ActivateMutationResult {
   return {
@@ -148,7 +152,26 @@ function makeActivateResponse(data: ActivateMockData): ActivateMutationResult {
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
+  return (
+    <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+  );
+}
+
+function ShellHost() {
+  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
+  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
+
+  return (
+    <>
+      <div data-testid="shell-crumbs">
+        {crumbs
+          .map((crumb) => (typeof crumb === "string" ? crumb : crumb.label))
+          .join(" / ")}
+      </div>
+      <div data-testid="shell-topbar">{topbarRight}</div>
+      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
+    </>
+  );
 }
 
 function renderPage(path = "/workspaces/1/domain-packs/2") {
@@ -161,13 +184,18 @@ function renderPage(path = "/workspaces/1/domain-packs/2") {
         <Routes>
           <Route
             path="/workspaces/:workspaceId/domain-packs/:packId"
-            element={
-              <>
-                <DomainPackSummaryPage />
-                <LocationProbe />
-              </>
-            }
-          />
+            element={<ShellHost />}
+          >
+            <Route
+              index
+              element={
+                <>
+                  <DomainPackSummaryPage />
+                  <LocationProbe />
+                </>
+              }
+            />
+          </Route>
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -205,16 +233,22 @@ describe("DomainPackSummaryPage", () => {
       makePackQuery({ isError: true, error: new Error("fail"), refetch }),
     );
     renderPage();
-    expect(screen.getByRole("alert")).toHaveTextContent("Pack 정보를 불러오지 못했습니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Pack 정보를 불러오지 못했습니다.",
+    );
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(refetch).toHaveBeenCalled();
   });
 
   it('packDetail 404 에러 시 "Pack을 찾을 수 없습니다." 메시지를 표시한다', () => {
     const error404 = new ApiRequestError(404, "NOT_FOUND", "not found");
-    vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isError: true, error: error404 }));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: error404 }),
+    );
     renderPage();
-    expect(screen.getByRole("alert")).toHaveTextContent("Pack을 찾을 수 없습니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Pack을 찾을 수 없습니다.",
+    );
   });
 
   it("정상 상태에서 VersionListPanel과 SummaryDetailPanel을 렌더링한다", () => {
@@ -237,7 +271,9 @@ describe("DomainPackSummaryPage", () => {
 
     renderPage();
 
-    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent("도메인팩 / CS Pack");
+    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent(
+      "도메인팩 / CS Pack",
+    );
     expect(screen.getByTestId("shell-crumbs")).not.toHaveTextContent("WS · 1");
   });
 
@@ -266,7 +302,9 @@ describe("DomainPackSummaryPage", () => {
     );
     expect(useVersionDetail).toHaveBeenCalledWith(1, 2, 3);
     expect(screen.getByTestId("selected-version-id")).toHaveTextContent("3");
-    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent("도메인팩 / CS Pack / #2");
+    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent(
+      "도메인팩 / CS Pack / #2",
+    );
   });
 
   it("배포중 버전이 없으면 최신 draft 버전을 기본 선택한다", async () => {
@@ -423,7 +461,9 @@ describe("DomainPackSummaryPage", () => {
     renderPage("/workspaces/1/domain-packs/2");
 
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/1/domain-packs/2"),
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2",
+      ),
     );
     expect(useVersionDetail).toHaveBeenCalledWith(1, 2, null);
     expect(screen.getByTestId("selected-version-id")).toHaveTextContent("none");
@@ -521,7 +561,9 @@ describe("DomainPackSummaryPage", () => {
     renderPage("/workspaces/1/domain-packs/2?versionId=3");
     fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
 
-    expect(toast.error).toHaveBeenCalledWith("도메인팩 버전을 배포하지 못했습니다.");
+    expect(toast.error).toHaveBeenCalledWith(
+      "도메인팩 버전을 배포하지 못했습니다.",
+    );
   });
 
   it("버전 배포 실패 시 API 에러 메시지를 toast에 사용한다", () => {
@@ -622,7 +664,9 @@ describe("DomainPackSummaryPage", () => {
     );
 
     renderPage("/workspaces/1/domain-packs/2?versionId=5");
-    fireEvent.click(screen.getByRole("button", { name: "apply draft without description" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "apply draft without description" }),
+    );
 
     await waitFor(() => expect(activate).toHaveBeenCalled());
     expect(activate).toHaveBeenCalledWith(1, 2, 5, undefined);
@@ -630,7 +674,9 @@ describe("DomainPackSummaryPage", () => {
 
   it("Draft 적용 성공 후 기존 draft 상세 refetch 실패로 실패 toast를 띄우지 않는다", async () => {
     const packRefetch = vi.fn().mockRejectedValue(new Error("refetch failed"));
-    const versionRefetch = vi.fn().mockRejectedValue(new Error("old draft missing"));
+    const versionRefetch = vi
+      .fn()
+      .mockRejectedValue(new Error("old draft missing"));
     vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 6 }));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
@@ -660,8 +706,12 @@ describe("DomainPackSummaryPage", () => {
     );
     expect(packRefetch).toHaveBeenCalled();
     expect(versionRefetch).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
-    expect(toast.error).not.toHaveBeenCalledWith("초안 수정버전을 적용하지 못했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "초안 수정버전이 적용되었습니다.",
+    );
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "초안 수정버전을 적용하지 못했습니다.",
+    );
   });
 
   it("Draft 적용 성공 응답의 description이 있으면 성공 처리한다", async () => {
@@ -694,7 +744,9 @@ describe("DomainPackSummaryPage", () => {
         "/workspaces/1/domain-packs/2?versionId=6",
       ),
     );
-    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "초안 수정버전이 적용되었습니다.",
+    );
   });
 
   it("Draft 적용 성공 응답의 data.id로 적용된 버전으로 이동한다", async () => {
@@ -757,7 +809,9 @@ describe("DomainPackSummaryPage", () => {
         "/workspaces/1/domain-packs/2?versionId=8",
       ),
     );
-    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "초안 수정버전이 적용되었습니다.",
+    );
   });
 
   it("Draft 적용 실패 시 상담사 용어의 실패 toast를 띄운다", async () => {
@@ -777,7 +831,9 @@ describe("DomainPackSummaryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("초안 수정버전을 적용하지 못했습니다."),
+      expect(toast.error).toHaveBeenCalledWith(
+        "초안 수정버전을 적용하지 못했습니다.",
+      ),
     );
   });
 
@@ -810,7 +866,9 @@ describe("DomainPackSummaryPage", () => {
   });
 
   it("Draft 삭제 성공 후 운영 버전이 없으면 versionId를 제거한다", async () => {
-    const packRefetch = vi.fn().mockResolvedValue({ data: { currentVersionId: null } });
+    const packRefetch = vi
+      .fn()
+      .mockResolvedValue({ data: { currentVersionId: null } });
     let discardOnSuccess: (() => unknown) | undefined;
     const mutate = vi.fn(() => discardOnSuccess?.());
     vi.mocked(useDiscard).mockImplementation((options) => {
@@ -838,9 +896,13 @@ describe("DomainPackSummaryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "delete draft" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/1/domain-packs/2"),
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2",
+      ),
     );
-    expect(toast.success).toHaveBeenCalledWith("검토 중인 버전이 삭제되었습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "검토 중인 버전이 삭제되었습니다.",
+    );
   });
 
   it("currentVersionId가 없으면 PUBLISHED 버전이 하나뿐이어도 운영 버전을 추론하지 않는다", () => {
@@ -850,7 +912,9 @@ describe("DomainPackSummaryPage", () => {
           packId: 2,
           name: "CS Pack",
           code: "CS",
-          versions: [{ versionId: 4, versionNo: 2, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 4, versionNo: 2, lifecycleStatus: "PUBLISHED" },
+          ],
         },
       }),
     );
@@ -869,7 +933,9 @@ describe("DomainPackSummaryPage", () => {
           code: "CS",
           currentVersionId: 3,
           currentVersionNo: 7,
-          versions: [{ versionId: 3, versionNo: 7, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 3, versionNo: 7, lifecycleStatus: "PUBLISHED" },
+          ],
         },
       }),
     );
@@ -889,7 +955,9 @@ describe("DomainPackSummaryPage", () => {
           code: "CS",
           currentVersionId: 3,
           currentVersionNo: null,
-          versions: [{ versionId: 3, versionNo: 2, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 3, versionNo: 2, lifecycleStatus: "PUBLISHED" },
+          ],
         },
       }),
     );
@@ -926,11 +994,15 @@ describe("DomainPackSummaryPage", () => {
       }),
     );
     renderPage();
-    expect(screen.queryByRole("button", { name: "새 검토본 묶기" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "새 검토본 묶기" }),
+    ).not.toBeInTheDocument();
   });
 
   it("packDetail 로딩 중 LoadingSpinner를 표시한다", () => {
-    vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isLoading: true }));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isLoading: true }),
+    );
     renderPage();
     expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
     expect(screen.queryByTestId("version-list-panel")).not.toBeInTheDocument();
@@ -942,22 +1014,32 @@ describe("DomainPackSummaryPage", () => {
     );
     renderPage();
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Pack 정보를 불러오지 못했습니다."),
+      expect(toast.error).toHaveBeenCalledWith(
+        "Pack 정보를 불러오지 못했습니다.",
+      ),
     );
     expect(toast.error).toHaveBeenCalledTimes(1);
   });
 
   it('packDetail 404 에러 시 toast.error를 "Pack을 찾을 수 없습니다."로 호출한다', async () => {
     const error404 = new ApiRequestError(404, "NOT_FOUND", "not found");
-    vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isError: true, error: error404 }));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: error404 }),
+    );
     renderPage();
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Pack을 찾을 수 없습니다."));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Pack을 찾을 수 없습니다."),
+    );
   });
 
   it('packDetail 404 에러 시 "다시 시도" 버튼을 표시하지 않는다', () => {
     const error404 = new ApiRequestError(404, "NOT_FOUND", "not found");
-    vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isError: true, error: error404 }));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: error404 }),
+    );
     renderPage();
-    expect(screen.queryByRole("button", { name: "다시 시도" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "다시 시도" }),
+    ).not.toBeInTheDocument();
   });
 });

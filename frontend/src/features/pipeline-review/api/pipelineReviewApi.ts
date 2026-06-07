@@ -24,8 +24,18 @@ export interface ReviewTaskPayload {
   sourceSnippet?: string;
   targetSnippet?: string;
   questionText?: string;
+  questionType?: string;
+  decisionScope?: string;
+  answerOptions?: FeedbackAnswerOption[];
   reason?: string;
   reasonLabel?: string;
+}
+
+export interface FeedbackAnswerOption {
+  value?: string;
+  label?: string;
+  decisionScope?: string;
+  constraintType?: string;
 }
 
 export interface ReviewCaseContext {

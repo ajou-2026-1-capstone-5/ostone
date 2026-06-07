@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import { IntentDraftReadPage } from "./IntentDraftReadPage";
@@ -36,7 +37,12 @@ const mocks = vi.hoisted(() => ({
       ],
       changedWorkflows: [],
       changedFieldCounts: { name: 1, description: 0 },
-      changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
+      changedWorkflowFieldCounts: {
+        name: 0,
+        description: 0,
+        graphText: 0,
+        graphStructure: 0,
+      },
       changedByDraftIntentId: {},
       changedByDraftWorkflowId: {},
       totalChangedComponents: 1,
@@ -57,27 +63,15 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
     useNavigate: () => mocks.navigate,
   };
 });
-
-vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({
-    children,
-    topbarRight,
-  }: {
-    children: React.ReactNode;
-    topbarRight?: React.ReactNode;
-  }) => (
-    <main>
-      {topbarRight}
-      {children}
-    </main>
-  ),
-}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -132,8 +126,14 @@ vi.mock("@/entities/intent", async (importOriginal) => {
       intentListState,
     }: {
       intentId: number | null;
-      headerActions?: (detail: { id: number; intentCode: string }) => React.ReactNode;
-      afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
+      headerActions?: (detail: {
+        id: number;
+        intentCode: string;
+      }) => React.ReactNode;
+      afterHeader?: (detail: {
+        id: number;
+        intentCode: string;
+      }) => React.ReactNode;
       beforeJsonCards?: () => React.ReactNode;
       children?: (detail: {
         id: number;
@@ -222,9 +222,15 @@ vi.mock("@/features/approve-intent", () => ({
 vi.mock("@/features/intent-revision-draft", () => ({
   IntentRevisionDiffPanel: () => <div>revision diff</div>,
   IntentRevisionRecoveryBanner: () => <div>recovery banner</div>,
-  IntentRevisionDraftActions: ({ onRetrySummary }: { onRetrySummary: () => void }) => (
+  IntentRevisionDraftActions: ({
+    onRetrySummary,
+  }: {
+    onRetrySummary: () => void;
+  }) => (
     <div>
-      <span>수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.</span>
+      <span>
+        수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.
+      </span>
       <button type="button" onClick={onRetrySummary}>
         retry summary
       </button>
@@ -247,7 +253,9 @@ vi.mock("@/features/intent-revision-draft", () => ({
         </button>
         <button
           type="button"
-          onClick={() => void onSave({ name: "환불 문의 수정", description: "수정 설명" })}
+          onClick={() =>
+            void onSave({ name: "환불 문의 수정", description: "수정 설명" })
+          }
         >
           save revision
         </button>
@@ -267,11 +275,14 @@ vi.mock("@/features/intent-revision-draft", () => ({
     getVersionDetail: mocks.getVersionDetail,
   },
   parseIntentRevisionDraftSource: (summaryJson?: string) =>
-    summaryJson?.includes("INTENT_REVISION") ? { type: "INTENT_REVISION", baseVersionId: 2 } : null,
+    summaryJson?.includes("INTENT_REVISION")
+      ? { type: "INTENT_REVISION", baseVersionId: 2 }
+      : null,
   resolveSingleExistingDraft: (
     versions?: Array<{ versionId?: number; lifecycleStatus?: string }>,
   ) => {
-    const drafts = versions?.filter((version) => version.lifecycleStatus === "DRAFT") ?? [];
+    const drafts =
+      versions?.filter((version) => version.lifecycleStatus === "DRAFT") ?? [];
     return drafts.length === 1 && drafts[0]?.versionId != null
       ? { status: "resolved", versionId: drafts[0].versionId }
       : { status: "invalid" };
@@ -291,15 +302,34 @@ vi.mock("@/features/intent-revision-draft", () => ({
   }),
 }));
 
+function ShellHost() {
+  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
+  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
+
+  return (
+    <>
+      <div data-testid="shell-crumbs">
+        {crumbs
+          .map((crumb) => (typeof crumb === "string" ? crumb : crumb.label))
+          .join(" / ")}
+      </div>
+      <div data-testid="shell-topbar">{topbarRight}</div>
+      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
+    </>
+  );
+}
+
 function renderPage(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/intents"
-          element={<IntentDraftReadPage />}
+          path="/workspaces/:workspaceId/domain-packs/:packId"
+          element={<ShellHost />}
         >
-          <Route path=":intentId" />
+          <Route path="intents" element={<IntentDraftReadPage />}>
+            <Route path=":intentId" />
+          </Route>
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -351,7 +381,12 @@ describe("IntentDraftReadPage", () => {
         ],
         changedWorkflows: [],
         changedFieldCounts: { name: 1, description: 0 },
-        changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
+        changedWorkflowFieldCounts: {
+          name: 0,
+          description: 0,
+          graphText: 0,
+          graphStructure: 0,
+        },
         changedByDraftIntentId: {},
         changedByDraftWorkflowId: {},
         totalChangedComponents: 1,
@@ -366,7 +401,9 @@ describe("IntentDraftReadPage", () => {
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
     renderPage("/workspaces/abc/domain-packs/7/intents?versionId=3");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "잘못된 URL 파라미터입니다.",
+    );
   });
 
   it("intent 선택 시 상세 URL로 이동한다", () => {
@@ -446,7 +483,11 @@ describe("IntentDraftReadPage", () => {
 
   it("운영 버전이 바뀐 상태에서 저장하면 pack을 새로고침하고 안내한다", async () => {
     mocks.saveIntentRevisionDraft.mockRejectedValue(
-      new ApiRequestError(409, "DOMAIN_PACK_VERSION_NOT_CURRENT", "version changed"),
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_VERSION_NOT_CURRENT",
+        "version changed",
+      ),
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
@@ -477,16 +518,26 @@ describe("IntentDraftReadPage", () => {
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     });
     mocks.saveIntentRevisionDraft.mockRejectedValue(
-      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "draft exists"),
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_DRAFT_ALREADY_EXISTS",
+        "draft exists",
+      ),
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
-    await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText("진행 중인 초안이 있습니다."),
+      ).toBeInTheDocument(),
+    );
     expect(
-      screen.getByText(/이미 진행 중인 Draft가 있어 새 수정 초안을 만들 수 없습니다./),
+      screen.getByText(
+        /이미 진행 중인 Draft가 있어 새 수정 초안을 만들 수 없습니다./,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -501,7 +552,11 @@ describe("IntentDraftReadPage", () => {
     };
     mocks.packRefetch.mockResolvedValue({ data: mocks.packData });
     mocks.saveIntentRevisionDraft.mockRejectedValue(
-      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "draft exists"),
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_DRAFT_ALREADY_EXISTS",
+        "draft exists",
+      ),
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
@@ -513,7 +568,9 @@ describe("IntentDraftReadPage", () => {
         "초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.",
       ),
     );
-    expect(screen.queryByText("진행 중인 초안이 있습니다.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("진행 중인 초안이 있습니다."),
+    ).not.toBeInTheDocument();
   });
 
   it("기존 초안 dialog에서 이동을 확정하면 해당 초안의 같은 intent로 이동한다", async () => {
@@ -531,13 +588,21 @@ describe("IntentDraftReadPage", () => {
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     });
     mocks.saveIntentRevisionDraft.mockRejectedValue(
-      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "draft exists"),
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_DRAFT_ALREADY_EXISTS",
+        "draft exists",
+      ),
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
-    await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText("진행 중인 초안이 있습니다."),
+      ).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "이동" }));
 
     await waitFor(() =>
@@ -586,7 +651,9 @@ describe("IntentDraftReadPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("이름이 너무 깁니다."));
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith("이름이 너무 깁니다."),
+    );
     expect(mocks.versionRefetch).not.toHaveBeenCalled();
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
@@ -603,7 +670,9 @@ describe("IntentDraftReadPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "mark dirty" }));
     fireEvent.click(screen.getByRole("button", { name: "select intent" }));
 
-    expect(await screen.findByText("저장하지 않고 이동할까요?")).toBeInTheDocument();
+    expect(
+      await screen.findByText("저장하지 않고 이동할까요?"),
+    ).toBeInTheDocument();
     expect(mocks.navigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "이동" }));
@@ -646,10 +715,16 @@ describe("IntentDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
     expect(
-      screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),
+      screen.getByText(
+        "수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "apply revision" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "discard revision" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "apply revision" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "discard revision" }),
+    ).not.toBeInTheDocument();
     expect(mocks.activateVersion).not.toHaveBeenCalled();
     expect(mocks.discardDraft).not.toHaveBeenCalled();
   });

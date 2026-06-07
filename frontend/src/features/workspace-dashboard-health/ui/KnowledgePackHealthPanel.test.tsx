@@ -66,6 +66,47 @@ describe("KnowledgePackHealthPanel", () => {
     );
   });
 
+  it("생성 가능한 상태에서는 업로드 화면의 데이터셋 생성 상태로 이동한다", () => {
+    mockedUseWorkspaceDashboardHealth.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        activeKnowledgePack: {
+          packId: 11,
+          packName: "CS Pack",
+          versionId: 12,
+          versionNo: 4,
+          publishedAt: "2026-06-01T10:00:00Z",
+          createdAt: "2026-06-01T09:00:00Z",
+        },
+        lastLogUpload: {
+          datasetId: 8,
+          datasetKey: "june-log",
+          datasetName: "6월 상담 로그",
+          datasetStatus: "READY",
+          uploadedAt: "2026-06-03T09:00:00Z",
+        },
+        lastKnowledgePackGeneration: {
+          pipelineJobId: 77,
+          datasetId: 7,
+          domainPackId: 11,
+          status: "SUCCEEDED",
+          requestedAt: "2026-06-01T09:10:00Z",
+          finishedAt: "2026-06-01T09:30:00Z",
+        },
+        pendingReviewCount: 0,
+      },
+    } as ReturnType<typeof useWorkspaceDashboardHealth>);
+
+    renderPanel();
+
+    expect(screen.getByRole("link", { name: /지식팩 생성 시작/ })).toHaveAttribute(
+      "href",
+      "/workspaces/1/upload?datasetId=8",
+    );
+    expect(screen.queryByRole("link", { name: /도메인팩 관리/ })).not.toBeInTheDocument();
+  });
+
   it("error 상태에서는 stale 운영 상태 대신 재시도 가능한 오류 상태만 표시한다", () => {
     const refetch = vi.fn();
     mockedUseWorkspaceDashboardHealth.mockReturnValue({
