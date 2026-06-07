@@ -5,6 +5,7 @@ import {
   CheckCircle2Icon,
   FileUpIcon,
   FlaskConicalIcon,
+  MonitorSmartphoneIcon,
   RefreshCwIcon,
 } from "lucide-react";
 
@@ -22,10 +23,12 @@ import {
   type WorkspaceDashboardActionRecommendations,
 } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
+import {
+  buildDemoChatPath,
+  buildWorkspaceSimulationPath,
+} from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
-import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 
@@ -39,9 +42,6 @@ interface DashboardFilters {
   period: DashboardPeriod;
   customFrom: string;
   customTo: string;
-  domainPackVersion: string;
-  channel: string;
-  workflowStatus: string;
 }
 
 interface FilterOption<T extends string = string> {
@@ -69,34 +69,10 @@ const PERIOD_OPTIONS: Array<FilterOption<DashboardPeriod>> = [
   { value: "custom", label: "사용자 지정" },
 ];
 
-const DOMAIN_PACK_VERSION_OPTIONS: FilterOption[] = [
-  { value: "all", label: "전체 버전" },
-  { value: "published", label: "운영 버전" },
-  { value: "draft", label: "검토 중 버전" },
-];
-
-const CHANNEL_OPTIONS: FilterOption[] = [
-  { value: "all", label: "전체 채널" },
-  { value: "web-chat", label: "웹채팅" },
-  { value: "email", label: "이메일" },
-  { value: "phone", label: "전화" },
-];
-
-const WORKFLOW_STATUS_OPTIONS: FilterOption[] = [
-  { value: "all", label: "전체 상태" },
-  { value: "running", label: "진행 중" },
-  { value: "completed", label: "완료" },
-  { value: "handoff", label: "상담원 연결" },
-  { value: "failed", label: "실패" },
-];
-
 const INITIAL_FILTERS: DashboardFilters = {
   period: "7d",
   customFrom: "",
   customTo: "",
-  domainPackVersion: "all",
-  channel: "all",
-  workflowStatus: "all",
 };
 
 function toDateInputValue(date: Date): string {
@@ -144,18 +120,7 @@ function buildPeriodSummary(filters: DashboardFilters): string {
 }
 
 function FilterSummary({ filters }: { filters: DashboardFilters }) {
-  const summaryItems = [
-    ["기간", buildPeriodSummary(filters)],
-    [
-      "운영 지식팩",
-      getOptionLabel(DOMAIN_PACK_VERSION_OPTIONS, filters.domainPackVersion),
-    ],
-    ["채널", getOptionLabel(CHANNEL_OPTIONS, filters.channel)],
-    [
-      "워크플로우",
-      getOptionLabel(WORKFLOW_STATUS_OPTIONS, filters.workflowStatus),
-    ],
-  ];
+  const summaryItems = [["기간", buildPeriodSummary(filters)]];
 
   return (
     <dl className={styles.filterSummary} aria-label="대시보드 필터 요약">
@@ -786,8 +751,7 @@ function DashboardFilters({
             공통 필터
           </h2>
           <p className={styles.sectionDescription}>
-            대시보드 섹션이 같은 기간과 운영 조건을 기준으로 집계되도록
-            설정합니다.
+            대시보드 섹션이 같은 기간을 기준으로 집계되도록 설정합니다.
           </p>
         </div>
       </div>
@@ -831,58 +795,6 @@ function DashboardFilters({
           </label>
         </div>
       ) : null}
-
-      <div className={styles.selectGrid}>
-        <label className={styles.field}>
-          <span>운영 지식팩 버전</span>
-          <NativeSelect
-            value={filters.domainPackVersion}
-            onChange={(event) =>
-              updateFilter("domainPackVersion", event.target.value)
-            }
-            aria-label="운영 지식팩 버전 필터"
-            size="sm"
-          >
-            {DOMAIN_PACK_VERSION_OPTIONS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </label>
-        <label className={styles.field}>
-          <span>Channel</span>
-          <NativeSelect
-            value={filters.channel}
-            onChange={(event) => updateFilter("channel", event.target.value)}
-            aria-label="채널 필터"
-            size="sm"
-          >
-            {CHANNEL_OPTIONS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </label>
-        <label className={styles.field}>
-          <span>Workflow Status</span>
-          <NativeSelect
-            value={filters.workflowStatus}
-            onChange={(event) =>
-              updateFilter("workflowStatus", event.target.value)
-            }
-            aria-label="워크플로우 상태 필터"
-            size="sm"
-          >
-            {WORKFLOW_STATUS_OPTIONS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </label>
-      </div>
     </section>
   );
 }
@@ -959,11 +871,20 @@ export function DashboardStatePanel({
         </Button>
         <Button asChild variant="outline">
           <Link
-            to={buildDemoChatPath(workspaceId)}
+            to={buildWorkspaceSimulationPath(workspaceId)}
             data-testid="dashboard-simulation-cta"
           >
             <FlaskConicalIcon aria-hidden="true" />
             시뮬레이션 시작
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link
+            to={buildDemoChatPath(workspaceId)}
+            data-testid="dashboard-customer-preview-cta"
+          >
+            <MonitorSmartphoneIcon aria-hidden="true" />
+            고객 화면 미리보기
           </Link>
         </Button>
       </div>

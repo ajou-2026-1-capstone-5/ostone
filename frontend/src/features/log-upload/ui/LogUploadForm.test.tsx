@@ -539,6 +539,46 @@ describe("LogUploadForm", () => {
     );
   });
 
+  it("keeps review CTA when automatic ingestion pipeline waits for feedback", () => {
+    mockIngestionQuery = {
+      data: {
+        pipelineJob: {
+          pipelineJobId: 42,
+          workspaceId: 1,
+          datasetId: 42,
+          domainPackId: null,
+          jobType: "INGESTION",
+          status: "WAITING_HUMAN_FEEDBACK",
+          airflowDagId: "domain_pack_generation",
+          airflowRunId: "pipeline_job_42",
+          requestedAt: "2026-06-07T01:00:00Z",
+          startedAt: "2026-06-07T01:00:10Z",
+          finishedAt: null,
+          runningDurationSeconds: null,
+          lastErrorMessage: null,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+    };
+
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
+    fireEvent.change(screen.getByTestId("file-input"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByText("처리 시작"));
+
+    expect(
+      screen.getByText(/클러스터 피드백 입력을 기다리고 있습니다/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("검토 화면으로 이동"));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/workspaces/1/pipeline-jobs/42/review",
+    );
+  });
+
   it("shows upload failure toast with retry action", () => {
     startBehavior = "error";
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });

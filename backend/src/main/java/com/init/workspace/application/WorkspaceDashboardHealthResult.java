@@ -4,4 +4,5 @@ public record WorkspaceDashboardHealthResult(
     WorkspaceDashboardKnowledgePackResult activeKnowledgePack,
     WorkspaceDashboardLogUploadResult lastLogUpload,
     WorkspaceDashboardGenerationResult lastKnowledgePackGeneration,
-    long pendingReviewCount) {}
+    long pendingReviewCount,
+    Long latestOpenReviewPipelineJobId) {}

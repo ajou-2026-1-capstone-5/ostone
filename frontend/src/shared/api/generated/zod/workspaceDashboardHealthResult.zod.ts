@@ -33,7 +33,8 @@ export const WorkspaceDashboardHealthResult = zod.object({
   "finishedAt": zod.iso.datetime({"offset":true}).optional(),
   "lastErrorMessage": zod.string().optional()
 }).optional(),
-  "pendingReviewCount": zod.number().optional()
+  "pendingReviewCount": zod.number().optional(),
+  "latestOpenReviewPipelineJobId": zod.number().optional()
 })
 
 export type WorkspaceDashboardHealthResult = zod.input<typeof WorkspaceDashboardHealthResult>;

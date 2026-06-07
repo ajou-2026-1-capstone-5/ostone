@@ -38,7 +38,8 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
         findActiveKnowledgePack(workspaceId),
         findLastLogUpload(workspaceId),
         findLastKnowledgePackGeneration(workspaceId),
-        countPendingReviewTasks(workspaceId));
+        countPendingReviewTasks(workspaceId),
+        findLatestOpenReviewPipelineJobId(workspaceId));
   }
 
   @Override
@@ -147,6 +148,29 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
             new MapSqlParameterSource("workspaceId", workspaceId),
             Long.class);
     return count != null ? count : 0L;
+  }
+
+  private Long findLatestOpenReviewPipelineJobId(Long workspaceId) {
+    List<Long> rows =
+        jdbcTemplate.query(
+            """
+            SELECT rs.pipeline_job_id
+            FROM review.review_session rs
+            WHERE rs.workspace_id = :workspaceId
+              AND rs.status = 'OPEN'
+              AND rs.pipeline_job_id IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM review.review_task rt
+                WHERE rt.review_session_id = rs.id
+                  AND rt.status = 'OPEN'
+              )
+            ORDER BY rs.opened_at DESC, rs.id DESC
+            LIMIT 1
+            """,
+            Map.of("workspaceId", workspaceId),
+            (rs, rowNum) -> rs.getLong("pipeline_job_id"));
+    return rows.stream().findFirst().orElse(null);
   }
 
   private WorkspaceDashboardDecisionSignalResult findDecisionSignals(

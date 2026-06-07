@@ -257,7 +257,7 @@ describe("WorkspaceDashboardPage", () => {
     expect(mockedFetchActionRecommendations).not.toHaveBeenCalled();
   });
 
-  it("공통 필터와 상담 처리 KPI, 추천 액션, 운영 지식팩 건강도, 핫패스 랭킹을 표시한다", async () => {
+  it("기간 필터와 상담 처리 KPI, 추천 액션, 운영 지식팩 건강도, 핫패스 랭킹을 표시한다", async () => {
     renderPage();
 
     expect(
@@ -272,9 +272,13 @@ describe("WorkspaceDashboardPage", () => {
       screen.queryByText(/필터와 배치 구조를 먼저 고정합니다/),
     ).not.toBeInTheDocument();
     expect(screen.getByLabelText("기간 필터")).toBeInTheDocument();
-    expect(screen.getByLabelText("운영 지식팩 버전 필터")).toHaveValue("all");
-    expect(screen.getByLabelText("채널 필터")).toHaveValue("all");
-    expect(screen.getByLabelText("워크플로우 상태 필터")).toHaveValue("all");
+    expect(
+      screen.queryByLabelText("운영 지식팩 버전 필터"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("채널 필터")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("워크플로우 상태 필터"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("총 상담")).toBeInTheDocument();
     expect(await screen.findByText("120")).toBeInTheDocument();
     expect(screen.getByText("1분 15초")).toBeInTheDocument();
@@ -342,7 +346,7 @@ describe("WorkspaceDashboardPage", () => {
     );
   });
 
-  it("기간과 공통 필터 변경을 요약 상태와 API 요청에 반영한다", async () => {
+  it("기간 변경을 요약 상태와 API 요청에 반영한다", async () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "사용자 지정" }));
@@ -352,21 +356,12 @@ describe("WorkspaceDashboardPage", () => {
     fireEvent.change(screen.getByLabelText("종료일"), {
       target: { value: "2026-06-03" },
     });
-    fireEvent.change(screen.getByLabelText("운영 지식팩 버전 필터"), {
-      target: { value: "published" },
-    });
-    fireEvent.change(screen.getByLabelText("채널 필터"), {
-      target: { value: "email" },
-    });
-    fireEvent.change(screen.getByLabelText("워크플로우 상태 필터"), {
-      target: { value: "handoff" },
-    });
 
     const summary = screen.getByLabelText("대시보드 필터 요약");
     expect(summary).toHaveTextContent("2026-06-01 ~ 2026-06-03");
-    expect(summary).toHaveTextContent("운영 버전");
-    expect(summary).toHaveTextContent("이메일");
-    expect(summary).toHaveTextContent("상담원 연결");
+    expect(summary).not.toHaveTextContent("운영 지식팩");
+    expect(summary).not.toHaveTextContent("채널");
+    expect(summary).not.toHaveTextContent("워크플로우");
     await waitFor(() =>
       expect(mockedGetMetrics).toHaveBeenLastCalledWith(1, {
         from: "2026-06-01",
@@ -453,6 +448,18 @@ describe("WorkspaceDashboardPage", () => {
       screen.getByRole("link", { name: /지식팩 검토/ }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute(
+      "href",
+      "/workspaces/1/simulation",
+    );
+    expect(
+      screen.getByRole("link", { name: /시뮬레이션 시작/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /고객 화면 미리보기/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("dashboard-customer-preview-cta"),
+    ).toHaveAttribute(
       "href",
       "/demo/chat/1",
     );
