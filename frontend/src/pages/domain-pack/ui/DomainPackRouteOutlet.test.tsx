@@ -1,23 +1,51 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useOutletContext,
+} from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { DomainPackRouteOutlet } from "./DomainPackRouteOutlet";
 
+function WorkspaceShellHost() {
+  const context: ShellContext = {
+    setCrumbs: () => undefined,
+    setTopbarRight: () => undefined,
+    workspace: { id: 1, name: "CS Team" },
+  } as ShellContext;
+
+  return <Outlet context={context} />;
+}
+
+function ShellContextProbe() {
+  const { workspace } = useOutletContext<ShellContext>();
+
+  return <div>{workspace?.name}</div>;
+}
+
 describe("DomainPackRouteOutlet", () => {
-  it("하위 route element를 렌더링한다", () => {
+  it("workspace shell context를 하위 route에 전달한다", () => {
     render(
       <MemoryRouter initialEntries={["/workspaces/1/domain-packs/2/intents"]}>
         <Routes>
           <Route
-            path="/workspaces/:workspaceId/domain-packs/:packId"
-            element={<DomainPackRouteOutlet />}
+            path="/workspaces/:workspaceId"
+            element={<WorkspaceShellHost />}
           >
-            <Route path="intents" element={<div>intent child</div>} />
+            <Route
+              path="domain-packs/:packId"
+              element={<DomainPackRouteOutlet />}
+            >
+              <Route path="intents" element={<ShellContextProbe />} />
+            </Route>
           </Route>
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("intent child")).toBeInTheDocument();
+    expect(screen.getByText("CS Team")).toBeInTheDocument();
   });
 });

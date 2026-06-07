@@ -1,5 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import { App } from "./App";
 import { AppProviders } from "./providers";
 
@@ -64,7 +71,11 @@ describe("App", () => {
   });
 
   it("redirects legacy demo workspace chat URLs to the canonical demo chat URL", async () => {
-    window.history.pushState({}, "", "/demo/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
+    window.history.pushState(
+      {},
+      "",
+      "/demo/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80",
+    );
 
     render(
       <AppProviders>
@@ -80,7 +91,11 @@ describe("App", () => {
 
   it("redirects legacy authenticated workspace chat URLs to the user chat URL", async () => {
     seedAuthenticatedSession();
-    window.history.pushState({}, "", "/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
+    window.history.pushState(
+      {},
+      "",
+      "/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80",
+    );
 
     render(
       <AppProviders>
@@ -122,7 +137,9 @@ describe("App", () => {
           }),
         );
       }
-      if (url.startsWith("/api/v1/workspaces/1/dashboard/action-recommendations")) {
+      if (
+        url.startsWith("/api/v1/workspaces/1/dashboard/action-recommendations")
+      ) {
         return Promise.resolve(
           jsonResponse({
             workspaceId: 1,
@@ -158,5 +175,53 @@ describe("App", () => {
       "/api/v1/workspaces/1/dashboard/knowledge-pack-health",
       expect.objectContaining({ method: "GET" }),
     );
+  });
+
+  it("renders domain pack detail URLs inside the workspace shell", async () => {
+    seedAuthenticatedSession();
+
+    const workspaceBody = {
+      id: 1,
+      workspaceKey: "cs-team-alpha",
+      name: "CS Team Alpha",
+      description: null,
+      status: "ACTIVE",
+      myRole: "OWNER",
+      createdAt: "2026-04-01T00:00:00Z",
+      updatedAt: "2026-04-01T00:00:00Z",
+    };
+    const packBody = {
+      packId: 2,
+      name: "CS Pack",
+      code: "CS",
+      currentVersionId: null,
+      currentVersionNo: null,
+      versions: [],
+    };
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/v1/workspaces/1") {
+        return Promise.resolve(jsonResponse(workspaceBody));
+      }
+      if (url === "/api/v1/workspaces/1/domain-packs/2") {
+        return Promise.resolve(jsonResponse({ data: packBody }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    window.history.pushState({}, "", "/workspaces/1/domain-packs/2");
+
+    render(
+      <AppProviders>
+        <App />
+      </AppProviders>,
+    );
+
+    expect((await screen.findAllByText("CS Pack")).length).toBeGreaterThan(0);
+    const domainLink = screen.getByTestId("sidebar-domain-link");
+    expect(domainLink).toHaveAttribute("href", "/workspaces/1/domain-packs");
+    expect(domainLink).toHaveAttribute("data-active", "true");
+    expect(screen.getByText("CStone")).toBeInTheDocument();
   });
 });

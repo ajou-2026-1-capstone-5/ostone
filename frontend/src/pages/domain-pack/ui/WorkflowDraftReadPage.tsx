@@ -1,5 +1,10 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { toast } from "sonner";
 import {
   formatLifecycleStatus,
@@ -13,9 +18,11 @@ import type {
 } from "@/features/consultation/api/consultationApi";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
 import { intentRevisionDraftApi } from "@/features/intent-revision-draft";
-import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
+import {
+  buildDomainPackCrumbs,
+  domainPackSectionPath,
+} from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { OstoneShell } from "@/widgets/ostone-shell";
 import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
@@ -36,6 +43,7 @@ import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definit
 import type { WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
+import { DomainPackShellState } from "./DomainPackShellState";
 import styles from "./workflow-draft-read-page.module.css";
 
 type AnalysisState = "loading" | "error" | "empty" | "ready";
@@ -83,7 +91,13 @@ function formatInclusivePeriodEnd(value: string): string {
   return date.toISOString().slice(0, 10);
 }
 
-function HitList({ title, items }: { title: string; items: WorkflowHitMetric[] }) {
+function HitList({
+  title,
+  items,
+}: {
+  title: string;
+  items: WorkflowHitMetric[];
+}) {
   return (
     <section className={styles.analysisListGroup} aria-label={title}>
       <h4>{title}</h4>
@@ -119,16 +133,24 @@ function WorkflowBottleneckAnalysisPanel({
 }) {
   if (state === "loading") {
     return (
-      <section className={styles.analysisPanel} data-testid="workflow-analysis-loading">
+      <section
+        className={styles.analysisPanel}
+        data-testid="workflow-analysis-loading"
+      >
         <LoadingSpinner />
-        <p className={styles.analysisEmptyText}>워크플로우 병목 분석을 불러오는 중입니다.</p>
+        <p className={styles.analysisEmptyText}>
+          워크플로우 병목 분석을 불러오는 중입니다.
+        </p>
       </section>
     );
   }
 
   if (state === "error") {
     return (
-      <section className={styles.analysisPanel} data-testid="workflow-analysis-error">
+      <section
+        className={styles.analysisPanel}
+        data-testid="workflow-analysis-error"
+      >
         <ErrorState
           message={error ?? "워크플로우 병목 분석을 불러오지 못했습니다."}
           onRetry={onRetry}
@@ -139,34 +161,47 @@ function WorkflowBottleneckAnalysisPanel({
 
   if (state === "empty" || !analysis) {
     return (
-      <section className={styles.analysisPanel} data-testid="workflow-analysis-empty">
+      <section
+        className={styles.analysisPanel}
+        data-testid="workflow-analysis-empty"
+      >
         <div className={styles.analysisHeader}>
           <div>
             <span className={styles.analysisEyebrow}>Bottleneck Analysis</span>
             <h3>운영 실행 병목 분석</h3>
           </div>
         </div>
-        <p className={styles.analysisEmptyText}>선택 기간에 분석할 운영 실행 로그가 없습니다.</p>
+        <p className={styles.analysisEmptyText}>
+          선택 기간에 분석할 운영 실행 로그가 없습니다.
+        </p>
       </section>
     );
   }
 
   return (
-    <section className={styles.analysisPanel} data-testid="workflow-analysis-panel">
+    <section
+      className={styles.analysisPanel}
+      data-testid="workflow-analysis-panel"
+    >
       <div className={styles.analysisHeader}>
         <div>
           <span className={styles.analysisEyebrow}>Bottleneck Analysis</span>
           <h3>운영 실행 병목 분석</h3>
           <p>
-            상태 전이와 runtime decision 로그를 기준으로 slot, policy, risk 개선 지점을 요약합니다.
+            상태 전이와 runtime decision 로그를 기준으로 slot, policy, risk 개선
+            지점을 요약합니다.
           </p>
         </div>
         <span className={styles.analysisPeriod}>
-          {analysis.periodStart.slice(0, 10)} ~ {formatInclusivePeriodEnd(analysis.periodEnd)}
+          {analysis.periodStart.slice(0, 10)} ~{" "}
+          {formatInclusivePeriodEnd(analysis.periodEnd)}
         </span>
       </div>
 
-      <div className={styles.analysisMetricGrid} aria-label="워크플로우 실행 상태 요약">
+      <div
+        className={styles.analysisMetricGrid}
+        aria-label="워크플로우 실행 상태 요약"
+      >
         <article>
           <span>전체 실행</span>
           <strong>{formatMetricCount(analysis.totalExecutionCount)}</strong>
@@ -221,7 +256,9 @@ function WorkflowBottleneckAnalysisPanel({
             </div>
           ))
         ) : (
-          <p className={styles.analysisEmptyText}>표시할 상태 전이가 없습니다.</p>
+          <p className={styles.analysisEmptyText}>
+            표시할 상태 전이가 없습니다.
+          </p>
         )}
       </div>
 
@@ -231,7 +268,10 @@ function WorkflowBottleneckAnalysisPanel({
         <HitList title="Risk Hit TOP 5" items={analysis.riskHitTop} />
       </div>
 
-      <section className={styles.analysisListGroup} aria-label="상담사 개입 발생 지점">
+      <section
+        className={styles.analysisListGroup}
+        aria-label="상담사 개입 발생 지점"
+      >
         <h4>상담사 개입 지점</h4>
         {analysis.humanInterventionPoints.length > 0 ? (
           <ol>
@@ -246,7 +286,9 @@ function WorkflowBottleneckAnalysisPanel({
             ))}
           </ol>
         ) : (
-          <p className={styles.analysisEmptyText}>상담사 개입 지점이 관측되지 않았습니다.</p>
+          <p className={styles.analysisEmptyText}>
+            상담사 개입 지점이 관측되지 않았습니다.
+          </p>
         )}
       </section>
 
@@ -272,7 +314,8 @@ export function WorkflowDraftReadPage() {
     versionId: number;
     workflowId: number;
   } | null>(null);
-  const [analysis, setAnalysis] = useState<WorkspaceWorkflowBottleneckAnalysis | null>(null);
+  const [analysis, setAnalysis] =
+    useState<WorkspaceWorkflowBottleneckAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
@@ -281,14 +324,17 @@ export function WorkflowDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const wfId = workflowId ? parseRouteId(workflowId) : null;
 
-  const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
+  const enabled =
+    wsId !== null && pId !== null && vId !== null && wfId !== null;
 
   const packQuery = usePackDetail(wsId ?? 0, pId ?? 0, {
     enabled: wsId !== null && pId !== null && vId !== null && wfId !== null,
   });
   const packDetail = packQuery.data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const selectedVersion = packDetail?.versions?.find((v) => v.versionId === vId);
+  const selectedVersion = packDetail?.versions?.find(
+    (v) => v.versionId === vId,
+  );
   const versionNo = selectedVersion?.versionNo ?? vId ?? 0;
   const lifecycleStatus = selectedVersion?.lifecycleStatus ?? null;
   const workflowReturnTo = readWorkflowReturnTo(location.state);
@@ -337,7 +383,10 @@ export function WorkflowDraftReadPage() {
     setIsAnalysisLoading(true);
     setAnalysisError(null);
     try {
-      const data = await consultationApi.getWorkflowBottleneckAnalysis(wsId, wfId);
+      const data = await consultationApi.getWorkflowBottleneckAnalysis(
+        wsId,
+        wfId,
+      );
       setAnalysis(data);
     } catch (error) {
       console.error("Failed to load workflow bottleneck analysis:", error);
@@ -363,7 +412,10 @@ export function WorkflowDraftReadPage() {
       setIsAnalysisLoading(true);
       setAnalysisError(null);
       try {
-        const data = await consultationApi.getWorkflowBottleneckAnalysis(wsId, wfId);
+        const data = await consultationApi.getWorkflowBottleneckAnalysis(
+          wsId,
+          wfId,
+        );
         if (ignore) return;
         setAnalysis(data);
       } catch (error) {
@@ -386,6 +438,23 @@ export function WorkflowDraftReadPage() {
     };
   }, [wsId, wfId, enabled]);
 
+  const crumbs = useMemo<Crumb[]>(() => {
+    if (wsId === null || pId === null || vId === null) {
+      return ["도메인팩 관리"];
+    }
+
+    return buildDomainPackCrumbs({
+      wsId,
+      pId,
+      vId,
+      packName,
+      versionNo,
+      section: { label: "워크플로우", path: "workflows" },
+      selectedLabel:
+        workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
+    });
+  }, [packName, pId, versionNo, vId, wfId, workflow?.workflowCode, wsId]);
+
   if (
     wsId === null ||
     pId === null ||
@@ -393,11 +462,11 @@ export function WorkflowDraftReadPage() {
     (workflowId !== undefined && wfId === null)
   ) {
     return (
-      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
+      <DomainPackShellState crumbs={crumbs}>
         <div role="alert" style={{ padding: "24px", color: "var(--danger)" }}>
           잘못된 URL 파라미터입니다.
         </div>
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
@@ -414,17 +483,32 @@ export function WorkflowDraftReadPage() {
     setPendingClose(() => next);
   };
 
-  const navigateToWorkflow = (versionId: number, targetWorkflowId: number | null) => {
+  const navigateToWorkflow = (
+    versionId: number,
+    targetWorkflowId: number | null,
+  ) => {
     navigate(
-      domainPackSectionPath(wsId, pId, versionId, "workflows", targetWorkflowId ?? undefined),
+      domainPackSectionPath(
+        wsId,
+        pId,
+        versionId,
+        "workflows",
+        targetWorkflowId ?? undefined,
+      ),
       { replace: true },
     );
   };
 
-  const findWorkflowIdByCode = async (versionId: number, workflowCode: string) => {
+  const findWorkflowIdByCode = async (
+    versionId: number,
+    workflowCode: string,
+  ) => {
     const response = await listWorkflows(wsId, pId, versionId);
-    const workflows = (unwrapApiResponse(response) ?? []) as WorkflowDefinitionSummary[];
-    const target = workflows.find((entry) => entry.workflowCode === workflowCode);
+    const workflows = (unwrapApiResponse(response) ??
+      []) as WorkflowDefinitionSummary[];
+    const target = workflows.find(
+      (entry) => entry.workflowCode === workflowCode,
+    );
     return typeof target?.id === "number" ? target.id : null;
   };
 
@@ -432,7 +516,8 @@ export function WorkflowDraftReadPage() {
     try {
       const refetched = await packQuery.refetch();
       const drafts = (refetched.data?.versions ?? []).filter(
-        (version) => version.lifecycleStatus === "DRAFT" && version.versionId != null,
+        (version) =>
+          version.lifecycleStatus === "DRAFT" && version.versionId != null,
       );
 
       if (drafts.length !== 1 || drafts[0].versionId == null) {
@@ -443,7 +528,10 @@ export function WorkflowDraftReadPage() {
       }
 
       const draftVersionId = drafts[0].versionId;
-      const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflowCode);
+      const draftWorkflowId = await findWorkflowIdByCode(
+        draftVersionId,
+        workflowCode,
+      );
 
       if (draftWorkflowId == null) {
         toast.error("기존 검토본에서 같은 워크플로우를 찾지 못했습니다.");
@@ -468,9 +556,12 @@ export function WorkflowDraftReadPage() {
   const handleBackToList = () => {
     guardEditorClose(() => {
       closeEditor();
-      navigate(workflowReturnTo ?? domainPackSectionPath(wsId, pId, vId, "workflows"), {
-        replace: true,
-      });
+      navigate(
+        workflowReturnTo ?? domainPackSectionPath(wsId, pId, vId, "workflows"),
+        {
+          replace: true,
+        },
+      );
     });
   };
 
@@ -482,15 +573,21 @@ export function WorkflowDraftReadPage() {
     }
 
     if (!workflow.workflowCode) {
-      toast.error("워크플로우 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.");
+      toast.error(
+        "워크플로우 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.",
+      );
       return;
     }
 
     setCreatingDraft(true);
     try {
-      const { draftVersionId } = await intentRevisionDraftApi.createRevisionDraft(wsId, pId, vId);
+      const { draftVersionId } =
+        await intentRevisionDraftApi.createRevisionDraft(wsId, pId, vId);
       await packQuery.refetch();
-      const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflow.workflowCode);
+      const draftWorkflowId = await findWorkflowIdByCode(
+        draftVersionId,
+        workflow.workflowCode,
+      );
       if (draftWorkflowId === null) {
         toast.error("수정 검토본에서 같은 워크플로우를 찾지 못했습니다.");
         navigateToWorkflow(draftVersionId, null);
@@ -501,12 +598,18 @@ export function WorkflowDraftReadPage() {
       setEditDirty(false);
       toast.success("워크플로우 수정 검토본이 생성되었습니다.");
     } catch (error) {
-      if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS"
+      ) {
         await resolveExistingDraft(workflow.workflowCode);
         return;
       }
       toast.error(
-        resolveWorkflowActionErrorMessage(error, "워크플로우 수정 검토본 생성에 실패했습니다."),
+        resolveWorkflowActionErrorMessage(
+          error,
+          "워크플로우 수정 검토본 생성에 실패했습니다.",
+        ),
       );
     } finally {
       setCreatingDraft(false);
@@ -528,16 +631,6 @@ export function WorkflowDraftReadPage() {
     navigateToWorkflow(target.versionId, target.workflowId);
   };
 
-  const crumbs: Crumb[] = buildDomainPackCrumbs({
-    wsId: wsId!,
-    pId: pId!,
-    vId: vId!,
-    packName,
-    versionNo,
-    section: { label: "워크플로우", path: "workflows" },
-    selectedLabel: workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
-  });
-
   let graphContent: ReactNode;
   if (isEditing && workflow) {
     graphContent = (
@@ -553,7 +646,10 @@ export function WorkflowDraftReadPage() {
     );
   } else if (graph) {
     graphContent = (
-      <div data-testid="workflow-graph-viewer" style={{ width: "100%", height: "100%" }}>
+      <div
+        data-testid="workflow-graph-viewer"
+        style={{ width: "100%", height: "100%" }}
+      >
         <GraphViewer graph={graph} />
       </div>
     );
@@ -566,24 +662,34 @@ export function WorkflowDraftReadPage() {
   }
 
   return (
-    <OstoneShell active="workflows" crumbs={crumbs}>
+    <DomainPackShellState crumbs={crumbs}>
       <div className={styles.detailPage}>
         <VersionSafetyBanner wsId={wsId!} packId={pId!} versionId={vId} />
         <div className={styles.detailHeader}>
           <div className={styles.titleGroup}>
             <div className={styles.titleStack}>
-              <h2 data-testid="workflow-detail-title" className={styles.detailTitle}>
-                {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
+              <h2
+                data-testid="workflow-detail-title"
+                className={styles.detailTitle}
+              >
+                {workflow?.name ||
+                  (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
               </h2>
               {workflow?.description && (
-                <p className={styles.detailDescription}>{workflow.description}</p>
+                <p className={styles.detailDescription}>
+                  {workflow.description}
+                </p>
               )}
             </div>
             {workflow && lifecycleStatus && lifecycleStatus !== "PUBLISHED" && (
-              <Pill tone="signal">{formatLifecycleStatus(lifecycleStatus)}</Pill>
+              <Pill tone="signal">
+                {formatLifecycleStatus(lifecycleStatus)}
+              </Pill>
             )}
             {workflow && isEditing && <Pill tone="ink">수정 중</Pill>}
-            {workflow && <Mono className={styles.nodeCount}>노드 {nodeCount}개</Mono>}
+            {workflow && (
+              <Mono className={styles.nodeCount}>노드 {nodeCount}개</Mono>
+            )}
           </div>
 
           <div className={styles.headerActions}>
@@ -614,9 +720,15 @@ export function WorkflowDraftReadPage() {
           </div>
         </div>
 
-        <div className={styles.canvasFrame} data-editing={isEditing ? "true" : "false"}>
+        <div
+          className={styles.canvasFrame}
+          data-editing={isEditing ? "true" : "false"}
+        >
           {!enabled && (
-            <div data-testid="workflow-select-empty" className={styles.centerState}>
+            <div
+              data-testid="workflow-select-empty"
+              className={styles.centerState}
+            >
               좌측 사이드바에서 워크플로우를 선택하세요.
             </div>
           )}
@@ -637,7 +749,11 @@ export function WorkflowDraftReadPage() {
             </div>
           )}
 
-          {enabled && !query.isLoading && !query.isError && workflow && graphContent}
+          {enabled &&
+            !query.isLoading &&
+            !query.isError &&
+            workflow &&
+            graphContent}
         </div>
         {enabled && !isEditing && (
           <WorkflowBottleneckAnalysisPanel
@@ -655,7 +771,9 @@ export function WorkflowDraftReadPage() {
         }}
       >
         <AlertDialogContent size="sm" className={styles.discardDialog}>
-          <AlertDialogTitle className={styles.discardTitle}>변경 내역을 버릴까요?</AlertDialogTitle>
+          <AlertDialogTitle className={styles.discardTitle}>
+            변경 내역을 버릴까요?
+          </AlertDialogTitle>
           <AlertDialogDescription className={styles.discardDescription}>
             저장하지 않고 이동하면 현재 편집 중인 변경 내역이 버려집니다.
           </AlertDialogDescription>
@@ -668,7 +786,11 @@ export function WorkflowDraftReadPage() {
             >
               계속 편집
             </Button>
-            <Button type="button" className={styles.discardButton} onClick={confirmPendingClose}>
+            <Button
+              type="button"
+              className={styles.discardButton}
+              onClick={confirmPendingClose}
+            >
               변경 내역 버리기
             </Button>
           </AlertDialogFooter>
@@ -683,11 +805,15 @@ export function WorkflowDraftReadPage() {
         <AlertDialogContent size="sm">
           <AlertDialogTitle>진행 중인 검토본이 있습니다</AlertDialogTitle>
           <AlertDialogDescription>
-            새 검토본을 만들 수 없습니다. 기존 검토본에서 계속 편집하거나, 도메인팩 화면에서
-            검토본을 적용 또는 폐기한 뒤 다시 시도하세요.
+            새 검토본을 만들 수 없습니다. 기존 검토본에서 계속 편집하거나,
+            도메인팩 화면에서 검토본을 적용 또는 폐기한 뒤 다시 시도하세요.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={() => setExistingDraftTarget(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setExistingDraftTarget(null)}
+            >
               취소
             </Button>
             <Button type="button" onClick={confirmExistingDraftNavigation}>
@@ -696,7 +822,7 @@ export function WorkflowDraftReadPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </OstoneShell>
+    </DomainPackShellState>
   );
 }
 
@@ -706,7 +832,10 @@ function readWorkflowReturnTo(state: unknown): string | null {
   return typeof value === "string" && value.startsWith("/") ? value : null;
 }
 
-function resolveWorkflowActionErrorMessage(error: unknown, fallback: string): string {
+function resolveWorkflowActionErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
   if (error instanceof ApiRequestError && error.message) {
     return error.message;
   }

@@ -1,8 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
-import type { ShellContext, SidebarActive } from "@/shared/ui/ostone/chrome";
+import type {
+  Crumb,
+  ShellContext,
+  SidebarActive,
+} from "@/shared/ui/ostone/chrome";
 
-import { mapWorkspaceActionError, type WorkspaceResponse } from "@/entities/workspace";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceResponse,
+} from "@/entities/workspace";
 import { useGetWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -27,9 +34,11 @@ export function WorkspaceLayout() {
   const { workspaceId } = useParams();
   const location = useLocation();
   const parsedWorkspaceId = parseRouteId(workspaceId);
-  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : "/workspaces";
+  const basePath = parsedWorkspaceId
+    ? `/workspaces/${parsedWorkspaceId}`
+    : "/workspaces";
   const [topbarRight, setTopbarRight] = useState<ReactNode>(null);
-  const [crumbs, setCrumbs] = useState<string[]>([]);
+  const [crumbs, setCrumbs] = useState<Crumb[]>([]);
   const active = getActiveFromPath(location.pathname);
 
   const {
@@ -40,11 +49,19 @@ export function WorkspaceLayout() {
   } = useGetWorkspace(parsedWorkspaceId ?? 0, {
     query: { enabled: parsedWorkspaceId !== null },
   });
-  const workspace = fetchedWorkspace ? (fetchedWorkspace as unknown as WorkspaceResponse) : null;
-  const error = parsedWorkspaceId !== null && fetchError ? mapWorkspaceActionError(fetchError) : "";
+  const workspace = fetchedWorkspace
+    ? (fetchedWorkspace as unknown as WorkspaceResponse)
+    : null;
+  const error =
+    parsedWorkspaceId !== null && fetchError
+      ? mapWorkspaceActionError(fetchError)
+      : "";
   const isLoading = parsedWorkspaceId !== null && isFetchingWorkspace;
 
-  const defaultCrumbs = useMemo(() => (workspace?.name ? [workspace.name] : []), [workspace]);
+  const defaultCrumbs = useMemo(
+    () => (workspace?.name ? [workspace.name] : []),
+    [workspace],
+  );
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;

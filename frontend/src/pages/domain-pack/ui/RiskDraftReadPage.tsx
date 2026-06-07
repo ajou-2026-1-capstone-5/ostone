@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
+import {
+  usePackDetail,
+  VersionSafetyBanner,
+} from "@/features/domain-pack-summary-read";
 import { RiskDetailPanel, RiskListPanel } from "@/features/risk-draft-read/ui";
 import { RiskEditPanel } from "@/features/update-risk";
 import {
@@ -11,7 +14,7 @@ import {
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Pill } from "@/shared/ui/ostone/atoms";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
-import { OstoneShell } from "@/widgets/ostone-shell";
+import { DomainPackShellState } from "./DomainPackShellState";
 import styles from "./risk-draft-read-page.module.css";
 
 interface EditingRiskState {
@@ -38,7 +41,10 @@ export function RiskDraftReadPage() {
     enabled: wsId !== null && pId !== null && vId !== null && !hasInvalidRiskId,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ??
+    vId ??
+    0;
   const hasSelection = selectedRiskId !== null;
 
   useEffect(() => {
@@ -47,13 +53,31 @@ export function RiskDraftReadPage() {
     shouldFocusListRef.current = false;
   }, [hasSelection]);
 
+  const crumbs = useMemo<Crumb[]>(() => {
+    if (wsId === null || pId === null || vId === null || hasInvalidRiskId) {
+      return ["도메인팩 관리"];
+    }
+
+    return buildDomainPackCrumbs({
+      wsId,
+      pId,
+      vId,
+      packName,
+      versionNo,
+      section: { label: "주의 사항", path: "risks" },
+      selectedLabel: selectedRiskId !== null ? `#${selectedRiskId}` : null,
+    });
+  }, [hasInvalidRiskId, packName, pId, selectedRiskId, versionNo, vId, wsId]);
+
+  const topbarRight = useMemo(() => <Pill tone="mute">조회/수정</Pill>, []);
+
   if (wsId === null || pId === null || vId === null || hasInvalidRiskId) {
     return (
-      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
+      <DomainPackShellState crumbs={crumbs}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
@@ -68,28 +92,22 @@ export function RiskDraftReadPage() {
     navigate(domainPackSectionPath(wsId, pId, vId, "risks"), { replace: true });
   };
 
-  const crumbs: Crumb[] = buildDomainPackCrumbs({
-    wsId,
-    pId,
-    vId,
-    packName,
-    versionNo,
-    section: { label: "주의 사항", path: "risks" },
-    selectedLabel: selectedRiskId !== null ? `#${selectedRiskId}` : null,
-  });
-
-  const topbarRight = <Pill tone="mute">조회/수정</Pill>;
-
   return (
-    <OstoneShell active="risk" crumbs={crumbs} topbarRight={topbarRight}>
+    <DomainPackShellState crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
         <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={handleBackToList}>
+          <button
+            type="button"
+            className={styles.backButton}
+            onClick={handleBackToList}
+          >
             목록
           </button>
         )}
-        <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
+        <div
+          className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}
+        >
           <div
             ref={listSlotRef}
             className={styles.listSlot}
@@ -133,6 +151,6 @@ export function RiskDraftReadPage() {
           </div>
         </div>
       </div>
-    </OstoneShell>
+    </DomainPackShellState>
   );
 }

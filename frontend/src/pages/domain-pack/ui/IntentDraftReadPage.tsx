@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { IntentDetailPanel, type IntentDetail, type IntentListState } from "@/entities/intent";
-import { usePackDetail, VersionSafetyBanner } from "@/features/domain-pack-summary-read";
-import { IntentTreePanel, MatchedWorkflowSection } from "@/features/intent-draft-read/ui";
+import {
+  IntentDetailPanel,
+  type IntentDetail,
+  type IntentListState,
+} from "@/entities/intent";
+import {
+  usePackDetail,
+  VersionSafetyBanner,
+} from "@/features/domain-pack-summary-read";
+import {
+  IntentTreePanel,
+  MatchedWorkflowSection,
+} from "@/features/intent-draft-read/ui";
 import { useIntentList } from "@/features/intent-draft-read/model/useIntentList";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
@@ -28,8 +38,10 @@ import { Pill, type PillTone } from "@/shared/ui/ostone/atoms";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { buildDomainPackCrumbs } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { OstoneShell } from "@/widgets/ostone-shell";
+import { DomainPackShellState } from "./DomainPackShellState";
 import styles from "./intent-draft-read-page.module.css";
+
+const EMPTY_CRUMBS: Crumb[] = [];
 
 export function IntentDraftReadPage() {
   const { workspaceId, packId, intentId } = useParams();
@@ -40,13 +52,18 @@ export function IntentDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const iId = intentId ? parseRouteId(intentId) : null;
 
-  if (wsId === null || pId === null || vId === null || (intentId !== undefined && iId === null)) {
+  if (
+    wsId === null ||
+    pId === null ||
+    vId === null ||
+    (intentId !== undefined && iId === null)
+  ) {
     return (
-      <OstoneShell active="domain" crumbs={[]}>
+      <DomainPackShellState crumbs={EMPTY_CRUMBS}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </OstoneShell>
+      </DomainPackShellState>
     );
   }
 
@@ -65,10 +82,16 @@ function IntentDraftReadContent({
   iId: number | null;
 }) {
   const controller = useIntentDraftReadController({ wsId, pId, vId, iId });
-  const intentListState = useIntentList(wsId, pId, vId, controller.listRefreshKey);
+  const intentListState = useIntentList(
+    wsId,
+    pId,
+    vId,
+    controller.listRefreshKey,
+  );
   const packDetail = usePackDetail(wsId, pId).data;
   const packName = packDetail?.name ?? `PACK · ${pId}`;
-  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId;
 
   const versionLabel = getVersionLabel({
     lifecycleStatus: controller.versionDetail?.lifecycleStatus,
@@ -92,29 +115,42 @@ function IntentDraftReadContent({
     [wsId, pId, vId, packName, versionNo, controller.selectedIntentCode],
   );
 
-  const topbarRight = (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--s-3)",
-      }}
-    >
-      <Pill tone={versionLabelTone(versionLabel)}>{versionLabel}</Pill>
-      {controller.isRevisionDraft && (
-        <IntentRevisionDraftActions
-          summary={summaryState.status === "ready" ? summaryState.data : undefined}
-          isSummaryLoading={summaryState.status === "loading"}
-          summaryError={summaryState.status === "error" ? summaryState.message : null}
-          isPending={controller.isMutationPending}
-          onRetrySummary={controller.retrySummary}
-        />
-      )}
-    </div>
+  const topbarRight = useMemo(
+    () => (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--s-3)",
+        }}
+      >
+        <Pill tone={versionLabelTone(versionLabel)}>{versionLabel}</Pill>
+        {controller.isRevisionDraft && (
+          <IntentRevisionDraftActions
+            summary={
+              summaryState.status === "ready" ? summaryState.data : undefined
+            }
+            isSummaryLoading={summaryState.status === "loading"}
+            summaryError={
+              summaryState.status === "error" ? summaryState.message : null
+            }
+            isPending={controller.isMutationPending}
+            onRetrySummary={controller.retrySummary}
+          />
+        )}
+      </div>
+    ),
+    [
+      controller.isMutationPending,
+      controller.isRevisionDraft,
+      controller.retrySummary,
+      summaryState,
+      versionLabel,
+    ],
   );
 
   return (
-    <OstoneShell active="intent" crumbs={crumbs} topbarRight={topbarRight}>
+    <DomainPackShellState crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
         <VersionSafetyBanner wsId={wsId} packId={pId} versionId={vId} />
         <IntentDraftTwoPane
@@ -130,7 +166,7 @@ function IntentDraftReadContent({
 
       <PendingNavigationDialog controller={controller} />
       <ExistingDraftDialog controller={controller} />
-    </OstoneShell>
+    </DomainPackShellState>
   );
 }
 
@@ -154,7 +190,9 @@ function IntentDraftTwoPane({
   intentListState: IntentListState;
 }) {
   return (
-    <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
+    <div
+      className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}
+    >
       <div className={styles.listSlot}>
         <IntentTreePanel
           intentListState={intentListState}
@@ -194,16 +232,24 @@ function IntentDetailSlot({
     intentId: number;
     versionId: number;
   } | null>(null);
-  const isEditingIntent = editingTarget?.intentId === iId && editingTarget.versionId === vId;
+  const isEditingIntent =
+    editingTarget?.intentId === iId && editingTarget.versionId === vId;
   const setEditingIntent = useCallback(
     (next: boolean) => {
-      setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
+      setEditingTarget(
+        next && iId !== null ? { intentId: iId, versionId: vId } : null,
+      );
     },
     [iId, vId],
   );
 
   const renderMatchedWorkflows = (detail: IntentDetail) => (
-    <MatchedWorkflowSection wsId={wsId} packId={pId} versionId={vId} intentId={detail.id ?? null} />
+    <MatchedWorkflowSection
+      wsId={wsId}
+      packId={pId}
+      versionId={vId}
+      intentId={detail.id ?? null}
+    />
   );
 
   if (iId === null) {
@@ -264,7 +310,9 @@ function IntentDetailSlot({
           intentCode={detail.intentCode ?? null}
           onChange={controller.setSelectedIntentCode}
         />
-        {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
+        {controller.recoveryVersionId === vId ? (
+          <IntentRevisionRecoveryBanner />
+        ) : null}
       </>
     ),
     beforeJsonCards: () =>
@@ -314,12 +362,18 @@ function IntentDetailSlot({
 
   return (
     <div className={styles.detailSlot}>
-      <IntentDetailPanel {...detailSharedProps}>{renderRevisionEditor}</IntentDetailPanel>
+      <IntentDetailPanel {...detailSharedProps}>
+        {renderRevisionEditor}
+      </IntentDetailPanel>
     </div>
   );
 }
 
-function PendingNavigationDialog({ controller }: { controller: IntentDraftController }) {
+function PendingNavigationDialog({
+  controller,
+}: {
+  controller: IntentDraftController;
+}) {
   return (
     <AlertDialog
       open={controller.pendingNavigation !== null}
@@ -347,7 +401,11 @@ function PendingNavigationDialog({ controller }: { controller: IntentDraftContro
   );
 }
 
-function ExistingDraftDialog({ controller }: { controller: IntentDraftController }) {
+function ExistingDraftDialog({
+  controller,
+}: {
+  controller: IntentDraftController;
+}) {
   const target = controller.existingDraftTarget;
 
   return (
@@ -369,7 +427,10 @@ function ExistingDraftDialog({ controller }: { controller: IntentDraftController
           >
             취소
           </Button>
-          <Button type="button" onClick={controller.confirmExistingDraftNavigation}>
+          <Button
+            type="button"
+            onClick={controller.confirmExistingDraftNavigation}
+          >
             이동
           </Button>
         </AlertDialogFooter>
@@ -416,7 +477,9 @@ function getVersionLabel({
   return "확인 중";
 }
 
-function getExistingDraftDescription(target: ExistingDraftTarget | null): string {
+function getExistingDraftDescription(
+  target: ExistingDraftTarget | null,
+): string {
   return target?.sourceType === "INTENT_REVISION"
     ? "기존 상담 유형 수정 검토본으로 이동하거나 도메인팩 화면에서 검토본을 적용 또는 폐기해 주세요."
     : "기존 검토본으로 이동하거나 도메인팩 화면에서 검토본을 적용 또는 폐기해 주세요.";
