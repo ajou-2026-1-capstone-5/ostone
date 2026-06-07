@@ -167,14 +167,14 @@ def _health_ready(config: LlmServiceLifecycleConfig) -> tuple[bool, str]:
     try:
         with urllib.request.urlopen(config.health_url, timeout=config.health_request_timeout_seconds) as response:
             status = int(response.status)
-            return 200 <= status < 500, f"http_status={status}"
+            return 200 <= status < 300, f"http_status={status}"
     except urllib.error.HTTPError as exc:
         status = int(exc.code)
         reason = str(exc.reason or exc.msg or "").strip()
         detail = f"http_error={status}"
         if reason:
             detail = f"{detail} {reason}"
-        return 200 <= status < 500, detail
+        return 200 <= status < 300, detail
     except OSError as exc:
         return False, str(exc) or type(exc).__name__
 

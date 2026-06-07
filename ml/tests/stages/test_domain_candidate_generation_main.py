@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.domain_candidate_generation import main
 from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM, ProcessedConversation
 
@@ -92,6 +93,79 @@ def test_sampling_and_runtime_knobs_are_bounded(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "not-a-number")
     assert main._sample_size() == main.MAX_SAMPLE_SIZE
     assert main._llm_timeout() == 20.0
+
+
+def test_generation_fallback_is_allowed_when_llm_runtime_is_not_configured() -> None:
+    runtime_config = type("RuntimeConfig", (), {"llm_runtime_base_url": None})()
+
+    assert main._allow_generation_fallback(runtime_config)
+
+
+def test_generation_fallback_is_rejected_when_llm_runtime_is_configured() -> None:
+    runtime_config = type("RuntimeConfig", (), {"llm_runtime_base_url": "http://llm.local/v1"})()
+
+    assert not main._allow_generation_fallback(runtime_config)
+
+
+def test_generation_fallback_can_be_explicitly_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    runtime_config = type("RuntimeConfig", (), {"llm_runtime_base_url": "http://llm.local/v1"})()
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_ALLOW_LLM_FALLBACK", "true")
+
+    assert main._allow_generation_fallback(runtime_config)
+
+
+def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    runtime_config = type(
+        "RuntimeConfig",
+        (),
+        {
+            "artifact_root": tmp_path,
+            "backend_base_url": "http://backend:8080",
+            "callback_enabled": False,
+            "artifact_store": "local",
+            "artifact_bucket": None,
+            "artifact_prefix": "",
+            "llm_runtime_base_url": "http://llm.local/v1",
+            "llm_runtime_api_key": None,
+            "llm_model_name": "model-a",
+        },
+    )()
+
+    monkeypatch.setattr(main.PipelineRuntimeConfig, "from_env", lambda: runtime_config)
+    monkeypatch.setattr(
+        main,
+        "read_stage_context",
+        lambda _path, stage_name: type(
+            "StageContext",
+            (),
+            {
+                "dag_id": "dag",
+                "run_id": "run1",
+                "stage_name": stage_name,
+                "workspace_id": "workspace-1",
+                "dataset_id": "dataset-1",
+                "pipeline_job_id": "job-1",
+            },
+        )(),
+    )
+    monkeypatch.setattr(
+        main, "read_preprocessed_artifact", lambda _config, _context: ([_conversation("c1", "예약")], [])
+    )
+    monkeypatch.setattr(
+        main,
+        "_generate_llm_candidates",
+        lambda *_args: (_ for _ in ()).throw(ValueError("bad llm response")),
+    )
+
+    def fake_stage_directory(_context: object, _config: object):
+        stage_dir = tmp_path / "dag" / "run1" / "domain_candidate_generation"
+        stage_dir.mkdir(parents=True)
+        return stage_dir
+
+    monkeypatch.setattr(main, "ensure_stage_directory", fake_stage_directory)
+
+    with pytest.raises(PipelineStageError, match="Domain candidate LLM generation failed"):
+        main.run("/tmp/upstream/manifest.json")
 
 
 def test_prompt_and_terms_are_stable() -> None:

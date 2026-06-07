@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Any, cast
 
 import httpx
+import pytest
 
 from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.feedback_candidate_generation import review_question_enrichment
 from pipeline.stages.feedback_candidate_generation.main import run
 
@@ -142,11 +144,8 @@ def test_review_question_enrichment_handles_request_failure(monkeypatch, tmp_pat
         _fake_client_factory(httpx.ConnectError("connection failed")),
     )
 
-    summary = review_question_enrichment.enrich_review_questions([question], _runtime_config(tmp_path))
-
-    assert summary["requestFailureCount"] == 1
-    assert summary["fallbackCount"] == 1
-    assert question["enrichmentStatus"] == "fallback"
+    with pytest.raises(PipelineStageError, match="Review question LLM enrichment failed"):
+        review_question_enrichment.enrich_review_questions([question], _runtime_config(tmp_path))
 
 
 def test_review_question_enrichment_keeps_abstain_as_low_priority(monkeypatch, tmp_path: Path) -> None:

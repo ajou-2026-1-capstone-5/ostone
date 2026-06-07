@@ -26,7 +26,7 @@ resource "aws_lb_target_group" "ml_llm" {
     path                = "/health"
     port                = "traffic-port"
     protocol            = "HTTP"
-    matcher             = "200-499"
+    matcher             = "200"
   }
 
   tags = local.common_tags

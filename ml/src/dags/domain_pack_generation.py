@@ -512,6 +512,7 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
 
     ingestion_task >> preprocessing_task >> representation_task >> start_initial_llm_task >> domain_candidate_task
     domain_candidate_task >> domain_confirmation_task
+    start_initial_llm_task >> stop_initial_llm_task
     domain_candidate_task >> stop_initial_llm_task
     (
         domain_confirmation_task
@@ -521,6 +522,7 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
         >> feedback_candidate_task
     )
     feedback_candidate_task >> human_feedback_task >> draft_generation_task
+    start_llm_task >> stop_llm_task
     human_feedback_task >> stop_llm_task
     draft_generation_task >> stop_llm_task
     draft_generation_task >> evaluation_task >> publish_candidate_task

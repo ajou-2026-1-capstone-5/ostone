@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 
 from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.draft_generation import description_enrichment
 from pipeline.stages.draft_generation.description_enrichment import enrich_candidate_descriptions
 
@@ -251,12 +253,8 @@ def test_description_enrichment_handles_request_failure(monkeypatch, tmp_path: P
     )
     candidate = _candidate()
 
-    summary = enrich_candidate_descriptions(candidate, _runtime_config(tmp_path), logger=logging.getLogger(__name__))
-
-    assert summary is not None
-    assert summary["requestFailureCount"] == 2
-    assert summary["fallbackCount"] == 2
-    assert candidate["intentDraft"]["intents"][0]["description"] == "결제 문의 클러스터"
+    with pytest.raises(PipelineStageError, match="Description LLM enrichment failed"):
+        enrich_candidate_descriptions(candidate, _runtime_config(tmp_path), logger=logging.getLogger(__name__))
 
 
 def test_description_enrichment_counts_schema_failures(monkeypatch, tmp_path: Path) -> None:

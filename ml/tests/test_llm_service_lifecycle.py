@@ -154,13 +154,13 @@ def test_health_url_from_runtime_base_url_handles_non_v1_url(monkeypatch: pytest
     assert _health_url_from_runtime_base_url() == "http://llm.local:8000/openai/health"
 
 
-def test_health_ready_accepts_http_error_below_500(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_ready_rejects_http_error_below_500(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_urlopen(*_args: object, **_kwargs: object) -> object:
         raise urllib.error.HTTPError("http://llm.local/health", 404, "Not Found", Message(), None)
 
     monkeypatch.setattr("pipeline.llm_service_lifecycle.urllib.request.urlopen", fake_urlopen)
 
-    assert _health_ready(_config()) == (True, "http_error=404 Not Found")
+    assert _health_ready(_config()) == (False, "http_error=404 Not Found")
 
 
 def test_health_ready_rejects_connection_errors(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 
 from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.exceptions import PipelineStageError
 
 MAX_EVIDENCE_ITEMS = 6
 MAX_EVIDENCE_CHARS = 300
@@ -148,6 +149,8 @@ def _enrich_entity_field(
         parsed = _parse_response(response.json())
     except (httpx.HTTPError, json.JSONDecodeError, ValueError, TypeError, KeyError) as exc:
         _increment(summary, "requestFailureCount")
+        if runtime_config.llm_runtime_base_url:
+            raise PipelineStageError("Description LLM enrichment failed.") from exc
         _record_fallback(summary, field_name)
         if logger is not None:
             logger.warning(

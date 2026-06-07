@@ -13,6 +13,7 @@ import httpx
 
 from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.intent_discovery.io import read_preprocessed_artifact
 from pipeline.stages.preprocessing.io import read_stage_context
 from pipeline.stages.preprocessing.types import ProcessedConversation
@@ -64,6 +65,8 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     try:
         candidates = _generate_llm_candidates(runtime_config, sampled, fallback_terms, sample_hash)
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+        if not _allow_generation_fallback(runtime_config):
+            raise PipelineStageError("Domain candidate LLM generation failed.") from exc
         generation_error = {"type": type(exc).__name__, "message": str(exc)}
         candidates = []
 
@@ -256,6 +259,15 @@ def _llm_timeout() -> float:
     except ValueError:
         return 20.0
     return max(1.0, min(120.0, parsed))
+
+
+def _allow_generation_fallback(runtime_config: PipelineRuntimeConfig) -> bool:
+    raw = os.getenv("PIPELINE_DOMAIN_CANDIDATE_ALLOW_LLM_FALLBACK", "").strip().lower()
+    if raw in {"1", "true", "yes", "y", "on"}:
+        return True
+    if raw in {"0", "false", "no", "n", "off"}:
+        return False
+    return not bool(runtime_config.llm_runtime_base_url)
 
 
 def _sample_hash(sampled: list[ProcessedConversation]) -> str:
