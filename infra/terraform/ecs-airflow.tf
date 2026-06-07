@@ -46,6 +46,22 @@ locals {
       value = "airflow"
     },
     {
+      name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_SIZE"
+      value = "10"
+    },
+    {
+      name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW"
+      value = "20"
+    },
+    {
+      name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_RECYCLE"
+      value = "1800"
+    },
+    {
+      name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_PRE_PING"
+      value = "True"
+    },
+    {
       name  = "AIRFLOW__API__BASE_URL"
       value = "https://airflow.${var.domain_name}"
     },
