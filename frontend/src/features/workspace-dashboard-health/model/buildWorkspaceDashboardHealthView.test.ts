@@ -31,6 +31,7 @@ describe("buildWorkspaceDashboardHealthView", () => {
         finishedAt: "2026-06-03T09:30:00Z",
       },
       pendingReviewCount: 0,
+      latestOpenReviewPipelineJobId: null,
     });
 
     expect(view.statusTitle).toBe("운영 지식팩이 정상적으로 유지되고 있습니다.");
@@ -66,6 +67,7 @@ describe("buildWorkspaceDashboardHealthView", () => {
         finishedAt: "2026-06-03T09:30:00Z",
       },
       pendingReviewCount: 2,
+      latestOpenReviewPipelineJobId: 77,
     });
 
     expect(view.alerts.map((alert) => alert.title)).toContain(
@@ -191,6 +193,7 @@ describe("buildWorkspaceDashboardHealthView", () => {
       lastLogUpload: null,
       lastKnowledgePackGeneration: null,
       pendingReviewCount: 0,
+      latestOpenReviewPipelineJobId: null,
     });
 
     expect(view.alerts.map((alert) => alert.title)).toEqual([
@@ -200,5 +203,30 @@ describe("buildWorkspaceDashboardHealthView", () => {
     expect(view.ctas).toEqual([
       { kind: "upload", label: "상담 로그 업로드", to: "/workspaces/3/upload" },
     ]);
+  });
+
+  it("최신 지식팩 생성 job이 없어도 열린 review session pipeline job으로 CTA를 만든다", () => {
+    const view = buildWorkspaceDashboardHealthView(1, {
+      activeKnowledgePack: null,
+      lastLogUpload: {
+        datasetId: 38,
+        datasetKey: "prod-log",
+        datasetName: "운영 상담 로그",
+        datasetStatus: "READY",
+        uploadedAt: "2026-06-07T09:00:00Z",
+      },
+      lastKnowledgePackGeneration: null,
+      pendingReviewCount: 12,
+      latestOpenReviewPipelineJobId: 42,
+    });
+
+    expect(view.ctas).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "review",
+          to: "/workspaces/1/pipeline-jobs/42/review",
+        }),
+      ]),
+    );
   });
 });

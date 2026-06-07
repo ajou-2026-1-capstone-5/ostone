@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, RefreshCw, RotateCcw, Search, X } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw, RotateCcw, Search, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   adminPipelineJobKeys,
@@ -31,6 +32,8 @@ const STATUS_OPTIONS = [
   "FAILED",
   "CANCELLED",
 ];
+
+const REVIEW_WAITING_STATUSES = new Set(["WAITING_DOMAIN_CONFIRMATION", "WAITING_HUMAN_FEEDBACK"]);
 
 const DEFAULT_FILTERS: AdminPipelineJobListFilters = {
   page: 0,
@@ -240,7 +243,16 @@ function PipelineJobTable({
               </TableCell>
               <TableCell className={pageStyles.errorCell}>{job.lastErrorMessage ?? "-"}</TableCell>
               <TableCell>
-                {job.status === "FAILED" ? (
+                {REVIEW_WAITING_STATUSES.has(job.status) ? (
+                  <Link
+                    className={pageStyles.actionLink}
+                    to={`/workspaces/${job.workspaceId}/pipeline-jobs/${job.pipelineJobId}/review`}
+                    aria-label={`pipeline job ${job.pipelineJobId} 검토 화면`}
+                  >
+                    <ExternalLink size={16} />
+                    검토
+                  </Link>
+                ) : job.status === "FAILED" ? (
                   <Button
                     type="button"
                     variant="secondary"

@@ -58,7 +58,8 @@ class WorkspaceDashboardControllerTest {
         .andExpect(jsonPath("$.activeKnowledgePack.versionNo").value(4))
         .andExpect(jsonPath("$.lastLogUpload.datasetName").value("6월 상담 로그"))
         .andExpect(jsonPath("$.lastKnowledgePackGeneration.status").value("SUCCEEDED"))
-        .andExpect(jsonPath("$.pendingReviewCount").value(2));
+        .andExpect(jsonPath("$.pendingReviewCount").value(2))
+        .andExpect(jsonPath("$.latestOpenReviewPipelineJobId").value(42));
   }
 
   @Test
@@ -92,7 +93,8 @@ class WorkspaceDashboardControllerTest {
         new WorkspaceDashboardKnowledgePackResult(11L, "CS Pack", 12L, 4, now, now, 77L),
         new WorkspaceDashboardLogUploadResult(8L, "june-log", "6월 상담 로그", "READY", now),
         new WorkspaceDashboardGenerationResult(77L, 8L, 11L, "SUCCEEDED", now, now, now, null),
-        2L);
+        2L,
+        42L);
   }
 
   private WorkspaceDashboardActionRecommendationsResult recommendationsResult() {

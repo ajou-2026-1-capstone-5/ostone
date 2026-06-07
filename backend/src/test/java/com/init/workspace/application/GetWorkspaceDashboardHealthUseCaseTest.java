@@ -49,6 +49,7 @@ class GetWorkspaceDashboardHealthUseCaseTest {
 
     assertThat(result.activeKnowledgePack().versionNo()).isEqualTo(4);
     assertThat(result.pendingReviewCount()).isEqualTo(2);
+    assertThat(result.latestOpenReviewPipelineJobId()).isEqualTo(42L);
   }
 
   @Test
@@ -77,6 +78,7 @@ class GetWorkspaceDashboardHealthUseCaseTest {
         new WorkspaceDashboardKnowledgePackResult(11L, "CS Pack", 12L, 4, now, now, 77L),
         new WorkspaceDashboardLogUploadResult(8L, "june-log", "6월 상담 로그", "READY", now),
         new WorkspaceDashboardGenerationResult(77L, 8L, 11L, "SUCCEEDED", now, now, now, null),
-        2L);
+        2L,
+        42L);
   }
 }

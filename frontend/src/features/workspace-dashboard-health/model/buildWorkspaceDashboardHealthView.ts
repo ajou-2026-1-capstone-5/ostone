@@ -53,10 +53,16 @@ export function buildWorkspaceDashboardHealthView(
   const lastUpload = health.lastLogUpload ?? null;
   const lastGeneration = health.lastKnowledgePackGeneration ?? null;
   const pendingReviewCount = health.pendingReviewCount ?? 0;
+  const latestOpenReviewPipelineJobId = health.latestOpenReviewPipelineJobId ?? null;
   const isGenerationFailed = lastGeneration?.status === "FAILED";
   const isGenerationRunning = lastGeneration ? RUNNING_STATUSES.has(lastGeneration.status) : false;
   const isReviewWaiting =
     pendingReviewCount > 0 || (lastGeneration ? REVIEW_STATUSES.has(lastGeneration.status) : false);
+  const reviewPipelineJobId =
+    latestOpenReviewPipelineJobId ??
+    (lastGeneration && REVIEW_STATUSES.has(lastGeneration.status)
+      ? lastGeneration.pipelineJobId
+      : null);
   const hasNewerUpload =
     activePack?.publishedAt && lastUpload?.uploadedAt
       ? new Date(lastUpload.uploadedAt).getTime() > new Date(activePack.publishedAt).getTime()
@@ -115,11 +121,11 @@ export function buildWorkspaceDashboardHealthView(
       label: CTA_UPLOAD_LOGS,
       to: `/workspaces/${workspaceId}/upload`,
     });
-  } else if (isReviewWaiting && lastGeneration?.pipelineJobId) {
+  } else if (isReviewWaiting && reviewPipelineJobId) {
     ctas.push({
       kind: "review",
       label: CTA_GO_REVIEW,
-      to: `/workspaces/${workspaceId}/pipeline-jobs/${lastGeneration.pipelineJobId}/review`,
+      to: `/workspaces/${workspaceId}/pipeline-jobs/${reviewPipelineJobId}/review`,
     });
   } else if (canStartGeneration) {
     ctas.push({
