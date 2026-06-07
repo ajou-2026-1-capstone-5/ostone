@@ -408,6 +408,16 @@ resource "aws_security_group_rule" "efs_model_cache_ingress_gpu_task" {
   protocol                 = "tcp"
 }
 
+resource "aws_security_group_rule" "efs_model_cache_ingress_ml_llm_service" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.efs_model_cache.id
+  source_security_group_id = aws_security_group.ml_llm_service.id
+  description              = "NFS traffic from the internal LLM service."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+}
+
 resource "aws_security_group" "ml_llm_alb" {
   name        = "${local.name_prefix}-ml-llm-alb-sg"
   description = "Internal ALB for the OpenAI-compatible ML LLM service."
@@ -476,4 +486,14 @@ resource "aws_security_group_rule" "ml_llm_service_egress_https" {
   to_port           = 443
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "ml_llm_service_egress_efs_model_cache" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.ml_llm_service.id
+  description              = "Allow the internal LLM service to mount the model cache EFS."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.efs_model_cache.id
 }

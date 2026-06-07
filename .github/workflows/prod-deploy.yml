@@ -474,6 +474,22 @@ jobs:
             "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
           docker system prune -af || true
 
+      - name: Build, tag, and push ML LLM image to ECR
+        env:
+          ECR_REPOSITORY: ostone/ml-llm
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" -f ml/Dockerfile.llm .
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker image rm \
+            "$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+          docker system prune -af || true
+
   airflow:
     needs: [paths-filter, terraform, ml]
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.airflow == 'true' || needs.paths-filter.outputs.ml == 'true') && needs.terraform.result == 'success' && (needs.ml.result == 'success' || needs.ml.result == 'skipped') }}
