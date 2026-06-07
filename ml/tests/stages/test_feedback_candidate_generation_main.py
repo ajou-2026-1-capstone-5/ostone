@@ -12,7 +12,6 @@ from pipeline.stages.feedback_candidate_generation.main import run
 
 
 def test_feedback_questions_include_caselet_review_context(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.delenv("ML_REVIEW_QUESTION_ENRICHMENT", raising=False)
     artifact_root = tmp_path / "artifacts"
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
     monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
@@ -39,12 +38,16 @@ def test_feedback_questions_include_caselet_review_context(monkeypatch, tmp_path
     assert question["sourceReviewContext"]["summary"] == "공항 픽업 예약 변경"
     assert question["targetReviewContext"]["summary"] == "호텔 조식 확인"
     assert question["sourceReviewContext"]["logExcerpt"].startswith("공항 픽업 예약을 변경")
-    assert questions["enrichmentSummary"]["enabled"] is False
+    assert questions["enrichmentSummary"]["enabled"] is True
+    assert questions["enrichmentSummary"]["fallbackReason"] == "missing_llm_runtime_base_url"
+    assert questions["enrichmentSummary"]["fallbackCount"] == 1
     assert question["sourceClusterId"] == "0"
     assert questions["qualityKpis"]["questionTypeDistribution"] == {"WORKFLOW_BOUNDARY": 1}
     assert questions["qualityKpis"]["caseletRepeatRate"] == 0.0
     assert questions["qualityKpis"]["sourceClusterDominance"] == 1.0
     assert manifest["payload"]["metrics"]["qualityKpis"] == questions["qualityKpis"]
+    assert manifest["payload"]["metrics"]["reviewQuestionEnrichmentEnabled"] is True
+    assert manifest["payload"]["metrics"]["reviewQuestionEnrichmentFallbackCount"] == 1
 
 
 def test_low_confidence_cluster_questions_remain_intent_boundary(monkeypatch, tmp_path: Path) -> None:
@@ -73,7 +76,6 @@ def test_feedback_questions_apply_valid_llm_enrichment_and_manifest_metrics(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setenv("LLM_RUNTIME_BASE_URL", "http://127.0.0.1:18080/v1")
     monkeypatch.setenv("LLM_MODEL_NAME", "gemma-local")
     monkeypatch.setattr(
@@ -105,7 +107,6 @@ def test_feedback_questions_apply_valid_llm_enrichment_and_manifest_metrics(
 
 def test_review_question_enrichment_rejects_schema_failures(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         review_question_enrichment.httpx,
         "Client",
@@ -120,7 +121,6 @@ def test_review_question_enrichment_rejects_schema_failures(monkeypatch, tmp_pat
 
 def test_review_question_enrichment_rejects_unknown_evidence(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         review_question_enrichment.httpx,
         "Client",
@@ -136,7 +136,6 @@ def test_review_question_enrichment_rejects_unknown_evidence(monkeypatch, tmp_pa
 
 def test_review_question_enrichment_handles_request_failure(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         review_question_enrichment.httpx,
         "Client",
@@ -152,7 +151,6 @@ def test_review_question_enrichment_handles_request_failure(monkeypatch, tmp_pat
 
 def test_review_question_enrichment_keeps_abstain_as_low_priority(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         review_question_enrichment.httpx,
         "Client",
@@ -175,7 +173,6 @@ def test_review_question_enrichment_keeps_abstain_as_low_priority(monkeypatch, t
 
 def test_review_question_enrichment_rejects_broken_label_patterns(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setattr(
         review_question_enrichment.httpx,
         "Client",
@@ -197,7 +194,6 @@ def test_review_question_enrichment_rejects_broken_label_patterns(monkeypatch, t
 
 def test_review_question_enrichment_falls_back_without_llm_base_url(monkeypatch, tmp_path: Path) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
 
     summary = review_question_enrichment.enrich_review_questions(
         [question],
@@ -223,8 +219,6 @@ def test_review_question_enrichment_sends_runtime_options_and_respects_limit(
     question = _question_payload()
     second_question = {**_question_payload(), "questionId": "cannot-link-1-2"}
     client_class = _fake_client_factory(_fenced_json_response(_valid_enrichment_response()))
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
-    monkeypatch.setenv("ML_LLM_DISABLE_THINKING", "true")
     monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "1")
     monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "not-a-number")
     monkeypatch.setattr(review_question_enrichment.httpx, "Client", client_class)
@@ -253,7 +247,6 @@ def test_review_question_enrichment_rejects_missing_grounding_and_invalid_limit(
     tmp_path: Path,
 ) -> None:
     question = _question_payload()
-    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT", "local_llm")
     monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "bad-limit")
     monkeypatch.setattr(
         review_question_enrichment.httpx,

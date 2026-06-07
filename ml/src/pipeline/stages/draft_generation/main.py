@@ -449,8 +449,7 @@ def _build_candidate_artifact(
     )
     candidate = _build_candidate(intents, workflow_draft, stage_context, evaluation_inputs)
     llm_summary = enrich_candidate_descriptions(candidate, runtime_config, logger=_logger)
-    if llm_summary is not None:
-        candidate["llmSummary"] = llm_summary
+    candidate["llmSummary"] = llm_summary
 
     metrics = {
         "candidate_count": 1,
@@ -459,9 +458,8 @@ def _build_candidate_artifact(
         "slot_metrics": slot_metrics,
         "knowledge_metrics": knowledge_metrics,
         "evaluation_inputs": evaluation_inputs,
+        "llm_metrics": llm_summary,
     }
-    if llm_summary is not None:
-        metrics["llm_metrics"] = llm_summary
     return candidate, metrics
 
 
