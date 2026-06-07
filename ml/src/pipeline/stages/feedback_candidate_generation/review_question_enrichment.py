@@ -81,9 +81,10 @@ def enrich_review_questions(
 
     base_url = runtime_config.llm_runtime_base_url
     if not base_url:
-        summary["requestFailureCount"] = 1
-        summary["fallbackCount"] = len(questions)
+        summary["requestFailureCount"] = len(questions)
         summary["fallbackReason"] = "missing_llm_runtime_base_url"
+        for question in questions:
+            _record_fallback(question, summary, "missing_llm_runtime_base_url")
         summary["durationSeconds"] = round(time.monotonic() - started_at, 4)
         return summary
 

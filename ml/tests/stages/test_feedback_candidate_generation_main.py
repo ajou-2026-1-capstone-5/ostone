@@ -206,6 +206,8 @@ def test_review_question_enrichment_falls_back_without_llm_base_url(monkeypatch,
     assert summary["requestFailureCount"] == 1
     assert summary["fallbackCount"] == 1
     assert summary["fallbackReason"] == "missing_llm_runtime_base_url"
+    assert question["enrichmentStatus"] == "fallback"
+    assert question["enrichmentFallbackReason"] == "missing_llm_runtime_base_url"
 
 
 def test_review_question_enrichment_sends_runtime_options_and_respects_limit(
