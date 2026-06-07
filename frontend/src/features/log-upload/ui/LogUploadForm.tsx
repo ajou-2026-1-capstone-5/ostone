@@ -23,7 +23,10 @@ import { useRawFileUpload } from "../model/useRawFileUpload";
 import { useLatestDatasetPipelineJob } from "../model/useLatestDatasetPipelineJob";
 
 import styles from "./log-upload-form.module.css";
-import { PipelineJobStatusPanel } from "./PipelineJobStatusPanel";
+import {
+  CTA_START_GENERATION,
+  PipelineJobStatusPanel,
+} from "./PipelineJobStatusPanel";
 
 type UploadStatus = "idle" | "uploading" | "success";
 
@@ -355,12 +358,119 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     generationStatus.kind === "triggering" || generationMutation.isPending;
   const isDashboardGenerationTarget =
     queryGenerationDataset !== null && uploadedDataset === null;
-  const shouldShowManualGenerationFallback =
-    generationStatus.kind === "idle" &&
-    (isDashboardGenerationTarget ||
-      (!ingestionJob && !ingestionJobQuery.isLoading && !ingestionJobQuery.isError));
   const handleIngestionRefresh = () => {
     ingestionJobQuery.refetch();
+  };
+
+  // 업로드 이후에는 한 시점에 패널 하나만 보여 다음 행동이 겹치지 않게 한다.
+  const renderAfterUploadPanel = () => {
+    if (generationStatus.kind === "success") {
+      return (
+        <div className={styles.generationPanel}>
+          <span className={styles.statusLabel}>생성 요청 완료</span>
+          <p>
+            도메인팩 초안 생성 파이프라인이 등록되었습니다.
+            {generationStatus.pipelineJobId
+              ? ` job ${generationStatus.pipelineJobId}`
+              : ""}
+            {generationStatus.status ? ` · ${generationStatus.status}` : ""}
+          </p>
+          <div className={styles.successActions}>
+            {pipelineReviewPath && (
+              <Button onClick={() => navigate(pipelineReviewPath)}>
+                {CTA_GO_REVIEW}
+              </Button>
+            )}
+            <Button
+              variant={pipelineReviewPath ? "secondary" : "primary"}
+              onClick={() => navigate(domainPacksPath)}
+            >
+              {CTA_GO_DOMAIN_PACK}
+            </Button>
+            <Button variant="ghost" onClick={handleReset}>
+              {CTA_UPLOAD_AGAIN}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (generationStatus.kind === "error") {
+      return (
+        <div className={styles.generationPanel}>
+          <span className={styles.statusLabel}>생성 요청 실패</span>
+          <p>{generationStatus.message}</p>
+          <div className={styles.successActions}>
+            <Button variant="secondary" onClick={handleReset}>
+              {CTA_UPLOAD_AGAIN}
+            </Button>
+            <Button
+              onClick={handleStartGeneration}
+              disabled={!canStartGeneration || isGenerationPending}
+            >
+              다시 생성 요청
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (isGenerationPending) {
+      return (
+        <div className={styles.generationPanel}>
+          <span className={styles.statusLabel}>생성 요청 중</span>
+          <p>파이프라인 생성 요청을 보내고 있습니다. 잠시만 기다려 주세요.</p>
+          <Button
+            variant="secondary"
+            onClick={handleReset}
+            disabled={generationMutation.isPending}
+          >
+            {CTA_UPLOAD_AGAIN}
+          </Button>
+        </div>
+      );
+    }
+
+    if (isDashboardGenerationTarget) {
+      return (
+        <div className={styles.generationPanel}>
+          <p>
+            자동 파이프라인이 생성되지 않았거나 별도 재실행이 필요한 경우,
+            업로드한 데이터셋으로 도메인팩 초안 생성을 직접 요청할 수 있습니다.
+          </p>
+          <div className={styles.successActions}>
+            <Button variant="secondary" onClick={handleReset}>
+              {CTA_UPLOAD_AGAIN}
+            </Button>
+            <Button
+              onClick={handleStartGeneration}
+              disabled={!canStartGeneration || isGenerationPending}
+            >
+              {CTA_START_GENERATION}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <PipelineJobStatusPanel
+        queryState={{
+          isLoading: ingestionJobQuery.isLoading,
+          isError: ingestionJobQuery.isError,
+          isFetching: ingestionJobQuery.isFetching,
+        }}
+        job={ingestionJob}
+        reviewPath={ingestionReviewPath}
+        domainPacksPath={domainPacksPath}
+        canStartGeneration={canStartGeneration}
+        isGenerationPending={isGenerationPending}
+        onStartGeneration={handleStartGeneration}
+        onRefresh={handleIngestionRefresh}
+        onReset={handleReset}
+        onNavigate={navigate}
+      />
+    );
   };
 
   return (
@@ -461,104 +571,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
             </span>
           </div>
 
-          {!isDashboardGenerationTarget && (
-            <PipelineJobStatusPanel
-              queryState={{
-                isLoading: ingestionJobQuery.isLoading,
-                isError: ingestionJobQuery.isError,
-                isFetching: ingestionJobQuery.isFetching,
-              }}
-              job={ingestionJob}
-              reviewPath={ingestionReviewPath}
-              onRefresh={handleIngestionRefresh}
-              onReset={handleReset}
-              onNavigate={navigate}
-            />
-          )}
-
-          {shouldShowManualGenerationFallback && (
-            <div className={styles.generationPanel}>
-              <p>
-                자동 파이프라인이 생성되지 않았거나 별도 재실행이 필요한 경우,
-                업로드한 데이터셋으로 도메인팩 초안 생성을 직접 요청할 수
-                있습니다.
-              </p>
-              <div className={styles.successActions}>
-                <Button variant="secondary" onClick={handleReset}>
-                  {CTA_UPLOAD_AGAIN}
-                </Button>
-                <Button
-                  onClick={handleStartGeneration}
-                  disabled={!canStartGeneration || isGenerationPending}
-                >
-                  도메인팩 초안 생성 시작
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {isGenerationPending && (
-            <div className={styles.generationPanel}>
-              <span className={styles.statusLabel}>생성 요청 중</span>
-              <p>
-                파이프라인 생성 요청을 보내고 있습니다. 잠시만 기다려 주세요.
-              </p>
-              <Button
-                variant="secondary"
-                onClick={handleReset}
-                disabled={generationMutation.isPending}
-              >
-                {CTA_UPLOAD_AGAIN}
-              </Button>
-            </div>
-          )}
-
-          {generationStatus.kind === "error" && (
-            <div className={styles.generationPanel}>
-              <span className={styles.statusLabel}>생성 요청 실패</span>
-              <p>{generationStatus.message}</p>
-              <div className={styles.successActions}>
-                <Button variant="secondary" onClick={handleReset}>
-                  {CTA_UPLOAD_AGAIN}
-                </Button>
-                <Button
-                  onClick={handleStartGeneration}
-                  disabled={!canStartGeneration || isGenerationPending}
-                >
-                  다시 생성 요청
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {generationStatus.kind === "success" && (
-            <div className={styles.generationPanel}>
-              <span className={styles.statusLabel}>생성 요청 완료</span>
-              <p>
-                도메인팩 초안 생성 파이프라인이 등록되었습니다.
-                {generationStatus.pipelineJobId
-                  ? ` job ${generationStatus.pipelineJobId}`
-                  : ""}
-                {generationStatus.status ? ` · ${generationStatus.status}` : ""}
-              </p>
-              <div className={styles.successActions}>
-                {pipelineReviewPath && (
-                  <Button onClick={() => navigate(pipelineReviewPath)}>
-                    {CTA_GO_REVIEW}
-                  </Button>
-                )}
-                <Button
-                  variant={pipelineReviewPath ? "secondary" : "primary"}
-                  onClick={() => navigate(domainPacksPath)}
-                >
-                  {CTA_GO_DOMAIN_PACK}
-                </Button>
-                <Button variant="ghost" onClick={handleReset}>
-                  {CTA_UPLOAD_AGAIN}
-                </Button>
-              </div>
-            </div>
-          )}
+          {renderAfterUploadPanel()}
         </div>
       )}
     </div>

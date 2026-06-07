@@ -173,7 +173,7 @@ test.describe("Upload completed Domain Pack draft generation", () => {
     await expect(page.getByText("업로드 완료").first()).toBeVisible();
     await expect(page.getByText("refund-log.zip")).toBeVisible();
     await expect(page.getByText("dataset 77")).toBeVisible();
-    await expect(page.getByText("파이프라인 준비 중")).toBeVisible();
+    await expect(page.getByText("자동 파이프라인 대기 중")).toBeVisible();
 
     return page.getByRole("button", {
       name: "도메인팩 초안 생성 시작",
