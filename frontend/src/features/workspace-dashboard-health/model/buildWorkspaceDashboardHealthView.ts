@@ -1,4 +1,5 @@
 import type { WorkspaceDashboardHealth } from "../api/workspaceDashboardHealthApi";
+import { CTA_GO_REVIEW, CTA_UPLOAD_LOGS } from "@/shared/lib/ctaLabels";
 
 export type HealthTone = "normal" | "warning" | "danger";
 export type HealthCtaKind = "upload" | "review" | "generate";
@@ -55,6 +56,15 @@ export function buildWorkspaceDashboardHealthView(
     activePack?.publishedAt && lastUpload?.uploadedAt
       ? new Date(lastUpload.uploadedAt).getTime() > new Date(activePack.publishedAt).getTime()
       : false;
+  const generationDatasetId = isGenerationFailed
+    ? (lastGeneration?.datasetId ?? lastUpload?.datasetId ?? null)
+    : (lastUpload?.datasetId ?? lastGeneration?.datasetId ?? null);
+  const canStartGeneration =
+    Boolean(lastUpload) &&
+    !isReviewWaiting &&
+    !isGenerationRunning &&
+    generationDatasetId != null &&
+    (!activePack || hasNewerUpload || isGenerationFailed || !lastGeneration);
 
   const alerts: HealthAlertView[] = [];
   if (!activePack) {
@@ -97,22 +107,20 @@ export function buildWorkspaceDashboardHealthView(
   if (!lastUpload) {
     ctas.push({
       kind: "upload",
-      label: "상담 업로드",
+      label: CTA_UPLOAD_LOGS,
       to: `/workspaces/${workspaceId}/upload`,
     });
-  }
-  if (isReviewWaiting && lastGeneration?.pipelineJobId) {
+  } else if (isReviewWaiting && lastGeneration?.pipelineJobId) {
     ctas.push({
       kind: "review",
-      label: "검토 화면으로 이동",
+      label: CTA_GO_REVIEW,
       to: `/workspaces/${workspaceId}/pipeline-jobs/${lastGeneration.pipelineJobId}/review`,
     });
-  }
-  if (!activePack || hasNewerUpload || isGenerationFailed || (lastUpload && !lastGeneration)) {
+  } else if (canStartGeneration) {
     ctas.push({
       kind: "generate",
-      label: "지식팩 생성",
-      to: `/workspaces/${workspaceId}/domain-packs`,
+      label: isGenerationFailed ? "지식팩 생성 재시도" : "지식팩 생성 시작",
+      to: `/workspaces/${workspaceId}/upload?datasetId=${generationDatasetId}`,
     });
   }
 

@@ -1,6 +1,6 @@
 import React, { useId, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
@@ -18,6 +18,7 @@ import {
   RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
   validateRawLogUploadFile,
 } from "../../../shared/lib/rawLogUploadPolicy";
+import { parseRouteId } from "../../../shared/lib/parseRouteId";
 import { useRawFileUpload } from "../model/useRawFileUpload";
 import { useLatestDatasetPipelineJob } from "../model/useLatestDatasetPipelineJob";
 
@@ -120,20 +121,36 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   paidUploadCooldown,
 }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const generationDatasetId = parseRouteId(searchParams.get("datasetId") ?? undefined);
   const fileRequiredMessageId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [uploadedDataset, setUploadedDataset] =
     useState<UploadedDataset | null>(null);
+  const [ignoredGenerationDatasetId, setIgnoredGenerationDatasetId] = useState<
+    number | null
+  >(null);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({
     kind: "idle",
   });
   const generationRequestInFlightRef = useRef(false);
 
+  const queryGenerationDataset =
+    generationDatasetId !== null && generationDatasetId !== ignoredGenerationDatasetId
+      ? {
+          datasetId: generationDatasetId,
+          fileName: `dataset ${generationDatasetId}`,
+        }
+      : null;
+  const activeUploadedDataset = uploadedDataset ?? queryGenerationDataset;
+  const displayStatus: UploadStatus =
+    status === "idle" && queryGenerationDataset ? "success" : status;
+
   const rawFileUpload = useRawFileUpload();
   const ingestionJobQuery = useLatestDatasetPipelineJob(
     workspaceId,
-    uploadedDataset?.datasetId,
+    activeUploadedDataset?.datasetId,
     "INGESTION",
   );
 
@@ -197,6 +214,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
       return;
     }
     setFile(selectedFile);
+    setIgnoredGenerationDatasetId(generationDatasetId);
     setStatus("idle");
     setUploadedDataset(null);
     setGenerationStatus({ kind: "idle" });
@@ -248,7 +266,13 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   };
 
   function handleStartGeneration() {
-    if (!workspaceId || !uploadedDataset?.datasetId) {
+    if (isUploaderDisabled) {
+      toast.error(
+        isEntitlementLoading ? "업로드 가능 여부를 확인 중입니다." : blockedMessage,
+      );
+      return;
+    }
+    if (!workspaceId || !activeUploadedDataset?.datasetId) {
       toast.error("생성 요청에 필요한 데이터셋 정보를 확인할 수 없습니다.");
       return;
     }
@@ -260,7 +284,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setGenerationStatus({ kind: "triggering" });
     generationMutation.mutate({
       workspaceId,
-      datasetId: uploadedDataset.datasetId,
+      datasetId: activeUploadedDataset.datasetId,
     });
   }
 
@@ -272,6 +296,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setStatus("idle");
     setGenerationStatus({ kind: "idle" });
     generationRequestInFlightRef.current = false;
+    setIgnoredGenerationDatasetId(generationDatasetId);
+    if (generationDatasetId !== null && workspaceId != null) {
+      navigate(`/workspaces/${workspaceId}/upload`, { replace: true });
+    }
   };
 
   const domainPacksPath = workspaceId
@@ -288,14 +316,15 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     workspaceId != null && ingestionJob != null
       ? `/workspaces/${workspaceId}/pipeline-jobs/${ingestionJob.pipelineJobId}/review`
       : null;
-  const canStartGeneration = Boolean(uploadedDataset?.datasetId);
+  const canStartGeneration = Boolean(activeUploadedDataset?.datasetId) && !isUploaderDisabled;
   const isGenerationPending =
     generationStatus.kind === "triggering" || generationMutation.isPending;
+  const isDashboardGenerationTarget =
+    queryGenerationDataset !== null && uploadedDataset === null;
   const shouldShowManualGenerationFallback =
     generationStatus.kind === "idle" &&
-    !ingestionJob &&
-    !ingestionJobQuery.isLoading &&
-    !ingestionJobQuery.isError;
+    (isDashboardGenerationTarget ||
+      (!ingestionJob && !ingestionJobQuery.isLoading && !ingestionJobQuery.isError));
   const handleIngestionRefresh = () => {
     ingestionJobQuery.refetch();
   };
@@ -351,7 +380,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         />
       </div>
 
-      {status === "idle" && (
+      {displayStatus === "idle" && (
         <div
           className={`${styles.filePreview} ${file ? "" : styles.emptyFilePreview}`}
         >
@@ -384,30 +413,34 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         </div>
       )}
 
-      {status === "success" && (
+      {displayStatus === "success" && (
         <div className={styles.afterUpload}>
           <div className={styles.uploadSummary}>
-            <span className={styles.statusLabel}>업로드 완료</span>
-            <strong>{uploadedDataset?.fileName ?? file?.name}</strong>
+            <span className={styles.statusLabel}>
+              {isDashboardGenerationTarget ? "생성 대상 상담 로그" : "업로드 완료"}
+            </span>
+            <strong>{activeUploadedDataset?.fileName ?? file?.name}</strong>
             <span>
-              {uploadedDataset?.datasetId
-                ? `dataset ${uploadedDataset.datasetId}`
+              {activeUploadedDataset?.datasetId
+                ? `dataset ${activeUploadedDataset.datasetId}`
                 : "데이터셋 ID 확인 필요"}
             </span>
           </div>
 
-          <PipelineJobStatusPanel
-            queryState={{
-              isLoading: ingestionJobQuery.isLoading,
-              isError: ingestionJobQuery.isError,
-              isFetching: ingestionJobQuery.isFetching,
-            }}
-            job={ingestionJob}
-            reviewPath={ingestionReviewPath}
-            onRefresh={handleIngestionRefresh}
-            onReset={handleReset}
-            onNavigate={navigate}
-          />
+          {!isDashboardGenerationTarget && (
+            <PipelineJobStatusPanel
+              queryState={{
+                isLoading: ingestionJobQuery.isLoading,
+                isError: ingestionJobQuery.isError,
+                isFetching: ingestionJobQuery.isFetching,
+              }}
+              job={ingestionJob}
+              reviewPath={ingestionReviewPath}
+              onRefresh={handleIngestionRefresh}
+              onReset={handleReset}
+              onNavigate={navigate}
+            />
+          )}
 
           {shouldShowManualGenerationFallback && (
             <div className={styles.generationPanel}>

@@ -407,6 +407,59 @@ describe("LogUploadForm", () => {
     expect(screen.queryByText("도메인팩 관리로 이동")).not.toBeInTheDocument();
   });
 
+  it("opens generation controls directly when a dataset id query is provided", () => {
+    render(
+      <MemoryRouter initialEntries={["/workspaces/1/upload?datasetId=42"]}>
+        <LogUploadForm workspaceId={1} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("생성 대상 상담 로그")).toBeInTheDocument();
+    expect(screen.getAllByText(/dataset 42/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
+
+    expect(mockTriggerMutate).toHaveBeenCalledWith({
+      workspaceId: 1,
+      datasetId: 42,
+    });
+  });
+
+  it("blocks dataset query generation when the workspace cannot start generation", () => {
+    render(
+      <MemoryRouter initialEntries={["/workspaces/1/upload?datasetId=42"]}>
+        <LogUploadForm
+          workspaceId={1}
+          freeOnboardingStatus="CONSUMED"
+          hasActiveSubscription={false}
+        />
+      </MemoryRouter>,
+    );
+
+    const generationButton = screen.getByText("도메인팩 초안 생성 시작").closest("button");
+
+    expect(generationButton).toBeDisabled();
+
+    fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
+
+    expect(mockTriggerMutate).not.toHaveBeenCalled();
+  });
+
+  it("clears query-backed generation state when uploading another file", () => {
+    render(
+      <MemoryRouter initialEntries={["/workspaces/1/upload?datasetId=42"]}>
+        <LogUploadForm workspaceId={1} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText("다른 파일 업로드"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/upload", {
+      replace: true,
+    });
+    expect(screen.getByText("파일을 먼저 선택해 주세요.")).toBeInTheDocument();
+  });
+
   it("shows automatic ingestion pipeline status and opens status screen", () => {
     mockIngestionQuery = {
       data: {
