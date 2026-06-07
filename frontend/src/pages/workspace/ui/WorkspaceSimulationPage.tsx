@@ -333,6 +333,25 @@ function optionalText(value?: string | null): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+function displayText(value?: string | number | null): string {
+  if (value === null || value === undefined || value === "") return "미확인";
+  return String(value);
+}
+
+function stringifySlotValues(values?: Record<string, unknown> | null): string {
+  return JSON.stringify(values ?? {}, null, 2);
+}
+
+function parseSlotValuesInput(value: string): Record<string, unknown> | null {
+  const trimmed = value.trim();
+  if (!trimmed) return {};
+  const parsed = JSON.parse(trimmed);
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  return parsed as Record<string, unknown>;
+}
+
 export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
   const location = useLocation();
@@ -387,7 +406,11 @@ export function WorkspaceSimulationPage() {
   const [feedbackDescription, setFeedbackDescription] = useState("");
   const [feedbackExpectedBehavior, setFeedbackExpectedBehavior] = useState("");
   const [goldenCaseName, setGoldenCaseName] = useState("");
+  const [expectedIntentCode, setExpectedIntentCode] = useState("");
+  const [expectedWorkflowCode, setExpectedWorkflowCode] = useState("");
+  const [expectedCurrentState, setExpectedCurrentState] = useState("");
   const [expectedActionType, setExpectedActionType] = useState("");
+  const [expectedSlotValuesJson, setExpectedSlotValuesJson] = useState("{}");
   const [replayVersionId, setReplayVersionId] = useState("");
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -552,17 +575,23 @@ export function WorkspaceSimulationPage() {
   useEffect(() => {
     if (detail?.session) {
       setGoldenCaseName(`${customerName(detail.session)} 검증 케이스`);
+      setExpectedIntentCode(detail.matchedWorkflow?.intentCode ?? "");
+      setExpectedWorkflowCode(detail.matchedWorkflow?.workflowCode ?? "");
+      setExpectedCurrentState(detail.matchedWorkflow?.currentState ?? "");
+      setExpectedSlotValuesJson(stringifySlotValues(detail.slotValues));
       setReplayVersionId(
-        detail.matchedWorkflow?.domainPackVersionId
-          ? String(detail.matchedWorkflow.domainPackVersionId)
-          : "",
+        String(simulationTarget?.versionId ?? detail.matchedWorkflow?.domainPackVersionId ?? ""),
       );
     } else {
       setGoldenCaseName("");
+      setExpectedIntentCode("");
+      setExpectedWorkflowCode("");
+      setExpectedCurrentState("");
+      setExpectedSlotValuesJson("{}");
       setReplayVersionId("");
     }
     setExpectedActionType("");
-  }, [detail?.session, detail?.matchedWorkflow?.domainPackVersionId]);
+  }, [detail, simulationTarget?.versionId]);
 
   useEffect(() => {
     if (parsedWorkspaceId === null) return;
@@ -882,15 +911,35 @@ export function WorkspaceSimulationPage() {
       toast.error("고객 메시지가 있어야 검증 케이스로 저장할 수 있습니다.");
       return;
     }
+    const expectedIntent = expectedIntentCode.trim();
+    const expectedWorkflow = expectedWorkflowCode.trim();
+    const expectedState = expectedCurrentState.trim();
+    const expectedAction = expectedActionType.trim();
+    if (!expectedIntent || !expectedWorkflow || !expectedAction) {
+      toast.error("기대 intent, workflow, action을 확인하세요.");
+      return;
+    }
+    let expectedSlotValues: Record<string, unknown>;
+    try {
+      const parsedSlotValues = parseSlotValuesInput(expectedSlotValuesJson);
+      if (parsedSlotValues === null) {
+        toast.error("필수 slot은 JSON 객체로 입력하세요.");
+        return;
+      }
+      expectedSlotValues = parsedSlotValues;
+    } catch {
+      toast.error("필수 slot JSON 형식을 확인하세요.");
+      return;
+    }
     setIsCreatingGoldenCase(true);
     try {
       await simulationApi.createGoldenCase(parsedWorkspaceId, detail.session.id, {
         name: optionalText(goldenCaseName),
-        expectedIntentCode: optionalText(matched?.intentCode),
-        expectedWorkflowCode: optionalText(matched?.workflowCode),
-        expectedCurrentState: optionalText(matched?.currentState),
-        expectedActionType: optionalText(expectedActionType),
-        expectedSlotValues: detail.slotValues ?? {},
+        expectedIntentCode: expectedIntent,
+        expectedWorkflowCode: expectedWorkflow,
+        expectedCurrentState: optionalText(expectedState),
+        expectedActionType: expectedAction,
+        expectedSlotValues,
       });
       toast.success("검증 케이스를 저장했습니다.");
       await reloadGoldenCases().catch(() => undefined);
@@ -1208,21 +1257,87 @@ export function WorkspaceSimulationPage() {
                     aria-label="검증 케이스 이름"
                   />
                 </label>
-                <label className={styles.feedbackField}>
-                  <span>기대 action</span>
-                  <NativeSelect
-                    value={expectedActionType}
-                    onChange={(event) => setExpectedActionType(event.target.value)}
-                    aria-label="기대 action"
-                  >
-                    <NativeSelectOption value="">현재 replay에서 비교 안 함</NativeSelectOption>
-                    {ACTION_TYPES.map((type) => (
-                      <NativeSelectOption key={type} value={type}>
-                        {type}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </label>
+                <div className={styles.goldenCaseSnapshot}>
+                  <div className={styles.feedbackPanelHeader}>
+                    <h4>현재 실행 결과</h4>
+                    <span>제안값</span>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Intent</dt>
+                      <dd>{displayText(matched?.intentCode ?? matched?.intentName)}</dd>
+                    </div>
+                    <div>
+                      <dt>Workflow</dt>
+                      <dd>{displayText(matched?.workflowCode ?? matched?.workflowName)}</dd>
+                    </div>
+                    <div>
+                      <dt>State</dt>
+                      <dd>{displayText(matched?.currentState)}</dd>
+                    </div>
+                    <div>
+                      <dt>Action</dt>
+                      <dd>직접 선택</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className={styles.goldenCaseExpected}>
+                  <div className={styles.feedbackPanelHeader}>
+                    <h4>기대 결과</h4>
+                    <span>저장 전 확인</span>
+                  </div>
+                  <label className={styles.feedbackField}>
+                    <span>기대 intent</span>
+                    <input
+                      value={expectedIntentCode}
+                      onChange={(event) => setExpectedIntentCode(event.target.value)}
+                      maxLength={255}
+                      aria-label="기대 intent"
+                    />
+                  </label>
+                  <label className={styles.feedbackField}>
+                    <span>기대 workflow</span>
+                    <input
+                      value={expectedWorkflowCode}
+                      onChange={(event) => setExpectedWorkflowCode(event.target.value)}
+                      maxLength={255}
+                      aria-label="기대 workflow"
+                    />
+                  </label>
+                  <label className={styles.feedbackField}>
+                    <span>기대 state</span>
+                    <input
+                      value={expectedCurrentState}
+                      onChange={(event) => setExpectedCurrentState(event.target.value)}
+                      maxLength={255}
+                      aria-label="기대 state"
+                    />
+                  </label>
+                  <label className={styles.feedbackField}>
+                    <span>기대 action</span>
+                    <NativeSelect
+                      value={expectedActionType}
+                      onChange={(event) => setExpectedActionType(event.target.value)}
+                      aria-label="기대 action"
+                    >
+                      <NativeSelectOption value="">선택하세요</NativeSelectOption>
+                      {ACTION_TYPES.map((type) => (
+                        <NativeSelectOption key={type} value={type}>
+                          {type}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </label>
+                  <label className={styles.feedbackField}>
+                    <span>필수 slot JSON</span>
+                    <textarea
+                      value={expectedSlotValuesJson}
+                      onChange={(event) => setExpectedSlotValuesJson(event.target.value)}
+                      rows={4}
+                      aria-label="필수 slot JSON"
+                    />
+                  </label>
+                </div>
                 <label className={styles.feedbackField}>
                   <span>Replay version</span>
                   <input
