@@ -65,6 +65,45 @@
   background: var(--paper);
 }
 
+.targetBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-3);
+  background: var(--paper);
+}
+
+.targetBanner h2 {
+  margin: var(--s-1) 0 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 540;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.targetBanner p:last-child {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.targetBadge {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 540;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
 .sectionTitle {
   margin: 0;
   color: var(--ink);
@@ -115,10 +154,7 @@
   display: grid;
   height: clamp(420px, calc(100dvh - 300px), 780px);
   min-height: 0;
-  grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(
-      260px,
-      340px
-    );
+  grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(260px, 340px);
   gap: var(--s-4);
   align-items: stretch;
   overflow: hidden;
@@ -783,7 +819,8 @@
   }
 
   .createPanel,
-  .pageHeader {
+  .pageHeader,
+  .targetBanner {
     align-items: stretch;
     flex-direction: column;
   }
