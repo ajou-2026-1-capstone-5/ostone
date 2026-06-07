@@ -28,6 +28,8 @@ from pipeline.common.context import StageContext
 from pipeline.common.dag_defaults import default_dag_args
 from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.ecs_stage_worker import STAGE_MODULES
+from pipeline.llm_service_lifecycle import start_llm_service as start_llm_ecs_service
+from pipeline.llm_service_lifecycle import stop_llm_service as stop_llm_ecs_service
 
 RUN_MODE_INITIAL = "INITIAL"
 RUN_MODE_DOMAIN_CONFIRMED_REPLAY = "DOMAIN_CONFIRMED_REPLAY"
@@ -417,6 +419,11 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
             upstream_manifest_path=intent_discovery_result["artifact_manifest_path"],
         )
 
+    @task(task_id="start_llm_service")
+    def start_llm_service(flow_splitting_result: dict[str, str]) -> dict[str, str]:
+        start_llm_ecs_service()
+        return flow_splitting_result
+
     @task(task_id="feedback_candidate_generation")
     def feedback_candidate_generation(flow_splitting_result: dict[str, str]) -> dict[str, str]:
         if _conf_bool("skip_feedback_checkpoint") or _run_mode() == RUN_MODE_FEEDBACK_REPLAY:
@@ -446,6 +453,10 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
             upstream_manifest_path=human_feedback_result["artifact_manifest_path"],
         )
 
+    @task(task_id="stop_llm_service", trigger_rule="all_done")
+    def stop_llm_service() -> dict[str, object]:
+        return stop_llm_ecs_service()
+
     @task(task_id="evaluation")
     def evaluation(draft_generation_result: dict[str, str]) -> dict[str, str]:
         return _run_stage(
@@ -468,15 +479,25 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
     domain_confirmation_task = domain_confirmation_checkpoint(domain_candidate_task)
     intent_discovery_task = intent_discovery(domain_confirmation_task)
     flow_splitting_task = flow_splitting(intent_discovery_task)
-    feedback_candidate_task = feedback_candidate_generation(flow_splitting_task)
+    start_llm_task = start_llm_service(flow_splitting_task)
+    feedback_candidate_task = feedback_candidate_generation(start_llm_task)
     human_feedback_task = human_feedback_checkpoint(feedback_candidate_task)
     draft_generation_task = draft_generation(human_feedback_task)
+    stop_llm_task = stop_llm_service()
     evaluation_task = evaluation(draft_generation_task)
     publish_candidate_task = publish_candidate(evaluation_task)
 
     ingestion_task >> preprocessing_task >> representation_task >> domain_candidate_task >> domain_confirmation_task
-    domain_confirmation_task >> intent_discovery_task >> flow_splitting_task >> feedback_candidate_task
+    (
+        domain_confirmation_task
+        >> intent_discovery_task
+        >> flow_splitting_task
+        >> start_llm_task
+        >> feedback_candidate_task
+    )
     feedback_candidate_task >> human_feedback_task >> draft_generation_task
+    human_feedback_task >> stop_llm_task
+    draft_generation_task >> stop_llm_task
     draft_generation_task >> evaluation_task >> publish_candidate_task
 
 

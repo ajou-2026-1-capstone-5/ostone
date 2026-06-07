@@ -310,6 +310,15 @@ data "aws_iam_policy_document" "ecs_airflow_task" {
   }
 
   statement {
+    sid = "ManageLlmServiceLifecycle"
+    actions = [
+      "ecs:DescribeServices",
+      "ecs:UpdateService"
+    ]
+    resources = [aws_ecs_service.ml_llm.arn]
+  }
+
+  statement {
     sid     = "PassStageTaskRoles"
     actions = ["iam:PassRole"]
     resources = [

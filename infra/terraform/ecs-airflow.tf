@@ -226,6 +226,18 @@ locals {
       value = "http://${aws_lb.ml_llm_internal.dns_name}:${var.llm_service_container_port}/v1"
     },
     {
+      name  = "PIPELINE_LLM_ECS_SERVICE"
+      value = aws_ecs_service.ml_llm.name
+    },
+    {
+      name  = "PIPELINE_LLM_ECS_DESIRED_COUNT"
+      value = "1"
+    },
+    {
+      name  = "PIPELINE_LLM_HEALTH_URL"
+      value = "http://${aws_lb.ml_llm_internal.dns_name}:${var.llm_service_container_port}/health"
+    },
+    {
       name  = "S3_EXPECTED_BUCKET_OWNER"
       value = data.aws_caller_identity.current.account_id
     },
