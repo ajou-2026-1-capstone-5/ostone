@@ -315,7 +315,9 @@ data "aws_iam_policy_document" "ecs_airflow_task" {
       "ecs:DescribeServices",
       "ecs:UpdateService"
     ]
-    resources = [aws_ecs_service.ml_llm.arn]
+    resources = [
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.main.name}/${aws_ecs_service.ml_llm.name}"
+    ]
   }
 
   statement {
