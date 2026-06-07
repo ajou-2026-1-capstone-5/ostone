@@ -497,9 +497,16 @@ test.describe("Workspace core operator screens", () => {
         await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/900\/review/);
         await expect(page.getByText("상담 도메인을 확정합니다.")).toBeVisible();
         await expect(page.getByText("환불/결제 도메인")).toBeVisible();
+        await expect(page.getByRole("button", { name: "선택한 도메인 확정" })).toBeDisabled();
         await captureScreen(page, testInfo, "pipeline-domain-review");
 
         await page.getByRole("button", { name: /환불\/결제 도메인/ }).click();
+        await expect(page.getByText(/이 선택은 intent clustering 입력으로 반영되며/)).toBeVisible();
+        expect(seen).not.toContain(
+          "POST /workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation",
+        );
+
+        await page.getByRole("button", { name: "선택한 도메인 확정" }).click();
         await expect
           .poll(() =>
             seen.includes(
