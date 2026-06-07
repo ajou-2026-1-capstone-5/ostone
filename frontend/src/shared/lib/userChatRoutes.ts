@@ -1,5 +1,9 @@
 import { DEMO_SELECTION_PATH } from "./demoRoutes";
 
+export const WORKSPACE_PREVIEW_LABEL = "운영자 미리보기";
+export const WORKSPACE_PREVIEW_NEW_TAB_LABEL =
+  "현재 워크스페이스 운영자 미리보기를 새 탭에서 엽니다";
+
 export function buildUserChatPath(workspaceId: string | number): string {
   return `/chat/${encodeURIComponent(String(workspaceId))}`;
 }

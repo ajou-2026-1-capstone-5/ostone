@@ -23,7 +23,7 @@ describe("OstoneShell", () => {
     expect(screen.queryByTitle("Pipeline")).not.toBeInTheDocument();
     expect(screen.getByTitle("대시보드")).toBeInTheDocument();
     expect(screen.getByTitle("상담 응대")).toBeInTheDocument();
-    expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
+    expect(screen.getByTitle("공개 데모 선택")).toBeInTheDocument();
     expect(screen.getByTitle("상담 로그 수집")).toBeInTheDocument();
     expect(screen.getByTitle("도메인팩 관리")).toBeInTheDocument();
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
@@ -51,6 +51,18 @@ describe("OstoneShell", () => {
 
     expect(screen.queryByText("CARD-CS")).not.toBeInTheDocument();
     expect(screen.getAllByText("상담 로그 수집").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("chat 상위 화면 breadcrumb를 운영자 미리보기 라벨로 표시한다", () => {
+    render(
+      <OstoneShell active="chat" crumbs={["CARD-CS"]} basePath="/workspaces/7">
+        <div>content</div>
+      </OstoneShell>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.queryByText("CARD-CS")).not.toBeInTheDocument();
+    expect(screen.getAllByText("운영자 미리보기").length).toBeGreaterThanOrEqual(1);
   });
 
   it("상세 화면의 여러 breadcrumb는 그대로 유지한다", () => {

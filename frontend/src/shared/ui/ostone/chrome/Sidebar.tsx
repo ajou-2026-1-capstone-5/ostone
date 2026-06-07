@@ -1,8 +1,16 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { DEMO_SELECTION_PATH } from "@/shared/lib/demoRoutes";
-import { buildWorkspacePreviewChatPath } from "@/shared/lib/userChatRoutes";
+import {
+  DEMO_SELECTION_PATH,
+  PUBLIC_DEMO_SELECTION_LABEL,
+  PUBLIC_DEMO_SELECTION_NEW_TAB_LABEL,
+} from "@/shared/lib/demoRoutes";
+import {
+  buildWorkspacePreviewChatPath,
+  WORKSPACE_PREVIEW_LABEL,
+  WORKSPACE_PREVIEW_NEW_TAB_LABEL,
+} from "@/shared/lib/userChatRoutes";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
 import { AccountMenu } from "./AccountMenu";
@@ -58,7 +66,7 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
   {
     key: "chat",
     icon: "msg",
-    label: "사용자 화면 미리보기",
+    label: WORKSPACE_PREVIEW_LABEL,
     getPath: buildWorkspacePreviewChatPath,
     openInNewTab: true,
   },
@@ -167,22 +175,30 @@ export function Sidebar({
           width: "100%",
         }}
       >
-        {TOP_NAV_ITEMS.map((item) => (
-          <SidebarLink
-            key={item.key}
-            to={item.getPath(basePath)}
-            icon={item.icon}
-            label={item.label}
-            isActive={active === item.key}
-            activeColor={activeColor}
-            defaultColor={defaultColor}
-            hoverBg={hoverBg}
-            activeBg={activeBg}
-            testId={`sidebar-link-${item.key}`}
-            target={item.openInNewTab ? "_blank" : undefined}
-            newTabLabel={item.openInNewTab ? getNewTabLabel(item.getPath(basePath)) : undefined}
-          />
-        ))}
+        {TOP_NAV_ITEMS.map((item) => {
+          const to = item.getPath(basePath);
+          const label =
+            item.key === "chat" && to === DEMO_SELECTION_PATH
+              ? PUBLIC_DEMO_SELECTION_LABEL
+              : item.label;
+
+          return (
+            <SidebarLink
+              key={item.key}
+              to={to}
+              icon={item.icon}
+              label={label}
+              isActive={active === item.key}
+              activeColor={activeColor}
+              defaultColor={defaultColor}
+              hoverBg={hoverBg}
+              activeBg={activeBg}
+              testId={`sidebar-link-${item.key}`}
+              target={item.openInNewTab ? "_blank" : undefined}
+              newTabLabel={item.openInNewTab ? getNewTabLabel(to) : undefined}
+            />
+          );
+        })}
 
         <SidebarLink
           to={`${basePath}/domain-packs`}
@@ -232,11 +248,10 @@ interface SidebarLinkProps {
   newTabLabel?: string;
 }
 
-const NEW_TAB_PREVIEW_LABEL = "현재 워크스페이스 사용자 화면을 새 탭에서 엽니다";
-const NEW_TAB_PUBLIC_DEMO_LABEL = "공개 데모 선택 화면을 새 탭에서 엽니다";
-
 function getNewTabLabel(to: string): string {
-  return to === DEMO_SELECTION_PATH ? NEW_TAB_PUBLIC_DEMO_LABEL : NEW_TAB_PREVIEW_LABEL;
+  return to === DEMO_SELECTION_PATH
+    ? PUBLIC_DEMO_SELECTION_NEW_TAB_LABEL
+    : WORKSPACE_PREVIEW_NEW_TAB_LABEL;
 }
 
 function buildLinkStyle({
