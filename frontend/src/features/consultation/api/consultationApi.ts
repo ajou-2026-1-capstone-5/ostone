@@ -13,7 +13,9 @@ import {
   releaseSession,
   updateResponseMode,
 } from "@/shared/api/generated/endpoints/counselor-session-controller/counselor-session-controller";
-import { customFetch } from "@/shared/api/mutator";
+import { getMetrics as getGeneratedMetrics } from "@/shared/api/generated/endpoints/consultation-metrics-controller/consultation-metrics-controller";
+import { getWorkflowRankings as getGeneratedWorkflowRankings } from "@/shared/api/generated/endpoints/workspace-workflow-ranking-controller/workspace-workflow-ranking-controller";
+import { getBottleneckAnalysis as getGeneratedBottleneckAnalysis } from "@/shared/api/generated/endpoints/workspace-workflow-bottleneck-analysis-controller/workspace-workflow-bottleneck-analysis-controller";
 import { requireApiData, selectApiData } from "@/shared/api";
 import type { GetSessionsParams } from "@/shared/api/generated/zod";
 import type {
@@ -25,8 +27,8 @@ import type {
 // 상담 endpoint는 가능한 한 generated controller에 위임한다:
 // queue(getQueue) / sessions(getSessions) / messages(getMessages) /
 // assign·release·response-mode(counselor-session) / draft-response(consultation).
-// 단, dashboard workflow rankings·bottleneck analysis와, from/to 기간 필터가 필요한 metrics는
-// generated 시그니처가 해당 파라미터를 노출하지 않아 customFetch 직접 호출을 유지한다.
+// dashboard 집계 read endpoint는 generated wrapper를 거쳐 호출하고,
+// feature wrapper는 기존 화면이 기대하는 응답 payload만 unwrap한다.
 
 export type ChatSession = ConsultationChatSession;
 export type ChatMessage = ConsultationChatMessage;
@@ -427,31 +429,22 @@ export const consultationApi = {
     workspaceId: number,
     params: ConsultationMetricsParams = {},
   ): Promise<ConsultationMetrics> => {
-    const searchParams = new URLSearchParams();
-    if (params.from) searchParams.set("from", params.from);
-    if (params.to) searchParams.set("to", params.to);
-    const query = searchParams.toString();
-    const url = `/api/v1/workspaces/${workspaceId}/consultation/metrics${query ? `?${query}` : ""}`;
-    const response = await customFetch<ConsultationMetrics | { data?: ConsultationMetrics }>(url, {
-      method: "GET",
-    });
-    return requireApiData<ConsultationMetrics>(response, "상담 지표 응답을 확인할 수 없습니다.");
+    const response = await getGeneratedMetrics(workspaceId, params);
+    return requireApiData<ConsultationMetrics>(
+      response as unknown as ConsultationMetrics | { data?: ConsultationMetrics },
+      "상담 지표 응답을 확인할 수 없습니다.",
+    );
   },
 
   getWorkflowRankings: async (
     workspaceId: number,
     params: ConsultationMetricsParams = {},
   ): Promise<WorkspaceWorkflowRankingResponse> => {
-    const searchParams = new URLSearchParams();
-    if (params.from) searchParams.set("from", params.from);
-    if (params.to) searchParams.set("to", params.to);
-    const query = searchParams.toString();
-    const url = `/api/v1/workspaces/${workspaceId}/dashboard/workflow-rankings${query ? `?${query}` : ""}`;
-    const response = await customFetch<
-      WorkspaceWorkflowRankingResponse | { data?: WorkspaceWorkflowRankingResponse }
-    >(url, { method: "GET" });
+    const response = await getGeneratedWorkflowRankings(workspaceId, params);
     return requireApiData<WorkspaceWorkflowRankingResponse>(
-      response,
+      response as unknown as
+        | WorkspaceWorkflowRankingResponse
+        | { data?: WorkspaceWorkflowRankingResponse },
       "워크플로우 랭킹 응답을 확인할 수 없습니다.",
     );
   },
@@ -461,16 +454,15 @@ export const consultationApi = {
     workflowDefinitionId: number,
     params: ConsultationMetricsParams = {},
   ): Promise<WorkspaceWorkflowBottleneckAnalysis> => {
-    const searchParams = new URLSearchParams();
-    if (params.from) searchParams.set("from", params.from);
-    if (params.to) searchParams.set("to", params.to);
-    const query = searchParams.toString();
-    const url = `/api/v1/workspaces/${workspaceId}/dashboard/workflows/${workflowDefinitionId}/bottleneck-analysis${query ? `?${query}` : ""}`;
-    const response = await customFetch<
-      WorkspaceWorkflowBottleneckAnalysis | { data?: WorkspaceWorkflowBottleneckAnalysis }
-    >(url, { method: "GET" });
+    const response = await getGeneratedBottleneckAnalysis(
+      workspaceId,
+      workflowDefinitionId,
+      params,
+    );
     return requireApiData<WorkspaceWorkflowBottleneckAnalysis>(
-      response,
+      response as unknown as
+        | WorkspaceWorkflowBottleneckAnalysis
+        | { data?: WorkspaceWorkflowBottleneckAnalysis },
       "워크플로우 병목 분석 응답을 확인할 수 없습니다.",
     );
   },

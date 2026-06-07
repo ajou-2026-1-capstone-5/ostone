@@ -135,7 +135,7 @@ test.describe("Workspace core operator screens", () => {
         expect(seen).toContain(`GET /workspaces/1/dashboard/workflow-rankings?${range}`);
       });
 
-      test("Then compact filter controls update summaries, date queries, and action navigation", async ({
+      test("Then compact supported filters update summaries, date queries, and action navigation", async ({
         page,
       }) => {
         await page.goto("/workspaces/1/dashboard");
@@ -148,23 +148,30 @@ test.describe("Workspace core operator screens", () => {
           )
           .toBe(true);
 
-        await page.getByLabel("운영 지식팩 버전 필터").selectOption("published");
-        await page.getByLabel("채널 필터").selectOption("email");
-        await page.getByLabel("워크플로우 상태 필터").selectOption("handoff");
+        await expect(page.getByLabel("운영 지식팩 버전 필터")).toHaveCount(0);
+        await expect(page.getByLabel("채널 필터")).toHaveCount(0);
+        await expect(page.getByLabel("워크플로우 상태 필터")).toHaveCount(0);
 
         const summary = page.getByLabel("대시보드 필터 요약");
-        await expect(summary).toContainText("운영 버전");
-        await expect(summary).toContainText("이메일");
-        await expect(summary).toContainText("상담원 연결");
+        await expect(summary).not.toContainText("운영 버전");
+        await expect(summary).not.toContainText("이메일");
+        await expect(summary).not.toContainText("상담원 연결");
 
         await page.getByRole("button", { name: "사용자 지정" }).click();
         await page.getByLabel("시작일").fill("2026-06-01");
         await page.getByLabel("종료일").fill("2026-06-03");
         await expect(summary).toContainText("2026-06-01 ~ 2026-06-03");
+        const customRange = "from=2026-06-01&to=2026-06-03";
+        await expect
+          .poll(() => seen.includes(`GET /workspaces/1/consultation/metrics?${customRange}`))
+          .toBe(true);
         await expect
           .poll(() =>
-            seen.includes("GET /workspaces/1/consultation/metrics?from=2026-06-01&to=2026-06-03"),
+            seen.includes(`GET /workspaces/1/dashboard/action-recommendations?${customRange}`),
           )
+          .toBe(true);
+        await expect
+          .poll(() => seen.includes(`GET /workspaces/1/dashboard/workflow-rankings?${customRange}`))
           .toBe(true);
 
         await page.getByRole("link", { name: /바로 보기/ }).click();

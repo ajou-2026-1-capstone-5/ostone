@@ -57,16 +57,6 @@
       "wrapperPurpose": "toast/error mapping"
     },
     {
-      "file": "src/features/consultation/api/consultationApi.ts",
-      "importName": "customFetch",
-      "callee": "customFetch",
-      "endpoint": "identifier:url",
-      "occurrences": 3,
-      "reason": "Generated signatures do not expose the dashboard metric query parameters used by these reads.",
-      "scope": "Consultation metrics, workflow ranking, and bottleneck analysis computed URLs.",
-      "wrapperPurpose": "unwrap/select"
-    },
-    {
       "file": "src/features/consultation/api/llmToolWorkflowApi.ts",
       "importName": "customFetch",
       "callee": "customFetch",
@@ -210,24 +200,6 @@
       "reason": "OpenAPI generated endpoint is not available for simulation golden case replay creation.",
       "scope": "Simulation golden case replay endpoint.",
       "wrapperPurpose": "unwrap/select"
-    },
-    {
-      "file": "src/features/workspace-dashboard-health/api/workspaceDashboardHealthApi.ts",
-      "importName": "customFetch",
-      "callee": "customFetch",
-      "endpoint": "/api/v1/workspaces/${}/dashboard/knowledge-pack-health",
-      "reason": "OpenAPI is not generated for this dashboard read endpoint yet.",
-      "scope": "Workspace dashboard knowledge-pack health endpoint.",
-      "wrapperPurpose": "query key standardization"
-    },
-    {
-      "file": "src/features/workspace-dashboard-health/api/workspaceDashboardHealthApi.ts",
-      "importName": "customFetch",
-      "callee": "customFetch",
-      "endpoint": "/api/v1/workspaces/${}/dashboard/action-recommendations${}",
-      "reason": "OpenAPI is not generated for this dashboard read endpoint yet.",
-      "scope": "Workspace dashboard action recommendations endpoint.",
-      "wrapperPurpose": "query key standardization"
     }
   ]
 }

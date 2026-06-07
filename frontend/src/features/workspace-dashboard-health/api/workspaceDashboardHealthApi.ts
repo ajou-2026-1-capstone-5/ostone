@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { customFetch } from "@/shared/api/mutator";
-
-// OpenAPI is not generated for this dashboard read endpoint yet.
+import {
+  getActionRecommendations as getGeneratedActionRecommendations,
+  getKnowledgePackHealth as getGeneratedKnowledgePackHealth,
+} from "@/shared/api/generated/endpoints/workspace-dashboard-controller/workspace-dashboard-controller";
+import { requireApiData } from "@/shared/api";
 
 export interface WorkspaceDashboardKnowledgePack {
   packId: number;
@@ -77,26 +79,33 @@ export const workspaceDashboardActionRecommendationKeys = {
 export function useWorkspaceDashboardHealth(workspaceId: number) {
   return useQuery({
     queryKey: workspaceDashboardHealthKeys.detail(workspaceId),
-    queryFn: ({ signal }) =>
-      customFetch<WorkspaceDashboardHealth>(
-        `/api/v1/workspaces/${workspaceId}/dashboard/knowledge-pack-health`,
-        { method: "GET", signal },
-      ),
+    queryFn: async ({ signal }) => {
+      const response = await getGeneratedKnowledgePackHealth(workspaceId, {
+        signal,
+      });
+      return requireApiData<WorkspaceDashboardHealth>(
+        response as unknown as
+          | WorkspaceDashboardHealth
+          | { data?: WorkspaceDashboardHealth },
+        "워크스페이스 대시보드 건강도 응답을 확인할 수 없습니다.",
+      );
+    },
   });
 }
 
-export function fetchWorkspaceDashboardActionRecommendations(
+export async function fetchWorkspaceDashboardActionRecommendations(
   workspaceId: number,
   params: WorkspaceDashboardActionRecommendationParams = {},
   signal?: AbortSignal,
 ) {
-  const searchParams = new URLSearchParams();
-  if (params.from) searchParams.set("from", params.from);
-  if (params.to) searchParams.set("to", params.to);
-  const query = searchParams.toString();
-  return customFetch<WorkspaceDashboardActionRecommendations>(
-    `/api/v1/workspaces/${workspaceId}/dashboard/action-recommendations${query ? `?${query}` : ""}`,
-    { method: "GET", signal },
+  const response = await getGeneratedActionRecommendations(workspaceId, params, {
+    signal,
+  });
+  return requireApiData<WorkspaceDashboardActionRecommendations>(
+    response as unknown as
+      | WorkspaceDashboardActionRecommendations
+      | { data?: WorkspaceDashboardActionRecommendations },
+    "워크스페이스 대시보드 추천 액션 응답을 확인할 수 없습니다.",
   );
 }
 
