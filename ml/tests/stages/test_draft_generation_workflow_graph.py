@@ -585,9 +585,7 @@ def test_frequent_path_generator_drops_supported_cycle_edges() -> None:
 
     _validate_graph(spec, {"policy_1"})
     edge_pairs = {(edge.from_node, edge.to_node) for edge in spec.edges}
-    assert (("request_check", "info_collect") in edge_pairs) != (
-        ("info_collect", "request_check") in edge_pairs
-    )
+    assert (("request_check", "info_collect") in edge_pairs) != (("info_collect", "request_check") in edge_pairs)
 
 
 def test_frequent_path_generator_repairs_supported_unreachable_nodes() -> None:

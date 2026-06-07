@@ -155,8 +155,7 @@ def _run_graph_leiden(
     selection_default_enabled = not feedback_replay and len(success_conversations) <= clustering_selection_max_inputs
     if not selection_default_enabled and not feedback_replay:
         logger.info(
-            "Large input disables expensive clustering candidate selection by default: "
-            "input_count=%d max_inputs=%d",
+            "Large input disables expensive clustering candidate selection by default: input_count=%d max_inputs=%d",
             len(success_conversations),
             clustering_selection_max_inputs,
         )

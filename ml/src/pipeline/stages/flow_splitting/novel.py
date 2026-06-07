@@ -18,6 +18,7 @@ from .labeling import (
     _weak_label_penalty,
 )
 
+
 def _promote_novel_candidates(
     clusters_payload: dict[str, Any],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -61,6 +62,7 @@ def _promote_novel_candidates(
     report["skippedNovelCandidateCount"] = skipped_count
     report["novelCandidateMinSize"] = min_size
     return promoted, report
+
 
 def _novel_candidate_cluster(
     candidate: dict[str, Any],
@@ -107,6 +109,7 @@ def _novel_candidate_cluster(
         "is_novel_outlier_candidate": True,
     }
 
+
 def _stabilized_novel_label(source: dict[str, Any], label: dict[str, Any]) -> dict[str, Any]:
     if source.get("is_novel_outlier_candidate") is not True and not str(source.get("source_type") or "").startswith(
         "outlier_"
@@ -134,6 +137,7 @@ def _stabilized_novel_label(source: dict[str, Any], label: dict[str, Any]) -> di
         ],
     }
 
+
 def _novel_fallback_name(source: dict[str, Any]) -> str:
     source_type = str(source.get("source_type") or "")
     suggested_name = str(source.get("suggested_name") or "").strip()
@@ -145,8 +149,10 @@ def _novel_fallback_name(source: dict[str, Any]) -> str:
         return suggested_name
     return REVIEW_PLACEHOLDER_LABEL
 
+
 def _novel_flow_fallback_name(source: dict[str, Any]) -> str:
     return REVIEW_PLACEHOLDER_LABEL
+
 
 def _novel_candidate_report(
     input_count: int,

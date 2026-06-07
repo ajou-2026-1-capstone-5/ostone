@@ -5,6 +5,8 @@ from collections import Counter, defaultdict
 from typing import Any
 
 from .constants import (
+    _LABEL_STOPWORDS,
+    _LABEL_SUFFIXES,
     ACTION_INFLECTION_SUFFIXES,
     ACTION_LABEL_HINTS,
     ACTION_OBJECT_AMBIGUOUS_TERMS,
@@ -30,26 +32,17 @@ from .constants import (
     REVIEW_PLACEHOLDER_LABEL,
     SEQUENCE_SPLIT_PREFIX,
     TEXT_INFERRED_ACTION_BLOCKLIST,
-    _LABEL_STOPWORDS,
-    _LABEL_SUFFIXES,
-    AUTO_LABEL_MIN_MEMBER_COUNT,
 )
 from .helpers import (
-    _action_object_split_label,
     _action_split_label,
     _clamp,
-    _dominant_sequence_share,
-    _dominant_signal_share,
     _event_sequence_key,
     _float_value,
-    _int_list,
     _is_mixed_residual_reason,
-    _merged_workflow_signal,
-    _sequence_split_label,
-    _split_label as _split_label_display,
     _string_list,
     _workflow_label,
 )
+
 
 def _regenerated_split_label(
     member_ids: list[str],
@@ -132,6 +125,7 @@ def _regenerated_split_label(
         ],
     }
 
+
 def _review_safe_generated_label(
     label: dict[str, Any],
     member_ids: list[str],
@@ -189,6 +183,7 @@ def _review_safe_generated_label(
         ][:5],
     }
 
+
 def _split_label_auto_acceptable(label: dict[str, Any]) -> bool:
     score = _float_value(label.get("score"), default=0.0)
     evidence_coverage = _float_value(label.get("evidenceCoverage"), default=0.0)
@@ -223,6 +218,7 @@ def _split_label_auto_acceptable(label: dict[str, Any]) -> bool:
         and specificity >= AUTO_SPLIT_LABEL_SPECIFICITY
     )
 
+
 def _has_auto_label_raw_noise(raw_terms: list[str]) -> bool:
     for term in raw_terms:
         raw = term.strip().casefold()
@@ -235,6 +231,7 @@ def _has_auto_label_raw_noise(raw_terms: list[str]) -> bool:
             return True
     return False
 
+
 def _has_broad_generic_action_label(object_terms: tuple[str, ...], action_terms: tuple[str, ...]) -> bool:
     if not action_terms or any(term not in AUTO_GENERIC_ACTION_TERMS for term in action_terms):
         return False
@@ -242,8 +239,10 @@ def _has_broad_generic_action_label(object_terms: tuple[str, ...], action_terms:
         len(term.replace("_", "")) >= AUTO_MIN_SPECIFIC_OBJECT_LENGTH_FOR_GENERIC_ACTION for term in object_terms
     )
 
+
 def _has_strong_auto_object_term(object_terms: tuple[str, ...]) -> bool:
     return any(term not in AUTO_WEAK_OBJECT_TERMS for term in object_terms)
+
 
 def _is_grounded_generated_label(label: dict[str, Any], split_key: str) -> bool:
     name = str(label.get("name") or "").strip()
@@ -289,8 +288,10 @@ def _is_grounded_generated_label(label: dict[str, Any], split_key: str) -> bool:
         return action_object_validity >= 0.55 and evidence_coverage >= 0.50 and score >= 0.55
     return score >= MIN_GROUNDED_TERM_FREQUENCY_SCORE and evidence_coverage >= MIN_GROUNDED_LABEL_EVIDENCE_COVERAGE
 
+
 def _has_label_review_noise(terms: list[str]) -> bool:
     return any(term in LABEL_REVIEW_NOISE_TERMS for term in terms)
+
 
 def _noise_reduced_review_label(label: dict[str, Any]) -> str:
     raw_terms = [
@@ -311,6 +312,7 @@ def _noise_reduced_review_label(label: dict[str, Any]) -> str:
     if not compacted:
         return ""
     return f"{' '.join(compacted)} 문의"
+
 
 def _is_review_label_structurally_grounded(
     name: str,
@@ -343,6 +345,7 @@ def _is_review_label_structurally_grounded(
     )
     return joint_coverage >= 0.45
 
+
 def _is_clean_review_label_base(name: str) -> bool:
     if not name:
         return False
@@ -362,6 +365,7 @@ def _is_clean_review_label_base(name: str) -> bool:
     if action_terms and _has_broad_generic_action_label(object_terms, action_terms):
         return False
     return bool(object_terms)
+
 
 def _action_augmented_review_label(
     fallback_name: str,
@@ -386,6 +390,7 @@ def _action_augmented_review_label(
             return f"{object_label} {action} 문의"
     return fallback_name
 
+
 def _split_key_action_terms(split_key: str) -> list[str]:
     actions: list[str] = []
     for part in split_key.split(COMPOUND_SPLIT_SEPARATOR):
@@ -401,6 +406,7 @@ def _split_key_action_terms(split_key: str) -> list[str]:
         if action and _is_action_label_term(action) and action not in actions:
             actions.append(action)
     return actions
+
 
 def _review_label_metrics(
     name: str,
@@ -449,6 +455,7 @@ def _review_label_metrics(
         "specificity": specificity,
     }
 
+
 def _label_terms_from_name(name: str) -> list[str]:
     output: list[str] = []
     for raw_term in re.findall(r"[0-9A-Za-z가-힣_]+", name.casefold()):
@@ -461,6 +468,7 @@ def _label_terms_from_name(name: str) -> list[str]:
             output.append(term)
     return _compact_label_terms(output)
 
+
 def _label_candidate_source(label: dict[str, Any]) -> str:
     candidates = label.get("candidates")
     if isinstance(candidates, list):
@@ -471,10 +479,12 @@ def _label_candidate_source(label: dict[str, Any]) -> str:
                     return source
     return ""
 
+
 def _dict_candidates(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
 
 def _flow_grounded_review_label(
     member_ids: list[str],
@@ -494,11 +504,13 @@ def _flow_grounded_review_label(
         return _review_label_from_sequence_key(dominant_sequence_key)
     return REVIEW_PLACEHOLDER_LABEL
 
+
 def _first_split_part(split_key: str, prefix: str) -> str:
     for part in split_key.split(COMPOUND_SPLIT_SEPARATOR):
         if part.startswith(prefix):
             return part
     return ""
+
 
 def _dominant_event_sequence_key(
     member_ids: list[str],
@@ -513,9 +525,11 @@ def _dominant_event_sequence_key(
         return ""
     return counts.most_common(1)[0][0]
 
+
 def _review_label_from_sequence_key(sequence_key: str) -> str:
     del sequence_key
     return REVIEW_PLACEHOLDER_LABEL
+
 
 def _action_object_split_intent_label(split_key: str) -> str:
     raw = split_key.removeprefix(ACTION_OBJECT_SPLIT_PREFIX)
@@ -531,6 +545,7 @@ def _action_object_split_intent_label(split_key: str) -> str:
     if object_term:
         return f"{object_term} 문의"
     return REVIEW_PLACEHOLDER_LABEL
+
 
 def _resolve_duplicate_generated_labels(
     clusters: list[dict[str, Any]],
@@ -593,10 +608,12 @@ def _resolve_duplicate_generated_labels(
                 *_dict_candidates(duplicate.get("label_candidates")),
             ][:5]
 
+
 def _enforce_review_only_labels(clusters: list[dict[str, Any]]) -> None:
     for cluster in clusters:
         if cluster.get("is_novel_outlier_candidate") is True:
             cluster["label_validation_status"] = "needs_review"
+
 
 def _should_fallback_duplicate_label(cluster: dict[str, Any]) -> bool:
     if _has_evidence_backed_duplicate_label(cluster):
@@ -605,6 +622,7 @@ def _should_fallback_duplicate_label(cluster: dict[str, Any]) -> bool:
     action_object_validity = _float_value(cluster.get("label_action_object_validity"), default=0.35)
     split_key = str(cluster.get("flow_split_key") or "")
     return score < 0.70 or action_object_validity < 0.55 or _is_mixed_residual_reason(split_key)
+
 
 def _has_evidence_backed_duplicate_label(cluster: dict[str, Any]) -> bool:
     score = _float_value(cluster.get("label_score"), default=0.0)
@@ -622,6 +640,7 @@ def _has_evidence_backed_duplicate_label(cluster: dict[str, Any]) -> bool:
         and not _has_label_review_noise(terms)
     )
 
+
 def _workflow_label_terms(cluster: dict[str, Any]) -> list[str]:
     return [
         term
@@ -632,6 +651,7 @@ def _workflow_label_terms(cluster: dict[str, Any]) -> list[str]:
         )
         if term and _is_split_label_term(term)
     ]
+
 
 def _unique_duplicate_fallback_name(base_name: str, existing_labels: set[str]) -> str:
     normalized_base = base_name.removesuffix(" 문의").strip() if base_name.endswith(" 문의") else base_name.strip()
@@ -646,6 +666,7 @@ def _unique_duplicate_fallback_name(base_name: str, existing_labels: set[str]) -
         if candidate not in existing_labels:
             return candidate
         index += 1
+
 
 def _score_split_label_candidate(
     *,
@@ -695,6 +716,7 @@ def _score_split_label_candidate(
         "specificity": specificity,
     }
 
+
 def _candidate_evidence_coverage(
     frame_candidate: dict[str, Any],
     terms: list[str],
@@ -705,6 +727,7 @@ def _candidate_evidence_coverage(
     if isinstance(override, (int, float)) and not isinstance(override, bool):
         return _clamp(float(override))
     return _split_label_evidence_coverage(terms, member_ids, preprocessed_index)
+
 
 def _label_component_coverages(
     terms: list[str],
@@ -718,6 +741,7 @@ def _label_component_coverages(
         _object_action_joint_coverage(object_terms, action_terms, member_ids, preprocessed_index),
     )
 
+
 def _label_object_action_terms(terms: list[str]) -> tuple[tuple[str, ...], tuple[str, ...]]:
     cleaned_terms = tuple(term for term in terms if _is_split_label_term(term) or _is_action_label_term(term))
     action_terms = tuple(term for term in cleaned_terms if _is_action_label_term(term))
@@ -727,6 +751,7 @@ def _label_object_action_terms(terms: list[str]) -> tuple[tuple[str, ...], tuple
     if not object_terms and len(action_terms) >= 2:
         return action_terms[:-1], action_terms[-1:]
     return object_terms, action_terms
+
 
 def _component_coverage(
     terms: tuple[str, ...],
@@ -745,6 +770,7 @@ def _component_coverage(
     if not scores:
         return 0.0
     return round(sum(scores) / len(scores), 4)
+
 
 def _object_action_joint_coverage(
     object_terms: tuple[str, ...],
@@ -769,6 +795,7 @@ def _object_action_joint_coverage(
         return 0.0
     return round(sum(scores) / len(scores), 4)
 
+
 def _dedupe_split_label_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -780,6 +807,7 @@ def _dedupe_split_label_candidates(candidates: list[dict[str, Any]]) -> list[dic
         candidate["name"] = name
         output.append(candidate)
     return output
+
 
 def _term_supported_by_text(text: str, term: str) -> bool:
     normalized_term = term.casefold()
@@ -793,6 +821,7 @@ def _term_supported_by_text(text: str, term: str) -> bool:
     if normalized_term == "가능여부":
         return "가능" in text or "여부" in text
     return False
+
 
 def _action_object_label_candidate(
     member_ids: list[str],
@@ -811,6 +840,7 @@ def _action_object_label_candidate(
     else:
         name = f"{object_term} {action} 문의"
     return {"name": name, "terms": terms, "frame": frame, "source": "action_object_frame"}
+
 
 def _action_only_label_candidate(
     member_ids: list[str],
@@ -831,6 +861,7 @@ def _action_only_label_candidate(
         "evidenceCoverage": support_ratio,
     }
 
+
 def _should_use_action_only_label_candidate(term_terms: list[str]) -> bool:
     if not term_terms:
         return True
@@ -841,6 +872,7 @@ def _should_use_action_only_label_candidate(term_terms: list[str]) -> bool:
             continue
         return False
     return True
+
 
 def _term_frequency_action_label_candidate(
     member_ids: list[str],
@@ -864,6 +896,7 @@ def _term_frequency_action_label_candidate(
         "source": "term_frequency_action",
     }
 
+
 def _term_frequency_label_payload(term_terms: list[str]) -> tuple[str, list[str]]:
     object_terms, action_terms = _label_object_action_terms(term_terms)
     ordered_terms: list[str] = []
@@ -877,6 +910,7 @@ def _term_frequency_label_payload(term_terms: list[str]) -> tuple[str, list[str]
         ordered_terms = term_terms[:2]
     ordered_terms = _compact_label_terms(ordered_terms)
     return f"{' '.join(ordered_terms)} 문의", ordered_terms
+
 
 def _dominant_text_action(
     member_ids: list[str],
@@ -904,6 +938,7 @@ def _dominant_text_action(
         return ""
     scored.sort(reverse=True)
     return scored[0][2]
+
 
 def _dominant_action_object_frame(
     member_ids: list[str],
@@ -935,6 +970,7 @@ def _dominant_action_object_frame(
     frame["memberSupportRatio"] = round(support / len(member_ids), 4) if member_ids else 0.0
     return frame
 
+
 def _dominant_action_frame(
     member_ids: list[str],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -965,9 +1001,11 @@ def _dominant_action_frame(
     frame["memberSupportRatio"] = round(support / len(member_ids), 4) if member_ids else 0.0
     return frame
 
+
 def _frame_value(frame: dict[str, Any], key: str) -> str:
     value = frame.get(key)
     return str(value).strip().casefold() if isinstance(value, str) else ""
+
 
 def _frame_object_value(frame: dict[str, Any]) -> str:
     value = _frame_value(frame, "object")
@@ -982,9 +1020,11 @@ def _frame_object_value(frame: dict[str, Any]) -> str:
             terms.append(term)
     return " ".join(_compact_label_terms(terms)[:4])
 
+
 def _frame_confidence(frame: dict[str, Any]) -> float:
     value = frame.get("confidence")
     return _clamp(float(value)) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
+
 
 def _action_object_label_validity(frame_candidate: dict[str, Any]) -> float:
     frame = frame_candidate.get("frame")
@@ -998,6 +1038,7 @@ def _action_object_label_validity(frame_candidate: dict[str, Any]) -> float:
     if object_term or action:
         return 0.55
     return 0.25
+
 
 def _split_label_terms(
     member_ids: list[str],
@@ -1015,6 +1056,7 @@ def _split_label_terms(
                 continue
             counter[term] += 1
     return _compact_label_terms([term for term, _count in counter.most_common(4)])[:2]
+
 
 def _clean_label_term(term: str) -> str:
     cleaned = term.strip().casefold()
@@ -1043,12 +1085,14 @@ def _clean_label_term(term: str) -> str:
         return ""
     return cleaned
 
+
 def _clean_label_component_term(term: str) -> str:
     cleaned = _clean_label_term(term)
     if cleaned:
         return cleaned
     raw = term.strip().casefold()
     return raw if _is_action_label_term(raw) else ""
+
 
 def _normalize_query_value_term(term: str) -> str:
     if term.startswith("얼마"):
@@ -1067,6 +1111,7 @@ def _normalize_query_value_term(term: str) -> str:
         return "초과"
     return ""
 
+
 def _normalize_action_inflected_term(term: str) -> str:
     for action in ACTION_LABEL_HINTS:
         if term == action:
@@ -1079,6 +1124,7 @@ def _normalize_action_inflected_term(term: str) -> str:
         if any(remainder.startswith(suffix) for suffix in ACTION_INFLECTION_SUFFIXES):
             return action
     return term
+
 
 def _compact_label_terms(terms: list[str]) -> list[str]:
     compacted: list[str] = []
@@ -1093,6 +1139,7 @@ def _compact_label_terms(terms: list[str]) -> list[str]:
         compacted.append(term)
     return compacted
 
+
 def _is_split_label_term(term: str) -> bool:
     if not term or len(term.replace("_", "")) <= 1:
         return False
@@ -1106,6 +1153,7 @@ def _is_split_label_term(term: str) -> bool:
         return False
     return True
 
+
 def _label_specificity(terms: list[str]) -> float:
     unique_terms = [term for term in dict.fromkeys(terms) if _is_label_component_term(term)]
     if not unique_terms:
@@ -1116,13 +1164,16 @@ def _label_specificity(terms: list[str]) -> float:
         return 0.82
     return 1.0
 
+
 def _is_action_label_term(term: str) -> bool:
     if not term:
         return False
     return any(hint in term for hint in ACTION_LABEL_HINTS)
 
+
 def _is_label_component_term(term: str) -> bool:
     return _is_split_label_term(term) or _is_action_label_term(term)
+
 
 def _split_label_evidence_coverage(
     terms: list[str],
@@ -1147,11 +1198,13 @@ def _split_label_evidence_coverage(
         return 0.0
     return round(sum(member_scores) / len(member_scores), 4)
 
+
 def _label_source_text(conversation: dict[str, Any]) -> str:
     customer_text = str(conversation.get("customer_problem_text") or "").strip()
     if customer_text:
         return customer_text
     return str(conversation.get("canonical_text") or "").strip()
+
 
 def _weak_label_penalty(label: str) -> float:
     terms = [

@@ -38,6 +38,7 @@ from .helpers import (
 )
 from .labeling import _weak_label_penalty
 
+
 def _apply_entrypoint_semantic_metadata(
     clusters: list[dict[str, Any]],
     runtime_config: PipelineRuntimeConfig,
@@ -97,6 +98,7 @@ def _apply_entrypoint_semantic_metadata(
         quality_rows.append(semantic_quality)
     return _entrypoint_semantic_report(quality_rows, len(clusters))
 
+
 def _load_intent_discovery_embeddings(
     runtime_config: PipelineRuntimeConfig,
     stage_context: StageContext,
@@ -111,6 +113,7 @@ def _load_intent_discovery_embeddings(
     if payload.ndim != 2:
         return None
     return payload.astype(np.float32, copy=False)
+
 
 def _nearest_entrypoint_centroid(
     position: int,
@@ -127,6 +130,7 @@ def _nearest_entrypoint_centroid(
     )
     return similarities[0] if similarities else None
 
+
 def _semantic_competitor_value(cluster: object, key: str) -> object:
     if not isinstance(cluster, dict):
         return None
@@ -134,6 +138,7 @@ def _semantic_competitor_value(cluster: object, key: str) -> object:
     if isinstance(value, (str, int, float)) and not isinstance(value, bool):
         return value
     return None
+
 
 def _entrypoint_semantic_report(
     rows: list[dict[str, object]],
@@ -158,8 +163,10 @@ def _entrypoint_semantic_report(
         "entrypointPositiveMarginRate": sum(1 for value in margin_values if value > 0.0) / len(margin_values),
     }
 
+
 def _entrypoint_distinctiveness_score(margin: float) -> float:
     return _clamp((margin + 0.02) / 0.12)
+
 
 def _apply_workflow_review_metadata(
     clusters: list[dict[str, Any]],
@@ -199,6 +206,7 @@ def _apply_workflow_review_metadata(
             semantic_quality = cluster.get("entrypoint_semantic_quality")
             if isinstance(semantic_quality, dict):
                 entrypoint["semanticQuality"] = semantic_quality
+
 
 def _workflow_confidence_payload(
     cluster: dict[str, Any],
@@ -270,6 +278,7 @@ def _workflow_confidence_payload(
         "support_min_split_size": support_min_split_size,
     }
 
+
 def _support_min_split_size(split_reason: str, min_split_size: int) -> int:
     if COMPOUND_SPLIT_SEPARATOR in split_reason and (
         _split_reason_has_action(split_reason)
@@ -278,6 +287,7 @@ def _support_min_split_size(split_reason: str, min_split_size: int) -> int:
     ):
         return _resolve_expanded_min_split_size(min_split_size)
     return min_split_size
+
 
 def _semantic_confidence(cluster: dict[str, Any]) -> float:
     quality = cluster.get("quality")
@@ -297,6 +307,7 @@ def _semantic_confidence(cluster: dict[str, Any]) -> float:
         return base_score
     return 0.5
 
+
 def _entrypoint_semantic_confidence(quality: dict[str, Any]) -> float | None:
     cohesion = quality.get("entrypoint_semantic_cohesion")
     distinctiveness = quality.get("entrypoint_semantic_distinctiveness")
@@ -309,6 +320,7 @@ def _entrypoint_semantic_confidence(quality: dict[str, Any]) -> float | None:
     if isinstance(margin, (int, float)) and not isinstance(margin, bool):
         margin_score = _clamp((float(margin) + 0.04) / 0.12)
     return _clamp((0.50 * _clamp(float(cohesion))) + (0.35 * _clamp(float(distinctiveness))) + (0.15 * margin_score))
+
 
 def _has_weak_entrypoint_semantic_boundary(cluster: dict[str, Any]) -> bool:
     quality = cluster.get("entrypoint_semantic_quality")
@@ -324,6 +336,7 @@ def _has_weak_entrypoint_semantic_boundary(cluster: dict[str, Any]) -> bool:
         float(distinctiveness) < MIN_ENTRYPOINT_DISTINCTIVENESS_FOR_SAMPLE
         and float(margin) < MIN_ENTRYPOINT_MARGIN_FOR_SAMPLE
     )
+
 
 def _should_sample_weak_entrypoint_semantic_boundary(
     *,
@@ -341,6 +354,7 @@ def _should_sample_weak_entrypoint_semantic_boundary(
         and components["support"] >= 0.60
     )
 
+
 def _flow_confidence(
     member_ids: list[str],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -354,6 +368,7 @@ def _flow_confidence(
     signal_share = _dominant_signal_share(member_ids, preprocessed_index)
     return _clamp((0.65 * max(sequence_share, 0.5)) + (0.35 * max(signal_share, 0.5)))
 
+
 def _evidence_confidence(
     cluster: dict[str, Any],
     member_ids: list[str],
@@ -365,6 +380,7 @@ def _evidence_confidence(
     keyword_score = min(1.0, keyword_count / 5.0)
     support_score = _support_confidence(member_ids, min_split_size)
     return _clamp((0.40 * exemplar_score) + (0.30 * keyword_score) + (0.30 * support_score))
+
 
 def _label_confidence(cluster: dict[str, Any], duplicate_label_count: int) -> float:
     value = cluster.get("label_score")
@@ -387,10 +403,12 @@ def _label_confidence(cluster: dict[str, Any], duplicate_label_count: int) -> fl
     weak_label_penalty = _weak_label_penalty(label)
     return _clamp(base - duplicate_penalty - weak_label_penalty)
 
+
 def _support_confidence(member_ids: list[str], min_split_size: int) -> float:
     if not member_ids:
         return 0.0
     return min(1.0, len(member_ids) / max(1, min_split_size * 1.5))
+
 
 def _review_reason_codes(
     *,
@@ -420,6 +438,7 @@ def _review_reason_codes(
         reasons.append("low_quality_member_share")
     return _dedupe(reasons)
 
+
 def _sample_review_reason_codes(
     *,
     components: dict[str, float],
@@ -436,6 +455,7 @@ def _sample_review_reason_codes(
         reasons.append("weak_semantic_boundary_sample")
     return reasons
 
+
 def _review_tier(confidence: float, needs_review: bool, *, has_sample_review: bool = False) -> str:
     if needs_review:
         return "human_review"
@@ -444,6 +464,7 @@ def _review_tier(confidence: float, needs_review: bool, *, has_sample_review: bo
     if confidence >= WORKFLOW_HIGH_CONFIDENCE_THRESHOLD:
         return "high_confidence"
     return "sample_review"
+
 
 def _workflow_confidence_report(clusters: list[dict[str, Any]]) -> dict[str, Any]:
     if not clusters:
@@ -490,6 +511,7 @@ def _workflow_confidence_report(clusters: list[dict[str, Any]]) -> dict[str, Any
         "maxWorkflowCoverage": max(coverage_shares) if coverage_shares else 0.0,
         "effectiveWorkflowCount": _effective_workflow_count(coverage_shares),
     }
+
 
 def _effective_workflow_count(coverage_shares: list[float]) -> float:
     denominator = sum(value * value for value in coverage_shares if value > 0.0)

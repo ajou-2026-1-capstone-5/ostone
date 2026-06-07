@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 from typing import Any, cast
 
@@ -19,9 +19,9 @@ from .constants import (
     EXPANDED_MIN_SPLIT_SIZE,
     FLOW_EVENT_LABELS,
     LOW_QUALITY_CLUSTER_DROP_RATIO,
-    MIN_SPLIT_SIZE,
     SEQUENCE_SPLIT_PREFIX,
 )
+
 
 def _resolve_expanded_min_split_size(min_split_size: int) -> int:
     value = os.getenv("PIPELINE_FLOW_EXPANDED_MIN_SPLIT_SIZE", "").strip()
@@ -33,6 +33,7 @@ def _resolve_expanded_min_split_size(min_split_size: int) -> int:
     else:
         parsed = EXPANDED_MIN_SPLIT_SIZE
     return max(2, min(parsed, min_split_size))
+
 
 def _member_index_lookup(
     runtime_config: PipelineRuntimeConfig,
@@ -52,6 +53,7 @@ def _member_index_lookup(
         for member_id, member_index in zip(member_ids, member_indices):
             lookup.setdefault(member_id, member_index)
     return lookup
+
 
 def _representation_member_index_lookup(
     runtime_config: PipelineRuntimeConfig,
@@ -77,6 +79,7 @@ def _representation_member_index_lookup(
             output[conversation_id] = row_index
     return output
 
+
 def _member_indices_for_ids(
     member_ids: list[str],
     member_index_lookup: dict[str, int],
@@ -86,6 +89,7 @@ def _member_indices_for_ids(
     if indices:
         return indices
     return list(fallback or [])
+
 
 def _merge_duplicate_intent_labels(
     clusters: list[object],
@@ -121,6 +125,7 @@ def _merge_duplicate_intent_labels(
         target["quality"] = _merge_quality(target.get("quality"), cluster.get("quality"))
     return list(merged.values())
 
+
 def _drop_low_quality_clusters(
     clusters: list[dict[str, Any]],
     preprocessed_index: dict[str, dict[str, Any]],
@@ -145,11 +150,13 @@ def _drop_low_quality_clusters(
         "lowQualityClusterDropRatio": LOW_QUALITY_CLUSTER_DROP_RATIO,
     }
 
+
 def _cluster_member_id_set(clusters: list[dict[str, Any]]) -> set[str]:
     output: set[str] = set()
     for cluster in clusters:
         output.update(_string_list(cluster.get("member_conv_ids")))
     return output
+
 
 def _int_from_mapping(value: object, key: str) -> int:
     if not isinstance(value, dict):
@@ -162,6 +169,7 @@ def _int_from_mapping(value: object, key: str) -> int:
     if isinstance(raw_value, float):
         return int(raw_value)
     return 0
+
 
 def _low_quality_member_ratio(
     member_ids: list[str],
@@ -184,10 +192,12 @@ def _low_quality_member_ratio(
             low_quality_count += 1
     return low_quality_count / len(member_ids)
 
+
 def _cluster_compaction_key(cluster: dict[str, Any]) -> str:
     root_domain = str(cluster.get("root_domain") or "")
     name = str(cluster.get("canonical_intent") or cluster.get("suggested_name") or "").strip().casefold()
     return f"{root_domain}:{name}" if name else f"cluster:{cluster.get('cluster_id')}"
+
 
 def _extend_unique(
     target: dict[str, Any],
@@ -205,6 +215,7 @@ def _extend_unique(
         if limit is not None and len(items) >= limit:
             break
 
+
 def _extend_unique_int(
     target: dict[str, Any],
     key: str,
@@ -217,6 +228,7 @@ def _extend_unique_int(
     for value in values:
         if value not in items:
             items.append(value)
+
 
 def _merge_quality(left: object, right: object) -> dict[str, float]:
     if not isinstance(left, dict):
@@ -234,6 +246,7 @@ def _merge_quality(left: object, right: object) -> dict[str, float]:
             output[key] = sum(values) / len(values)
     return output
 
+
 def _event_sequence_key(conversation: object, max_events: int = 3) -> str:
     if not isinstance(conversation, dict):
         return f"{SEQUENCE_SPLIT_PREFIX}unknown"
@@ -245,6 +258,7 @@ def _event_sequence_key(conversation: object, max_events: int = 3) -> str:
         return f"{SEQUENCE_SPLIT_PREFIX}unknown"
     return f"{SEQUENCE_SPLIT_PREFIX}{'>'.join(events[:max_events])}"
 
+
 def _collapsed_events(events: list[str]) -> list[str]:
     output: list[str] = []
     for event in events:
@@ -252,10 +266,12 @@ def _collapsed_events(events: list[str]) -> list[str]:
             output.append(event)
     return output
 
+
 def _flow_group_key(ended_status: str, signal_key: str) -> str:
     if ended_status in {"resolved", "escalated"}:
         return f"{ended_status}:{signal_key}"
     return signal_key
+
 
 def _merged_workflow_signal(
     member_ids: list[str],
@@ -283,15 +299,18 @@ def _merged_workflow_signal(
         output[key] = member_value if has_member_signal else fallback_value
     return output
 
+
 def _signal_key(signal: dict[object, object]) -> str:
     enabled = sorted(str(key) for key, value in signal.items() if value is True)
     return "+".join(enabled) if enabled else "no_signal"
+
 
 def _split_name(base_name: str, split_key: str) -> str:
     label = _split_label(split_key)
     if label == "기본 처리":
         return base_name
     return f"{base_name} - {label}"
+
 
 def _split_label(split_key: str) -> str:
     if COMPOUND_SPLIT_SEPARATOR in split_key:
@@ -316,12 +335,14 @@ def _split_label(split_key: str) -> str:
         labels.append("상담원 이관 포함")
     return " · ".join(labels) if labels else "기본 처리"
 
+
 def _sequence_split_label(split_key: str) -> str:
     raw_sequence = split_key.removeprefix(SEQUENCE_SPLIT_PREFIX)
     labels = [FLOW_EVENT_LABELS.get(event, event) for event in raw_sequence.split(">") if event]
     if not labels or labels == ["unknown"]:
         return "관측 흐름 분리"
     return " · ".join(labels[:3]) + " 흐름"
+
 
 def _action_object_split_label(split_key: str) -> str:
     raw = split_key.removeprefix(ACTION_OBJECT_SPLIT_PREFIX)
@@ -334,18 +355,23 @@ def _action_object_split_label(split_key: str) -> str:
         return f"{object_term} {action} 기준"
     return "요청 대상 분리"
 
+
 def _action_split_label(split_key: str) -> str:
     action = split_key.removeprefix(ACTION_SPLIT_PREFIX).strip()
     return f"{action} 처리" if action else "요청 유형 분리"
 
+
 def _split_reason_has_sequence(split_reason: str) -> bool:
     return any(part.startswith(SEQUENCE_SPLIT_PREFIX) for part in split_reason.split(COMPOUND_SPLIT_SEPARATOR))
+
 
 def _split_reason_has_action_object(split_reason: str) -> bool:
     return any(part.startswith(ACTION_OBJECT_SPLIT_PREFIX) for part in split_reason.split(COMPOUND_SPLIT_SEPARATOR))
 
+
 def _split_reason_has_action(split_reason: str) -> bool:
     return any(part.startswith(ACTION_SPLIT_PREFIX) for part in split_reason.split(COMPOUND_SPLIT_SEPARATOR))
+
 
 def _l2norm(vectors: np.ndarray) -> np.ndarray:
     values = vectors.astype(np.float32, copy=True)
@@ -355,6 +381,7 @@ def _l2norm(vectors: np.ndarray) -> np.ndarray:
     normalized = np.zeros_like(values, dtype=np.float32)
     _ = np.divide(values, norms, out=normalized, where=norms > 0.0)
     return normalized.astype(np.float32, copy=False)
+
 
 def _dominant_sequence_share(
     member_ids: list[str],
@@ -366,6 +393,7 @@ def _dominant_sequence_share(
     if not counts:
         return 0.0
     return counts.most_common(1)[0][1] / len(member_ids)
+
 
 def _dominant_signal_share(
     member_ids: list[str],
@@ -380,16 +408,20 @@ def _dominant_signal_share(
         return 0.0
     return counts.most_common(1)[0][1] / len(member_ids)
 
+
 def _is_mixed_residual_reason(split_reason: str) -> bool:
     return split_reason in {"mixed_flow", "mixed_residual"} or split_reason.endswith(
         f"{COMPOUND_SPLIT_SEPARATOR}mixed_residual"
     )
 
+
 def _total_member_count(clusters: list[dict[str, Any]]) -> int:
     return sum(len(_string_list(cluster.get("member_conv_ids"))) for cluster in clusters)
 
+
 def _workflow_label(cluster: dict[str, Any]) -> str:
     return str(cluster.get("canonical_intent") or cluster.get("suggested_name") or "").strip().casefold()
+
 
 def _confidence(cluster: dict[str, Any]) -> float:
     quality = cluster.get("quality")
@@ -402,11 +434,14 @@ def _confidence(cluster: dict[str, Any]) -> float:
     ]
     return float(sum(values) / len(values)) if values else 0.5
 
+
 def _float_value(value: object, *, default: float) -> float:
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else default
 
+
 def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
+
 
 def _dedupe(values: list[str]) -> list[str]:
     seen: set[str] = set()
@@ -417,6 +452,7 @@ def _dedupe(values: list[str]) -> list[str]:
         seen.add(value)
         output.append(value)
     return output
+
 
 def _read_preprocessed_index(
     runtime_config: PipelineRuntimeConfig,
@@ -449,6 +485,7 @@ def _read_preprocessed_index(
                 }
     return index
 
+
 def _upstream_stage_dir(stage_name: str, runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> Path:
     upstream = StageContext(
         dag_id=stage_context.dag_id,
@@ -460,6 +497,7 @@ def _upstream_stage_dir(stage_name: str, runtime_config: PipelineRuntimeConfig, 
     )
     return upstream.artifact_dir(runtime_config)
 
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -469,10 +507,12 @@ def _read_json(path: Path) -> dict[str, Any]:
         raise PipelineStageError(f"JSON artifact must be an object: {path}")
     return cast(dict[str, Any], payload)
 
+
 def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
 
 def _int_list(value: object) -> list[int]:
     if not isinstance(value, list):

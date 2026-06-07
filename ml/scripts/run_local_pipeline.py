@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
@@ -35,7 +36,14 @@ def main() -> int:
 
     artifact_root = args.artifact_root.resolve()
     run_id = args.run_id or f"manual__local_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
-    ingestion._read_raw_object = lambda _object_key: raw_bytes  # type: ignore[assignment]
+
+    # ingestion은 Path를 받아 파싱 후 unlink하므로 bytes 대신 임시 파일 경로를 돌려준다.
+    def _local_raw_object(_object_key: str) -> Path:
+        with tempfile.NamedTemporaryFile(prefix="local-run-raw-", suffix=".bin", delete=False) as raw_file:
+            raw_file.write(raw_bytes)
+        return Path(raw_file.name)
+
+    ingestion._read_raw_object = _local_raw_object  # type: ignore[assignment]
     _configure_env(args, artifact_root, run_id)
 
     manifests: list[dict[str, str]] = []
