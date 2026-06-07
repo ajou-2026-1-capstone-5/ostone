@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, cast
 
-from pipeline.common.artifacts import ensure_stage_directory
+from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
 from pipeline.stages.preprocessing.io import read_stage_context
@@ -14,18 +14,18 @@ from .benchmarks import (
     _benchmark_suite_summary,
     _coerce_benchmark_suite,
     _parse_benchmark_suite,
-    _parse_pairwise_benchmark,
+    _parse_pairwise_benchmark,  # noqa: F401
 )
 from .evidence import (
     _evidence_coverage,
     _evidence_sufficiency_summary,
     _has_auto_confirmed_unsupported_policy_or_risk,
-    _has_evidence,
+    _has_evidence,  # noqa: F401
     _llm_schema_validity,
     _pii_redaction_failed,
 )
 from .gates import _apply_tiered_label_gate, _release_tier
-from .graph_validation import _graph_validation_errors, _graph_validity
+from .graph_validation import _graph_validation_errors, _graph_validity  # noqa: F401
 from .metrics import (
     _bool_metric,
     _intent_items,
@@ -84,13 +84,36 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     candidate = _load_or_create_candidate(upstream_manifest_path)
     benchmark = _load_evaluation_benchmark(upstream_manifest_path)
     candidate["evaluationSummary"] = _evaluate_candidate(candidate, benchmark=benchmark)
+    replay_lift_summary = _replay_lift_summary(upstream_manifest_path, candidate)
+    replay_report_path: Path | None = None
+    if replay_lift_summary is not None:
+        candidate["replayLiftSummary"] = replay_lift_summary
+        evaluation_summary = candidate.get("evaluationSummary")
+        if isinstance(evaluation_summary, dict):
+            evaluation_summary["replayLiftSummary"] = replay_lift_summary
+        replay_report_path = stage_dir / "replay_lift_summary.json"
+        replay_report_path.write_text(json.dumps(replay_lift_summary, indent=2, ensure_ascii=False), encoding="utf-8")
 
     candidate_path = stage_dir / "publish_candidate_input.json"
     candidate_path.write_text(json.dumps(candidate, indent=2, ensure_ascii=False), encoding="utf-8")
-    return {
+    manifest_payload: dict[str, object] = {
+        "upstream_manifest_path": upstream_manifest_path,
         "candidateArtifactPath": str(candidate_path.resolve()),
         "evaluation_summary": candidate.get("evaluationSummary"),
+        "metrics": candidate.get("evaluationSummary"),
     }
+    if replay_report_path is not None:
+        manifest_payload["replayReportPath"] = replay_report_path.name
+    manifest_path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
+    result: dict[str, object] = {
+        "candidateArtifactPath": str(candidate_path.resolve()),
+        "evaluation_summary": candidate.get("evaluationSummary"),
+        "artifact_manifest_path": str(manifest_path.resolve()),
+    }
+    if replay_report_path is not None:
+        result["replayReportPath"] = replay_report_path.name
+        result["replay_lift_summary"] = replay_lift_summary
+    return result
 
 
 def _load_or_create_candidate(upstream_manifest_path: str) -> dict[str, Any]:
@@ -243,6 +266,170 @@ def _build_development_candidate() -> dict[str, Any]:
             "sameIntentOvermergeRisk": 0.0,
         },
     }
+
+
+_REPLAY_LIFT_METRICS: tuple[tuple[str, str, str], ...] = (
+    ("reviewRequiredRate", "reviewRequiredRate", "lower"),
+    ("highConfidenceWorkflowCount", "highConfidenceWorkflowCount", "higher"),
+    ("duplicateLabelRate", "duplicateLabelRate", "lower"),
+    ("entrypointSemanticSeparationMargin", "entrypointSemanticSeparationMargin", "higher"),
+    ("positiveMarginRate", "positiveMarginRate", "higher"),
+    ("sameIntentGraph.conflictPairRate", "sameIntentGraphConflictPairRate", "lower"),
+)
+_FLOAT_ZERO_EPSILON = 1e-12
+
+
+def _replay_lift_summary(upstream_manifest_path: str, candidate: dict[str, Any]) -> dict[str, Any] | None:
+    source_manifest_path = _source_replay_manifest_path(Path(upstream_manifest_path))
+    if source_manifest_path is None:
+        return None
+    source_candidate = _load_source_candidate(source_manifest_path)
+    if source_candidate is None:
+        return {
+            "schemaVersion": "feedback-replay-lift.v1",
+            "available": False,
+            "sourceManifestPath": str(source_manifest_path),
+            "reason": "source_candidate_not_found",
+            "metricComparisons": {},
+            "qualityDegraded": False,
+        }
+
+    comparisons = {
+        metric_name: comparison
+        for metric_name, metric_key, direction in _REPLAY_LIFT_METRICS
+        if (
+            comparison := _metric_comparison(
+                before=_candidate_metric(source_candidate, metric_key),
+                after=_candidate_metric(candidate, metric_key),
+                direction=direction,
+            )
+        )
+        is not None
+    }
+    recurrence_rate = _review_task_recurrence_rate(source_candidate, candidate)
+    comparisons["reviewTaskRecurrenceRate"] = {
+        "before": 0.0,
+        "after": recurrence_rate,
+        "delta": recurrence_rate,
+        "direction": "lower",
+        "improved": recurrence_rate < _FLOAT_ZERO_EPSILON,
+        "degraded": recurrence_rate >= _FLOAT_ZERO_EPSILON,
+    }
+    degraded_metrics = [
+        metric_name for metric_name, comparison in comparisons.items() if comparison.get("degraded") is True
+    ]
+    return {
+        "schemaVersion": "feedback-replay-lift.v1",
+        "available": True,
+        "sourceManifestPath": str(source_manifest_path),
+        "metricComparisons": comparisons,
+        "qualityDegraded": bool(degraded_metrics),
+        "degradedMetrics": degraded_metrics,
+    }
+
+
+def _source_replay_manifest_path(upstream_manifest_path: Path) -> Path | None:
+    current_manifest_path = upstream_manifest_path
+    current_run_dir = upstream_manifest_path.parent.parent
+    seen: set[Path] = set()
+    for _ in range(12):
+        resolved_current = current_manifest_path.resolve()
+        if resolved_current in seen or not current_manifest_path.exists():
+            return None
+        seen.add(resolved_current)
+        manifest = _read_json_object(current_manifest_path)
+        payload = manifest.get("payload")
+        upstream_value = _payload_str(payload, "upstream_manifest_path")
+        if not upstream_value:
+            return None
+        next_manifest_path = Path(upstream_value).expanduser()
+        if not next_manifest_path.is_absolute():
+            next_manifest_path = current_manifest_path.parent / next_manifest_path
+        next_manifest_path = next_manifest_path.resolve()
+        if next_manifest_path.name == "manifest.json" and next_manifest_path.parent.parent != current_run_dir:
+            return next_manifest_path
+        current_manifest_path = next_manifest_path
+    return None
+
+
+def _load_source_candidate(source_manifest_path: Path) -> dict[str, Any] | None:
+    source_run_dir = source_manifest_path.parent.parent
+    for candidate_path in (
+        source_run_dir / "evaluation" / "publish_candidate_input.json",
+        source_run_dir / "draft_generation" / "candidate.json",
+    ):
+        if not candidate_path.exists():
+            continue
+        candidate = _read_json_object(candidate_path)
+        return candidate
+    return None
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _candidate_metric(candidate: dict[str, Any], key: str) -> float | None:
+    value = _metric(candidate, key)
+    if value is not None:
+        return value
+    if key == "sameIntentGraphConflictPairRate":
+        return _nested_numeric(candidate.get("evaluationInputs"), ("sameIntentGraph", "conflictPairRate"))
+    return None
+
+
+def _nested_numeric(payload: object, path: tuple[str, ...]) -> float | None:
+    current = payload
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if isinstance(current, (int, float)) and not isinstance(current, bool):
+        return float(current)
+    return None
+
+
+def _metric_comparison(before: float | None, after: float | None, direction: str) -> dict[str, object] | None:
+    if before is None or after is None:
+        return None
+    delta = after - before
+    improved = delta > 0 if direction == "higher" else delta < 0
+    degraded = delta < 0 if direction == "higher" else delta > 0
+    return {
+        "before": before,
+        "after": after,
+        "delta": delta,
+        "direction": direction,
+        "improved": improved,
+        "degraded": degraded,
+    }
+
+
+def _review_task_recurrence_rate(before_candidate: dict[str, Any], after_candidate: dict[str, Any]) -> float:
+    before_keys = _review_task_keys(before_candidate)
+    after_keys = _review_task_keys(after_candidate)
+    if not before_keys:
+        return 0.0
+    return len(before_keys & after_keys) / len(before_keys)
+
+
+def _review_task_keys(candidate: dict[str, Any]) -> set[str]:
+    summary = candidate.get("evaluationSummary")
+    if not isinstance(summary, dict):
+        summary = {}
+    keys = {f"block:{item}" for item in _string_list(summary.get("blockReasons"))}
+    keys.update(f"quality:{item}" for item in _string_list(summary.get("qualityReviewReasons")))
+    return keys
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for raw in value if (item := str(raw).strip())]
 
 
 def _payload_str(payload: object, key: str) -> str | None:

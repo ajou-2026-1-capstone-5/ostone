@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -70,6 +71,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         preprocessed_index,
         limit=_question_limit(),
     )
+    quality_kpis = _quality_kpis(questions)
     payload: dict[str, object] = {
         "schemaVersion": "feedback-review-questions.v1",
         "stage": "feedback_candidate_generation",
@@ -77,6 +79,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         "questionText": "두 상담을 같은 intent로 묶어도 되나요?",
         "answerOptions": INTENT_ANSWER_OPTIONS,
         "questionCount": len(questions),
+        "qualityKpis": quality_kpis,
         "questions": questions,
         "durationSeconds": round(time.monotonic() - started_at, 4),
     }
@@ -91,6 +94,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             "recordCount": len(questions),
             "metrics": {
                 "feedbackQuestionCount": len(questions),
+                "qualityKpis": quality_kpis,
             },
         },
     )
@@ -132,7 +136,7 @@ def _cannot_link_questions(
 def _entrypoints_by_source(entrypoints: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     by_source: dict[str, list[dict[str, Any]]] = {}
     for entrypoint in entrypoints:
-        source = str(entrypoint.get("sourceClusterId") or "")
+        source = _text_id(entrypoint.get("sourceClusterId"))
         if source:
             by_source.setdefault(source, []).append(entrypoint)
     return by_source
@@ -161,6 +165,7 @@ def _cannot_link_questions_for_source(
                     decision_scope=DECISION_SCOPE_WORKFLOW,
                     reason="same_source_cluster_split",
                     priority="HIGH",
+                    source_cluster_id=source,
                 )
             )
             if len(output) >= limit:
@@ -180,6 +185,7 @@ def _must_link_questions(
         member_ids = _string_list(cluster.get("exemplar_conv_ids")) or _string_list(cluster.get("member_conv_ids"))
         if len(member_ids) < 2:
             continue
+        source_cluster_id = _text_id(cluster.get("cluster_id")) or _text_id(cluster.get("source_cluster_id"))
         output.append(
             _question(
                 question_id=f"must-link-{cluster.get('cluster_id', len(output))}-{len(output) + 1}",
@@ -190,6 +196,7 @@ def _must_link_questions(
                 decision_scope=DECISION_SCOPE_INTENT,
                 reason="low_confidence_cluster_boundary",
                 priority="NORMAL",
+                source_cluster_id=source_cluster_id,
             )
         )
         if len(output) >= limit:
@@ -207,6 +214,7 @@ def _question(
     decision_scope: str,
     reason: str,
     priority: str,
+    source_cluster_id: str = "",
 ) -> dict[str, object]:
     question_text = _question_text(question_type)
     return {
@@ -217,6 +225,7 @@ def _question(
         "answerOptions": _answer_options(question_type),
         "sourceId": source_id,
         "targetId": target_id,
+        "sourceClusterId": source_cluster_id,
         "sourceReviewContext": _review_context(source_id, preprocessed_index.get(source_id)),
         "targetReviewContext": _review_context(target_id, preprocessed_index.get(target_id)),
         "sourceSnippet": _snippet(preprocessed_index.get(source_id)),
@@ -237,6 +246,85 @@ def _answer_options(question_type: str) -> list[dict[str, str]]:
     if question_type == QUESTION_TYPE_WORKFLOW_BOUNDARY:
         return WORKFLOW_ANSWER_OPTIONS
     return INTENT_ANSWER_OPTIONS
+
+
+def _quality_kpis(questions: list[dict[str, object]]) -> dict[str, object]:
+    question_count = len(questions)
+    type_counts = Counter(
+        str(question.get("questionType") or question.get("recommendedConstraintType") or "unknown")
+        for question in questions
+    )
+    constraint_counts = Counter(
+        constraint_type
+        for question in questions
+        if (constraint_type := str(question.get("recommendedConstraintType") or "").strip())
+    )
+    endpoint_counts = Counter(
+        endpoint
+        for question in questions
+        for endpoint in (str(question.get("sourceId") or ""), str(question.get("targetId") or ""))
+        if endpoint
+    )
+    repeated_endpoint_count = sum(count for count in endpoint_counts.values() if count > 1)
+    endpoint_total = sum(endpoint_counts.values())
+    source_cluster_counts = Counter(
+        source_cluster_id for question in questions if (source_cluster_id := _question_source_cluster_id(question))
+    )
+    answer_count = 0
+    unsure_count = 0
+    weak_label_count = 0
+    mixed_residual_count = 0
+    for question in questions:
+        answer = str(question.get("answer") or question.get("selectedAnswer") or "").strip()
+        if answer:
+            answer_count += 1
+            unsure_count += int(answer == "unsure")
+        reason = str(question.get("reason") or "")
+        if "weak" in reason or "low_confidence" in reason:
+            weak_label_count += 1
+        if "mixed_residual" in reason or str(question.get("splitReason") or "") == "mixed_residual":
+            mixed_residual_count += 1
+    must_count = constraint_counts.get("must_link", 0)
+    cannot_count = constraint_counts.get("cannot_link", 0)
+    balance_total = must_count + cannot_count
+    return {
+        "unsureRate": _rate(unsure_count, answer_count),
+        "caseletRepeatRate": _rate(repeated_endpoint_count, endpoint_total),
+        "sourceClusterDominance": _rate(max(source_cluster_counts.values(), default=0), question_count),
+        "mustCannotBalance": {
+            "mustLinkCount": must_count,
+            "cannotLinkCount": cannot_count,
+            "mustLinkRate": _rate(must_count, balance_total),
+            "cannotLinkRate": _rate(cannot_count, balance_total),
+            "balanceScore": 1.0 - abs(_rate(must_count, balance_total) - _rate(cannot_count, balance_total)),
+        },
+        "weakLabelQuestionRate": _rate(weak_label_count, question_count),
+        "mixedResidualQuestionRate": _rate(mixed_residual_count, question_count),
+        "questionTypeDistribution": dict(sorted(type_counts.items())),
+    }
+
+
+def _question_source_cluster_id(question: dict[str, object]) -> str:
+    source_cluster_id = _text_id(question.get("sourceClusterId"))
+    if source_cluster_id:
+        return source_cluster_id
+    question_id = str(question.get("questionId") or "")
+    parts = question_id.split("-")
+    if len(parts) >= 3 and parts[0] in {"must", "cannot"}:
+        return parts[2]
+    return ""
+
+
+def _rate(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return round(numerator / denominator, 6)
+
+
+def _text_id(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
 
 
 def _review_context(item_id: str, row: dict[str, Any] | None) -> dict[str, object]:
