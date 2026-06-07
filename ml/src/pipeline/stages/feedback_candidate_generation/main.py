@@ -15,6 +15,44 @@ from pipeline.stages.preprocessing.io import read_stage_context
 
 ARTIFACT_NAME = "feedback_review_questions.json"
 MAX_QUESTIONS = 12
+QUESTION_TYPE_INTENT_BOUNDARY = "INTENT_BOUNDARY"
+QUESTION_TYPE_WORKFLOW_BOUNDARY = "WORKFLOW_BOUNDARY"
+DECISION_SCOPE_INTENT = "intent"
+DECISION_SCOPE_WORKFLOW = "workflow"
+INTENT_ANSWER_OPTIONS = [
+    {
+        "value": "must_link",
+        "label": "같은 intent로 묶기",
+        "decisionScope": DECISION_SCOPE_INTENT,
+        "constraintType": "must_link",
+    },
+    {
+        "value": "cannot_link",
+        "label": "다른 intent로 분리",
+        "decisionScope": DECISION_SCOPE_INTENT,
+        "constraintType": "cannot_link",
+    },
+    {"value": "unsure", "label": "판단 보류", "decisionScope": "none"},
+]
+WORKFLOW_ANSWER_OPTIONS = [
+    {
+        "value": "same_workflow",
+        "label": "같은 workflow로 합치기",
+        "decisionScope": DECISION_SCOPE_WORKFLOW,
+    },
+    {
+        "value": "same_intent_separate_workflow",
+        "label": "같은 intent지만 workflow는 분리",
+        "decisionScope": DECISION_SCOPE_WORKFLOW,
+    },
+    {
+        "value": "different_intent",
+        "label": "다른 intent로 분리",
+        "decisionScope": DECISION_SCOPE_INTENT,
+        "constraintType": "cannot_link",
+    },
+    {"value": "unsure", "label": "판단 보류", "decisionScope": "none"},
+]
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
@@ -37,7 +75,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         "stage": "feedback_candidate_generation",
         "generatedAt": datetime.now(UTC).isoformat(),
         "questionText": "두 상담을 같은 intent로 묶어도 되나요?",
-        "answerOptions": ["must_link", "cannot_link", "unsure"],
+        "answerOptions": INTENT_ANSWER_OPTIONS,
         "questionCount": len(questions),
         "questions": questions,
         "durationSeconds": round(time.monotonic() - started_at, 4),
@@ -115,11 +153,12 @@ def _cannot_link_questions_for_source(
                 continue
             output.append(
                 _question(
-                    question_id=f"cannot-link-{source}-{len(output) + 1}",
+                    question_id=f"workflow-boundary-{source}-{len(output) + 1}",
                     source_id=pair[0],
                     target_id=pair[1],
                     preprocessed_index=preprocessed_index,
-                    expected_type="cannot_link",
+                    question_type=QUESTION_TYPE_WORKFLOW_BOUNDARY,
+                    decision_scope=DECISION_SCOPE_WORKFLOW,
                     reason="same_source_cluster_split",
                     priority="HIGH",
                 )
@@ -147,7 +186,8 @@ def _must_link_questions(
                 source_id=member_ids[0],
                 target_id=member_ids[1],
                 preprocessed_index=preprocessed_index,
-                expected_type="must_link",
+                question_type=QUESTION_TYPE_INTENT_BOUNDARY,
+                decision_scope=DECISION_SCOPE_INTENT,
                 reason="low_confidence_cluster_boundary",
                 priority="NORMAL",
             )
@@ -163,24 +203,40 @@ def _question(
     source_id: str,
     target_id: str,
     preprocessed_index: dict[str, dict[str, Any]],
-    expected_type: str,
+    question_type: str,
+    decision_scope: str,
     reason: str,
     priority: str,
 ) -> dict[str, object]:
+    question_text = _question_text(question_type)
     return {
         "questionId": question_id,
-        "questionText": "두 상담을 같은 intent로 묶어도 되나요?",
+        "questionType": question_type,
+        "decisionScope": decision_scope,
+        "questionText": question_text,
+        "answerOptions": _answer_options(question_type),
         "sourceId": source_id,
         "targetId": target_id,
         "sourceReviewContext": _review_context(source_id, preprocessed_index.get(source_id)),
         "targetReviewContext": _review_context(target_id, preprocessed_index.get(target_id)),
         "sourceSnippet": _snippet(preprocessed_index.get(source_id)),
         "targetSnippet": _snippet(preprocessed_index.get(target_id)),
-        "recommendedConstraintType": expected_type,
         "reason": reason,
         "reasonLabel": _reason_label(reason),
         "priority": priority,
     }
+
+
+def _question_text(question_type: str) -> str:
+    if question_type == QUESTION_TYPE_WORKFLOW_BOUNDARY:
+        return "같은 intent 안에서 두 상담을 같은 workflow로 합쳐도 되나요?"
+    return "두 상담을 같은 intent로 묶어도 되나요?"
+
+
+def _answer_options(question_type: str) -> list[dict[str, str]]:
+    if question_type == QUESTION_TYPE_WORKFLOW_BOUNDARY:
+        return WORKFLOW_ANSWER_OPTIONS
+    return INTENT_ANSWER_OPTIONS
 
 
 def _review_context(item_id: str, row: dict[str, Any] | None) -> dict[str, object]:
