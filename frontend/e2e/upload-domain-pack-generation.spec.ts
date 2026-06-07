@@ -181,6 +181,61 @@ test.describe("Upload completed Domain Pack draft generation", () => {
   }
 
   test.describe("Given a completed consultation log upload without an automatic pipeline job", () => {
+    test(
+      "When the operator uploads a valid ZIP, Then progress, completion, and the next Domain Pack action are visible",
+      { tag: "@critical" },
+      async ({ page }) => {
+        await installUploadGenerationMocks(page, {
+          uploadLatestPipelineJob: "none",
+          uploadTransferDelayMs: 250,
+        });
+
+        await page.goto("/workspaces/1/upload");
+
+        await expect(
+          page.getByRole("heading", { name: "상담 로그 업로드" }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "처리 시작" }),
+        ).toBeDisabled();
+        await expect(page.getByText("업로드 완료")).toBeHidden();
+        await expect(
+          page.getByRole("button", { name: "도메인팩 초안 생성 시작" }),
+        ).not.toBeVisible();
+
+        await page.locator('input[type="file"]').setInputFiles({
+          name: "refund-log.zip",
+          mimeType: "application/zip",
+          buffer: Buffer.from("PK\u0003\u0004-e2e"),
+        });
+        await expect(page.getByText("refund-log.zip")).toBeVisible();
+
+        await page.getByRole("button", { name: "처리 시작" }).click();
+
+        await expect(page.getByText("파일 업로드 중...")).toBeVisible();
+        await expect(page.getByText("업로드 완료")).toBeHidden();
+        await expect(
+          page.getByRole("button", { name: "도메인팩 초안 생성 시작" }),
+        ).not.toBeVisible();
+
+        await expect(page.getByText("업로드 완료").first()).toBeVisible();
+        await expect(page.getByText("refund-log.zip")).toBeVisible();
+        await expect(page.getByText("dataset 77")).toBeVisible();
+        await expect(page.getByText("자동 파이프라인 대기 중")).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "도메인팩 초안 생성 시작" }),
+        ).toBeVisible();
+
+        expect(seen).toContain(uploadInitRequest);
+        expect(seen).toContain("PUT /e2e-upload/raw-log.zip");
+        expect(seen).toContain(uploadCompleteRequest);
+        expect(seen).toContain(
+          "GET /workspaces/1/datasets/77/pipeline-jobs/latest?jobType=INGESTION",
+        );
+        expect(seen).not.toContain(generationRequest);
+      },
+    );
+
     test("When the operator requests Domain Pack 초안 생성, Then request feedback and review navigation are shown", async ({
       page,
     }) => {

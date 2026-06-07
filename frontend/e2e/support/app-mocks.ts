@@ -45,6 +45,7 @@ type WorkspaceOneSubscriptionStatus =
 export interface AppApiMockOptions {
   readonly domainPackDraftApproval?: "blocked" | "ready";
   readonly uploadLatestPipelineJob?: "default" | "none";
+  readonly uploadTransferDelayMs?: number;
   readonly domainPackGenerationFailureAttempts?: number;
   readonly dashboardKnowledgePackHealth?: "default" | "error";
   readonly generatedPipelineJob?: "domain-confirmation" | "running";
@@ -1975,6 +1976,11 @@ export async function installAppApiMocks(
 
   await page.route("**/e2e-upload/**", async (route) => {
     seen.push(`${route.request().method()} /e2e-upload/raw-log.zip`);
+    if (options.uploadTransferDelayMs && options.uploadTransferDelayMs > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, options.uploadTransferDelayMs);
+      });
+    }
     await route.fulfill({ status: 200, body: "" });
   });
 
