@@ -454,6 +454,18 @@ describe("WorkspaceDashboardPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute(
       "href",
+      "/workspaces/1/simulation",
+    );
+    expect(
+      screen.getByRole("link", { name: /시뮬레이션 시작/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /고객 화면 미리보기/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("dashboard-customer-preview-cta"),
+    ).toHaveAttribute(
+      "href",
       "/demo/chat/1",
     );
     expect(screen.getByTestId("recommendation-empty")).toHaveTextContent(
