@@ -110,7 +110,9 @@ public class LlmToolService {
       GetCurrentWorkflowCommand command, Long userId) {
     ChatSession session = findSession(command.sessionId());
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
-    return getCurrentWorkflow(command, session);
+    // 운영자 노출 상태는 정직해야 한다. 실행이 없으면 임의의 첫 워크플로우를 PENDING 으로 위조하지 않고
+    // 미선택 상태(null) 로 반환해 UI 가 "미매칭/대기" 로 렌더하도록 한다.
+    return getCurrentWorkflow(command, session, false);
   }
 
   @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
@@ -118,11 +120,11 @@ public class LlmToolService {
   public LlmToolWorkflowResponse getCurrentWorkflow(GetCurrentWorkflowCommand command) {
     Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
-    return getCurrentWorkflow(command, session);
+    return getCurrentWorkflow(command, session, true);
   }
 
   private LlmToolWorkflowResponse getCurrentWorkflow(
-      GetCurrentWorkflowCommand command, ChatSession session) {
+      GetCurrentWorkflowCommand command, ChatSession session, boolean fabricateDefaultWhenMissing) {
     Long sessionId = command.sessionId();
     WorkflowExecution execution = findExecution(sessionId);
 
@@ -139,7 +141,9 @@ public class LlmToolService {
                   workflowDefinitionId, session.getDomainPackVersionId())
               .orElse(null);
     }
-    if (definition == null && session.getDomainPackVersionId() != null) {
+    if (fabricateDefaultWhenMissing
+        && definition == null
+        && session.getDomainPackVersionId() != null) {
       List<WorkflowDefinition> candidates =
           workflowDefinitionRepository.findAllByDomainPackVersionId(
               session.getDomainPackVersionId());
