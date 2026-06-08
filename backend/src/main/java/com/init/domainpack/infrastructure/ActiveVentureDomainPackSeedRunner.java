@@ -70,9 +70,13 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               "액티벤처 여행 상담 워크스페이스",
               "액티벤처 여행 상담 도메인팩 로컬 시연용 워크스페이스",
               "seed/activeventure-workflow-candidate.json",
-              "activeventure_100 상담 로그에서 생성한 여행 상담 도메인팩",
+              "activeventure_900 상담 로그에서 생성한 여행 상담 도메인팩",
               "ACTIVEVENTURE_SEED",
-              Set.of("cancellation_refund_change_policy_flow")),
+              Set.of(
+                  "cancellation_refund_change_policy_flow",
+                  "refund_status_and_penalty_flow",
+                  "refund_penalty_by_cancel_date_check_flow",
+                  "cancellation_process_document_guidance_flow")),
           new SeedConfig(
               2L,
               "WS-HANACARD-DEMO",
