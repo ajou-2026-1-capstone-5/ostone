@@ -23,6 +23,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 @DisplayName("CounselorWebSocketController")
 class CounselorWebSocketControllerTest {
 
+  private static final OffsetDateTime SENT_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+
   @Mock private CounselorService counselorService;
 
   private CounselorWebSocketController controller;
@@ -42,8 +44,7 @@ class CounselorWebSocketControllerTest {
     Principal principal = () -> "42";
 
     ChatMessageResponse expected =
-        new ChatMessageResponse(
-            10L, 1, "COUNSELOR", "TEXT", "Counselor message", OffsetDateTime.now());
+        new ChatMessageResponse(10L, 1, "COUNSELOR", "TEXT", "Counselor message", SENT_AT);
 
     given(counselorService.sendCounselorMessage(1L, "Counselor message", 42L, false))
         .willReturn(expected);

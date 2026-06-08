@@ -1,5 +1,6 @@
 package com.init.auth.presentation;
 
+import static com.init.fixtures.JwtClaimsFixtures.accessClaims;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,8 +16,6 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.shared.infrastructure.security.SecurityConfig;
 import com.init.shared.presentation.GlobalExceptionHandler;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import java.util.Date;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -196,13 +195,7 @@ class AdminAccountControllerTest {
   }
 
   private void givenBearerToken(String token, String role) {
-    Claims claims =
-        Jwts.claims()
-            .subject("1")
-            .add("type", "access")
-            .add("role", role)
-            .expiration(new Date(System.currentTimeMillis() + 60_000))
-            .build();
+    Claims claims = accessClaims("1", role);
     given(jwtService.parseClaims(token)).willReturn(claims);
     given(jwtService.isTokenValid(claims)).willReturn(true);
     given(jwtService.isAccessToken(claims)).willReturn(true);

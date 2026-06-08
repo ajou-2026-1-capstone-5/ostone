@@ -54,6 +54,10 @@ class CompleteRawFileUploadServiceTest {
   private static final String COMPLETED_KEY =
       "completed/workspaces/1/datasets/test-key/uuid_data.zip";
   private static final long EXPECTED_SIZE = 1024L;
+  private static final OffsetDateTime FUTURE_EXPIRES_AT =
+      OffsetDateTime.parse("2099-01-01T00:00:00Z");
+  private static final OffsetDateTime PAST_EXPIRES_AT =
+      OffsetDateTime.parse("2000-01-01T00:00:00Z");
 
   @BeforeEach
   void setUp() {
@@ -115,7 +119,7 @@ class CompleteRawFileUploadServiceTest {
   }
 
   private String buildMeta(long size) {
-    return buildMeta(size, OffsetDateTime.now().plusMinutes(15), 1L);
+    return buildMeta(size, FUTURE_EXPIRES_AT, 1L);
   }
 
   private String buildMeta(long size, OffsetDateTime expiresAt, long createdBy) {
@@ -344,7 +348,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_expiredUploadSession_throws() {
     givenMember();
     Dataset dataset = uploadingDataset();
-    dataset.updateMetaJson(buildMeta(EXPECTED_SIZE, OffsetDateTime.now().minusMinutes(1), 1L));
+    dataset.updateMetaJson(buildMeta(EXPECTED_SIZE, PAST_EXPIRES_AT, 1L));
     givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
@@ -413,7 +417,7 @@ class CompleteRawFileUploadServiceTest {
             + "\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
-            + OffsetDateTime.now().plusMinutes(15)
+            + FUTURE_EXPIRES_AT
             + "\"}}");
     givenDatasetForCompletion(dataset);
 
@@ -487,7 +491,7 @@ class CompleteRawFileUploadServiceTest {
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
-            + OffsetDateTime.now().plusMinutes(15)
+            + FUTURE_EXPIRES_AT
             + "\",\"createdBy\":1}}");
     givenDatasetForCompletion(dataset);
     given(storagePort.headObject("direct/key.zip"))
@@ -565,7 +569,7 @@ class CompleteRawFileUploadServiceTest {
             + "\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"expiresAt\":\""
-            + OffsetDateTime.now().plusMinutes(15)
+            + FUTURE_EXPIRES_AT
             + "\",\"createdBy\":1}}");
     givenDatasetForCompletion(dataset);
     givenUploadedObject(EXPECTED_SIZE, "\"etag\"");
@@ -596,7 +600,7 @@ class CompleteRawFileUploadServiceTest {
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
-            + OffsetDateTime.now().plusMinutes(15)
+            + FUTURE_EXPIRES_AT
             + "\",\"createdBy\":1}}";
     dataset.updateMetaJson(nonPendingMeta);
     givenDatasetForCompletion(dataset);

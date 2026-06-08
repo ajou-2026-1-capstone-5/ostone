@@ -19,6 +19,7 @@ class RefreshTokenTest {
 
   private static final Clock FIXED_NOW =
       Clock.fixed(Instant.parse("2026-04-10T00:00:00Z"), ZoneOffset.UTC);
+  private static final OffsetDateTime FUTURE_EXPIRES_AT = OffsetDateTime.now(FIXED_NOW).plusDays(7);
 
   @AfterEach
   void resetClock() {
@@ -48,8 +49,7 @@ class RefreshTokenTest {
   @Test
   @DisplayName("create: userId가 null → NullPointerException 발생")
   void should_예외발생_when_userId가null() {
-    assertThatThrownBy(
-            () -> RefreshToken.create(null, "sha256hash", OffsetDateTime.now().plusDays(7)))
+    assertThatThrownBy(() -> RefreshToken.create(null, "sha256hash", FUTURE_EXPIRES_AT))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("userId must not be null");
   }
@@ -57,7 +57,7 @@ class RefreshTokenTest {
   @Test
   @DisplayName("create: tokenHash가 null → IllegalArgumentException 발생")
   void should_예외발생_when_tokenHash가null() {
-    assertThatThrownBy(() -> RefreshToken.create(1L, null, OffsetDateTime.now().plusDays(7)))
+    assertThatThrownBy(() -> RefreshToken.create(1L, null, FUTURE_EXPIRES_AT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash must not be null or blank");
   }
@@ -65,7 +65,7 @@ class RefreshTokenTest {
   @Test
   @DisplayName("create: tokenHash가 공백 → IllegalArgumentException 발생")
   void should_예외발생_when_tokenHash가공백() {
-    assertThatThrownBy(() -> RefreshToken.create(1L, "  ", OffsetDateTime.now().plusDays(7)))
+    assertThatThrownBy(() -> RefreshToken.create(1L, "  ", FUTURE_EXPIRES_AT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash must not be null or blank");
   }
