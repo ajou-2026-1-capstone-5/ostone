@@ -238,6 +238,16 @@ resource "aws_security_group_rule" "ec2_airflow_egress_ml_llm" {
   source_security_group_id = aws_security_group.ml_llm_alb.id
 }
 
+resource "aws_security_group_rule" "ecs_airflow_egress_ml_llm" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.ecs_airflow.id
+  description              = "Allow Airflow ECS tasks to call the internal LLM service."
+  from_port                = var.llm_service_container_port
+  to_port                  = var.llm_service_container_port
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ml_llm_alb.id
+}
+
 resource "aws_security_group_rule" "ec2_airflow_egress_https" {
   type              = "egress"
   security_group_id = aws_security_group.ec2_airflow.id
@@ -433,6 +443,16 @@ resource "aws_security_group_rule" "ml_llm_alb_ingress_airflow" {
   security_group_id        = aws_security_group.ml_llm_alb.id
   source_security_group_id = aws_security_group.ec2_airflow.id
   description              = "LLM API traffic from Airflow."
+  from_port                = var.llm_service_container_port
+  to_port                  = var.llm_service_container_port
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "ml_llm_alb_ingress_ecs_airflow" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.ml_llm_alb.id
+  source_security_group_id = aws_security_group.ecs_airflow.id
+  description              = "LLM API traffic from Airflow ECS tasks."
   from_port                = var.llm_service_container_port
   to_port                  = var.llm_service_container_port
   protocol                 = "tcp"

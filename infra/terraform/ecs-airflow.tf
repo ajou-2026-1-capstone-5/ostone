@@ -254,6 +254,10 @@ locals {
       value = "http://${aws_lb.ml_llm_internal.dns_name}:${var.llm_service_container_port}/health"
     },
     {
+      name  = "PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS"
+      value = "90"
+    },
+    {
       name  = "S3_EXPECTED_BUCKET_OWNER"
       value = data.aws_caller_identity.current.account_id
     },
