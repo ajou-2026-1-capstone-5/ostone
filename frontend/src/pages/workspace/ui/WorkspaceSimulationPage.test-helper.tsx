@@ -9,6 +9,7 @@ import {
   type SimulationImprovementCandidate,
 } from "@/features/simulation";
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
+import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 
 const setCrumbs = vi.fn();
 const { toast } = vi.hoisted(() => ({
@@ -36,6 +37,13 @@ vi.mock("@/entities/workflow", () => ({
   useListAllWorkspaceWorkflows: vi.fn(),
 }));
 
+vi.mock(
+  "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller",
+  () => ({
+    useListIntents: vi.fn(),
+  }),
+);
+
 vi.mock("@/features/simulation", () => ({
   simulationApi: {
     listSessions: vi.fn(),
@@ -62,6 +70,15 @@ vi.mock("sonner", () => ({
 
 const mockedWorkflows = vi.mocked(useListAllWorkspaceWorkflows);
 const mockedSimulationApi = vi.mocked(simulationApi);
+const mockedIntents = vi.mocked(useListIntents);
+
+function intentsResult(
+  data: Array<{ id: number; intentCode: string; name: string }>,
+): ReturnType<typeof useListIntents> {
+  return { data, isLoading: false, isError: false, error: null } as unknown as ReturnType<
+    typeof useListIntents
+  >;
+}
 
 const session = {
   id: 10,
@@ -296,6 +313,12 @@ beforeEach(() => {
       },
     ],
   });
+  mockedIntents.mockReturnValue(
+    intentsResult([
+      { id: 301, intentCode: "refund_request", name: "환불 요청" },
+      { id: 302, intentCode: "travel_recommend", name: "여행 추천" },
+    ]),
+  );
   mockedSimulationApi.listSessions.mockResolvedValue({
     content: [session],
     page: 0,
@@ -372,6 +395,8 @@ export {
   failedReplayResult,
   feedbackWithType,
   goldenCase,
+  intentsResult,
+  mockedIntents,
   mockedSimulationApi,
   mockedWorkflows,
   openCandidateTab,

@@ -36,7 +36,9 @@ import {
 } from "@/features/simulation";
 import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, selectApiList } from "@/shared/api";
+import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
+import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
@@ -807,6 +809,24 @@ export function WorkspaceSimulationPage() {
     return null;
   }, [detail?.matchedWorkflow, selectedWorkflow, simulationTarget, targetWorkflow]);
   const matched = detail?.matchedWorkflow ?? null;
+  // 기대 intent 자동완성 옵션을 위해 시뮬레이션 대상 도메인팩 버전의 intent 목록을 불러온다. 세션의
+  // matchedWorkflow 버전을 우선 사용하고, 없으면 시작 target/워크스페이스 워크플로우에서 pack·version을 찾는다.
+  const intentLookupSource = useMemo(() => {
+    const versionId = matched?.domainPackVersionId ?? simulationTarget?.versionId ?? null;
+    const entry =
+      workflows.entries.find((wf) => wf.versionId === versionId) ?? workflows.entries[0] ?? null;
+    return entry ? { packId: entry.packId, versionId: entry.versionId } : null;
+  }, [matched?.domainPackVersionId, simulationTarget?.versionId, workflows.entries]);
+  const workspaceIntents = useListIntents(
+    parsedWorkspaceId ?? -1,
+    intentLookupSource?.packId ?? -1,
+    intentLookupSource?.versionId ?? -1,
+    {
+      query: {
+        enabled: parsedWorkspaceId !== null && intentLookupSource !== null,
+      },
+    },
+  );
   const expectedWorkflowOptions = useMemo(() => {
     const codes = new Set<string>();
     workflows.entries.forEach((entry) => {
@@ -823,9 +843,12 @@ export function WorkspaceSimulationPage() {
   }, [matched?.graphJson, matched?.currentState]);
   const expectedIntentOptions = useMemo(() => {
     const codes = new Set<string>();
+    selectApiList<IntentDefinitionSummary>(workspaceIntents.data).forEach((intent) => {
+      if (intent.intentCode) codes.add(intent.intentCode);
+    });
     if (matched?.intentCode) codes.add(matched.intentCode);
     return Array.from(codes);
-  }, [matched?.intentCode]);
+  }, [workspaceIntents.data, matched?.intentCode]);
   const isTargetContextConfirmed = matchesTargetContext(targetWorkflow, simulationTarget);
   const targetPackLabel =
     (isTargetContextConfirmed ? targetWorkflow?.packName : null) ??
@@ -1063,6 +1086,8 @@ export function WorkspaceSimulationPage() {
     }
 
     let active = true;
+    // 세션을 전환하면 이전 세션의 Runtime State/기대값이 잔존하지 않도록 즉시 비운 뒤 다시 불러온다.
+    setDetail(null);
     setIsLoadingDetail(true);
     setError(null);
     simulationApi

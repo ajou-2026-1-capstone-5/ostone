@@ -508,14 +508,16 @@ class WorkflowMatchingServiceTest {
   }
 
   @Test
-  @DisplayName("active profile이 없으면 UNKNOWN과 profile_missing audit을 남긴다")
-  void should_returnUnknown_when_profileMissing() {
+  @DisplayName("active profile이 없으면 UNAVAILABLE로 키워드 폴백을 유도하고 profile_missing audit을 남긴다")
+  void should_returnUnavailableForKeywordFallback_when_profileMissing() {
     givenSession();
     given(profileRepository.countActiveProfiles(101L)).willReturn(0);
 
     WorkflowMatchResult result = service.match(1L, "환불하고 싶어요", "");
 
-    assertThat(result.status()).isEqualTo("UNKNOWN");
+    // 프로필이 없으면 dead-end(UNKNOWN) 가 아니라 UNAVAILABLE 을 반환해 상위 classify 가 키워드 매칭으로
+    // 폴백하도록 한다. embedding 결정 audit 자체는 여전히 UNKNOWN/profile_missing 으로 기록된다.
+    assertThat(result.status()).isEqualTo("UNAVAILABLE");
     verify(decisionRepository)
         .record(
             eq(1L),

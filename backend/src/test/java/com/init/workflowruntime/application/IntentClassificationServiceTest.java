@@ -2,12 +2,14 @@ package com.init.workflowruntime.application;
 
 import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
+import com.init.workflowruntime.application.matching.WorkflowMatchResult;
 import com.init.workflowruntime.application.matching.WorkflowMatchingService;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
@@ -70,6 +72,35 @@ class IntentClassificationServiceTest {
     assertThat(result.status()).isEqualTo("AMBIGUOUS");
     assertThat(result.candidates()).hasSize(2);
     assertThat(result.confirmationQuestion()).contains("중 어떤 문의");
+  }
+
+  @Test
+  @DisplayName("classify: 임베딩이 켜져 있어도 매칭 결과가 UNAVAILABLE이면 키워드 분류로 폴백한다")
+  void should_fallBackToKeyword_when_embeddingEnabledButMatchingUnavailable() {
+    // prod 처럼 임베딩 매칭이 켜져 있지만 프로필이 없어 UNAVAILABLE 이 반환되는 상황(Fix D). dead-end 대신
+    // 키워드 기반 분류로 폴백해 의도를 매칭해야 한다.
+    givenSession();
+    given(workflowMatchingService.isEnabled()).willReturn(true);
+    given(workflowMatchingService.match(any(), any(), any()))
+        .willReturn(WorkflowMatchResult.unavailable());
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(
+            List.of(
+                intent(
+                    "cancellation_refund_change_policy",
+                    "취소 환불 및 변경 규정",
+                    "예약 취소, 환불, 변경 절차",
+                    "PUBLISHED"),
+                intent(
+                    "travel_recommendation_consulting",
+                    "여행 상품 및 숙소 추천",
+                    "예산과 지역에 맞는 호텔·리조트·상품 추천",
+                    "PUBLISHED")));
+
+    IntentClassificationResult result = service.classify(command("취소하고 환불받고 싶어요", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.intentCode()).isEqualTo("cancellation_refund_change_policy");
   }
 
   @Test

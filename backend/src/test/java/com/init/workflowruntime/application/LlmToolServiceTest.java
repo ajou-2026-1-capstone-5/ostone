@@ -155,6 +155,31 @@ class LlmToolServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getCurrentWorkflowForOperator: execution이 없으면 첫 workflow로 위조하지 않고 미선택(null) 상태를 반환한다")
+  void should_returnNoFabricatedWorkflow_when_operatorAndNoExecution() {
+    ChatSession session = createSession(1L, 10L, 101L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(10L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(10L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.empty());
+
+    LlmToolWorkflowResponse result =
+        service.getCurrentWorkflowForOperator(new GetCurrentWorkflowCommand(1L), 7L);
+
+    // 운영자 뷰는 실행이 없으면 임의의 첫 workflow를 PENDING으로 위조하지 않는다(미매칭/대기로 렌더되도록 null).
+    assertThat(result.executionId()).isNull();
+    assertThat(result.executionStatus()).isNull();
+    assertThat(result.currentState()).isNull();
+    assertThat(result.workflowDefinitionId()).isNull();
+    assertThat(result.workflowCode()).isNull();
+    assertThat(result.workflowName()).isNull();
+    assertThat(result.graphJson()).isNull();
+    verify(workflowDefinitionRepository, never()).findAllByDomainPackVersionId(101L);
+  }
+
+  @Test
   @DisplayName("getContext: 세션 기준 slot 정의와 저장 값을 함께 반환한다")
   void should_returnContextWithSlotsAndValues() {
     // given

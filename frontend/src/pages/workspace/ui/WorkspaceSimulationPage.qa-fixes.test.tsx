@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import {
@@ -8,8 +8,10 @@ import {
   goldenCase,
   mockedSimulationApi,
   openCandidateTab,
+  otherSession,
   renderPage,
   replayResult,
+  session,
   toast,
 } from "./WorkspaceSimulationPage.test-helper";
 
@@ -129,6 +131,68 @@ describe("WorkspaceSimulationPage QA fixes", () => {
     expect(workflowOptions?.querySelector('option[value="refund.standard"]')).not.toBeNull();
     expect(stateOptions?.querySelector('option[value="ask_order_no"]')).not.toBeNull();
     expect(stateOptions?.querySelector('option[value="collect_order_no"]')).not.toBeNull();
+  });
+
+  it("matched intent가 없어도 도메인팩 intent 목록으로 기대 intent 자동완성을 채운다", async () => {
+    // 자동 매칭 세션은 워크플로우 시작 전 matchedWorkflow.intentCode가 비어 있다. 이때도 도메인팩 버전의
+    // intent 목록(useListIntents)으로 datalist를 채워야 한다(기대 intent 자동완성 회귀 방지).
+    mockedSimulationApi.getSession.mockResolvedValue({
+      ...detail,
+      matchedWorkflow: {
+        ...detail.matchedWorkflow,
+        intentCode: null,
+        workflowCode: null,
+        workflowName: null,
+        currentState: null,
+        executionStatus: null,
+      },
+    });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("기대 intent")).toBeInTheDocument();
+    });
+    const intentOptions = document.getElementById("expected-intent-options");
+    // travel_recommend는 matched에 없으므로 오직 intent 목록(useListIntents)에서만 올 수 있다.
+    expect(intentOptions?.querySelector('option[value="travel_recommend"]')).not.toBeNull();
+    expect(intentOptions?.querySelector('option[value="refund_request"]')).not.toBeNull();
+  });
+
+  it("세션을 전환하면 로딩 중 이전 세션의 Runtime State가 즉시 비워진다", async () => {
+    mockedSimulationApi.listSessions.mockResolvedValue({
+      content: [session, otherSession],
+      page: 0,
+      size: 20,
+      totalElements: 2,
+      totalPages: 1,
+    });
+    let resolveOther!: (value: unknown) => void;
+    const pendingDetail = new Promise((resolve) => {
+      resolveOther = resolve;
+    });
+    mockedSimulationApi.getSession.mockImplementation(async (_workspaceId, sessionId) => {
+      if (sessionId === otherSession.id) {
+        await pendingDetail;
+      }
+      return detail;
+    });
+    renderPage();
+
+    const statePanel = () =>
+      document.getElementById("simulation-side-panel-state") as HTMLElement;
+    await waitFor(() => {
+      expect(within(statePanel()).getByText("환불 처리")).toBeInTheDocument();
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /다른 고객/ }));
+
+    // 상세 로딩이 끝나기 전에 이전 세션의 Runtime State(환불 처리)가 즉시 사라지고 미매칭으로 비워진다.
+    await waitFor(() => {
+      expect(within(statePanel()).queryByText("환불 처리")).toBeNull();
+    });
+    expect(within(statePanel()).getAllByText("미매칭").length).toBeGreaterThan(0);
+
+    resolveOther(detail);
   });
 
   it("리뷰 입력 placeholder를 중립 문구로 표시한다", async () => {
