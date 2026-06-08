@@ -349,6 +349,16 @@ variable "super_admin_password" {
   description = "Password for the bootstrap SUPER_ADMIN account (8-72 UTF-8 bytes). Empty disables bootstrap creation."
   type        = string
   sensitive   = true
+
+  validation {
+    # 빈 값이면 부트스트랩을 비활성화하고, 그 외에는 8-72자를 강제한다.
+    # (Terraform length()는 UTF-8 바이트가 아닌 문자 수 기준이므로 대부분의 입력 실수만 사전 차단)
+    condition = (
+      var.super_admin_password == "" ||
+      (length(var.super_admin_password) >= 8 && length(var.super_admin_password) <= 72)
+    )
+    error_message = "super_admin_password must be empty (to disable bootstrap) or 8-72 characters."
+  }
 }
 
 variable "airflow_api_desired_count" {
