@@ -21,6 +21,9 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -188,6 +192,73 @@ class ActiveVentureDomainPackSeedRunnerTest {
   void shouldEnableProfileBuildEnqueueWhenNotProd() {
     assertThat((Boolean) ReflectionTestUtils.getField(runner, "profileBuildEnqueueEnabled"))
         .isTrue();
+  }
+
+  @Test
+  @DisplayName("확장된 HanaCard seed resource의 참조와 workflow graph 계약이 유효하다")
+  void shouldLoadExpandedHanaCardSeedResource() throws Exception {
+    JsonNode seed;
+    try (InputStream inputStream =
+        new ClassPathResource("seed/hanacard-workflow-candidate.json").getInputStream()) {
+      seed = objectMapper.readTree(inputStream);
+    }
+
+    JsonNode summary =
+        objectMapper.readTree(seed.path("domainPackDraft").path("summaryJson").asText());
+    assertThat(summary.path("consultationCount").asInt()).isEqualTo(1000);
+    assertThat(summary.path("existingConsultationCount").asInt()).isEqualTo(100);
+    assertThat(summary.path("newlyAddedConsultationCount").asInt()).isEqualTo(900);
+    assertThat(seed.path("intentDraft").path("intents").size()).isGreaterThan(14);
+    assertThat(seed.path("workflowDraft").path("slots").size()).isGreaterThan(42);
+    assertThat(seed.path("workflowDraft").path("policies").size()).isGreaterThan(18);
+    assertThat(seed.path("workflowDraft").path("workflows")).hasSize(1000);
+
+    Set<String> intentCodes = collectCodes(seed.path("intentDraft").path("intents"), "intentCode");
+    Set<String> slotCodes = collectCodes(seed.path("workflowDraft").path("slots"), "slotCode");
+    Set<String> policyCodes =
+        collectCodes(seed.path("workflowDraft").path("policies"), "policyCode");
+    Set<String> workflowCodes =
+        collectCodes(seed.path("workflowDraft").path("workflows"), "workflowCode");
+
+    assertThat(intentCodes).hasSize(seed.path("intentDraft").path("intents").size());
+    assertThat(slotCodes).hasSize(seed.path("workflowDraft").path("slots").size());
+    assertThat(policyCodes).hasSize(seed.path("workflowDraft").path("policies").size());
+    assertThat(workflowCodes).hasSize(seed.path("workflowDraft").path("workflows").size());
+
+    Set<String> bindingKeys = new HashSet<>();
+    for (JsonNode binding : seed.path("workflowDraft").path("intentSlotBindings")) {
+      assertThat(intentCodes).contains(binding.path("intentCode").asText());
+      assertThat(slotCodes).contains(binding.path("slotCode").asText());
+      String bindingKey =
+          binding.path("intentCode").asText() + ":" + binding.path("slotCode").asText();
+      assertThat(bindingKeys).doesNotContain(bindingKey);
+      bindingKeys.add(bindingKey);
+    }
+
+    for (JsonNode workflow : seed.path("workflowDraft").path("workflows")) {
+      String workflowCode = workflow.path("workflowCode").asText();
+      String graphJson = workflow.path("graphJson").asText();
+      assertThat(intentCodes).contains(workflow.path("intentCode").asText());
+      assertThat(objectMapper.readTree(workflow.path("evidenceJson").asText()))
+          .allSatisfy(
+              evidence ->
+                  assertThat(evidence.path("type").asText())
+                      .isIn("exemplar_conv_id", "member_conv_id", "keyword"));
+
+      JsonNode graph = objectMapper.readTree(graphJson);
+      for (JsonNode node : graph.path("nodes")) {
+        if ("ACTION".equals(node.path("type").asText())) {
+          assertThat(policyCodes).contains(node.path("policyRef").asText());
+        }
+      }
+      ReflectionTestUtils.invokeMethod(runner, "validateGraph", graphJson, workflowCode);
+    }
+  }
+
+  private Set<String> collectCodes(JsonNode nodes, String fieldName) {
+    Set<String> codes = new HashSet<>();
+    nodes.forEach(node -> codes.add(node.path(fieldName).asText()));
+    return codes;
   }
 
   private JsonNode sampleIntentDraft() throws Exception {

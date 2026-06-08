@@ -79,7 +79,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               "하나카드 카드 상담 워크스페이스",
               "하나카드 상담 로그에서 추출한 카드 상담 도메인팩 로컬 시연용 워크스페이스",
               "seed/hanacard-workflow-candidate.json",
-              "hanacard_100 상담 로그에서 생성한 카드 상담 도메인팩",
+              "hanacard_1000 상담 로그에서 생성한 카드 상담 도메인팩",
               "HANACARD_SEED",
               Set.of(
                   "lost_card_report_and_status_flow",
@@ -144,23 +144,44 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     DomainPack pack = findOrCreatePack(seed.path("domainPackDraft"), packKey, seedConfig);
     Optional<DomainPackVersion> currentPublishedVersion =
         domainPackVersionRepository.findCurrentPublishedByDomainPackId(pack.getId());
-    if (currentPublishedVersion.isPresent()) {
-      Long versionId = currentPublishedVersion.get().getId();
-      JsonNode workflowDraft = seed.path("workflowDraft");
-      int updatedCount =
-          backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
-      int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
-      int bindingUpdatedCount =
-          backfillIntentSlotBindingPrompts(versionId, workflowDraft.path("intentSlotBindings"));
-      log.info(
-          "Seed domain pack '{}' already has a published version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
-          packKey,
-          updatedCount,
-          slotUpdatedCount,
-          bindingUpdatedCount);
+    if (currentPublishedVersion.isPresent()
+        && hasSameSeedSummary(currentPublishedVersion.get(), seed)) {
+      backfillExistingPublishedVersion(packKey, currentPublishedVersion.get().getId(), seed);
       return;
     }
+    if (currentPublishedVersion.isPresent()) {
+      log.info(
+          "Seed domain pack '{}' changed since current published version {}, creating a new published seed version",
+          packKey,
+          currentPublishedVersion.get().getId());
+    }
 
+    persistNewPublishedVersion(pack, seed, seedConfig, packKey);
+  }
+
+  private void backfillExistingPublishedVersion(String packKey, Long versionId, JsonNode seed) {
+    JsonNode workflowDraft = seed.path("workflowDraft");
+    int updatedCount =
+        backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
+    int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
+    int bindingUpdatedCount =
+        backfillIntentSlotBindingPrompts(versionId, workflowDraft.path("intentSlotBindings"));
+    log.info(
+        "Seed domain pack '{}' already has the current published seed version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
+        packKey,
+        updatedCount,
+        slotUpdatedCount,
+        bindingUpdatedCount);
+  }
+
+  private boolean hasSameSeedSummary(DomainPackVersion currentPublishedVersion, JsonNode seed) {
+    JsonNode currentSummary = readJson(currentPublishedVersion.getSummaryJson());
+    JsonNode seedSummary = readJson(jsonValue(seed.path("domainPackDraft"), "summaryJson", "{}"));
+    return currentSummary.equals(seedSummary);
+  }
+
+  private void persistNewPublishedVersion(
+      DomainPack pack, JsonNode seed, SeedConfig seedConfig, String packKey) {
     DomainPackVersion version = createPublishedVersion(pack, seed);
     JsonNode workflowDraft = seed.path("workflowDraft");
     Map<String, IntentDefinition> intentsByCode =
