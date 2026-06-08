@@ -28,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,7 @@ class ActiveVentureDomainPackSeedRunnerTest {
   @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
   @Mock private EntityManager entityManager;
   @Mock private Query query;
+  @Mock private Environment environment;
 
   private ActiveVentureDomainPackSeedRunner runner;
 
@@ -64,7 +67,8 @@ class ActiveVentureDomainPackSeedRunnerTest {
             intentSlotBindingRepository,
             profileBuildRequestService,
             entityManager,
-            objectMapper);
+            objectMapper,
+            environment);
   }
 
   @Test
@@ -153,6 +157,37 @@ class ActiveVentureDomainPackSeedRunnerTest {
     verify(query).setParameter(eq("intentCode"), eq("reservation_progress_and_documents"));
     verify(query).setParameter(eq("slotCode"), eq("reservation_number"));
     verify(query).setParameter(eq("promptHint"), eq("예약번호를 확인해 주세요."));
+  }
+
+  @Test
+  @DisplayName("prod 프로파일이면 profile build enqueue를 비활성화한다")
+  void shouldDisableProfileBuildEnqueueInProd() {
+    given(environment.acceptsProfiles(any(Profiles.class))).willReturn(true);
+
+    ActiveVentureDomainPackSeedRunner prodRunner =
+        new ActiveVentureDomainPackSeedRunner(
+            domainPackRepository,
+            domainPackVersionRepository,
+            intentDefinitionRepository,
+            slotDefinitionRepository,
+            policyDefinitionRepository,
+            riskDefinitionRepository,
+            workflowDefinitionRepository,
+            intentSlotBindingRepository,
+            profileBuildRequestService,
+            entityManager,
+            objectMapper,
+            environment);
+
+    assertThat((Boolean) ReflectionTestUtils.getField(prodRunner, "profileBuildEnqueueEnabled"))
+        .isFalse();
+  }
+
+  @Test
+  @DisplayName("prod 가 아니면 profile build enqueue를 활성화한다")
+  void shouldEnableProfileBuildEnqueueWhenNotProd() {
+    assertThat((Boolean) ReflectionTestUtils.getField(runner, "profileBuildEnqueueEnabled"))
+        .isTrue();
   }
 
   private JsonNode sampleIntentDraft() throws Exception {

@@ -45,12 +45,17 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+// prod 에서도 데모 도메인팩 콘텐츠(액티벤처/하나카드)를 멱등 시드한다. publish 는 version.activate()
+// 로 이뤄지고 findCurrentPublishedByDomainPackId 가 재실행을 backfill 로 흡수하므로 version 중복이 없다.
+// 단 prod 에서는 임베딩 matching profile build enqueue 를 건너뛴다(prod ML 런타임 트리거 회피).
 @Component
-@Profile({"local", "dev"})
+@Profile({"local", "dev", "prod"})
 @Order(Ordered.LOWEST_PRECEDENCE - 90)
 public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
 
@@ -95,6 +100,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
   private final EntityManager entityManager;
   private final ObjectMapper objectMapper;
+  // prod 가 아닐 때만 임베딩 matching profile build 를 enqueue 한다(prod ML 런타임 트리거 회피).
+  private final boolean profileBuildEnqueueEnabled;
 
   public ActiveVentureDomainPackSeedRunner(
       DomainPackCommandRepository domainPackRepository,
@@ -107,7 +114,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       IntentSlotBindingRepository intentSlotBindingRepository,
       WorkflowMatchingProfileBuildRequestService profileBuildRequestService,
       EntityManager entityManager,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      Environment environment) {
     this.domainPackRepository = domainPackRepository;
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
@@ -119,6 +127,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     this.profileBuildRequestService = profileBuildRequestService;
     this.entityManager = entityManager;
     this.objectMapper = objectMapper;
+    this.profileBuildEnqueueEnabled = !environment.acceptsProfiles(Profiles.of("prod"));
   }
 
   @Override
@@ -170,8 +179,14 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
 
     version.activate(OffsetDateTime.now());
     domainPackVersionRepository.saveAndFlush(version);
-    profileBuildRequestService.enqueue(version.getId(), seedConfig.profileBuildSource());
-    log.info("Seed domain pack '{}' seeded as version {}", packKey, version.getId());
+    if (profileBuildEnqueueEnabled) {
+      profileBuildRequestService.enqueue(version.getId(), seedConfig.profileBuildSource());
+    }
+    log.info(
+        "Seed domain pack '{}' seeded as version {} (profileBuildEnqueue={})",
+        packKey,
+        version.getId(),
+        profileBuildEnqueueEnabled);
   }
 
   private JsonNode loadSeed(SeedConfig seedConfig) {
