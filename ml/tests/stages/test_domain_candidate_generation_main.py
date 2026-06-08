@@ -254,6 +254,7 @@ def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: p
     assert request["headers"]["Authorization"] == "Bearer secret-token"
     assert request["json"]["model"] == "model-a"
     assert request["json"]["max_tokens"] == main.LLM_MAX_TOKENS
+    assert request["json"]["options"] == {"think": False}
 
 
 def test_generate_llm_candidates_requires_candidates_list() -> None:
