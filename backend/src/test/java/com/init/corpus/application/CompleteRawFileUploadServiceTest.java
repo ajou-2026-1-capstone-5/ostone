@@ -23,6 +23,7 @@ import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -73,7 +73,7 @@ class CompleteRawFileUploadServiceTest {
 
   private Dataset uploadingDataset() {
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(buildMeta(EXPECTED_SIZE));
     return dataset;
   }
@@ -456,7 +456,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_sizeOverLimit_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     long huge = InitRawFileUploadService.MAX_UPLOAD_BYTES + 10;
     dataset.updateMetaJson(buildMeta(huge));
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
@@ -478,7 +478,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_uploadingObjectKeyWithoutPendingPrefix_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
@@ -505,7 +505,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_noUploadFieldInMeta_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson("{\"other\":\"value\"}");
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
@@ -522,7 +522,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_objectKeyMissingInSession_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson("{\"upload\":{\"expectedSizeBytes\":1024,\"filename\":\"d.zip\"}}");
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
@@ -539,7 +539,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_expectedSizeBytesMissing_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\"" + OBJECT_KEY + "\",\"filename\":\"d.zip\"}}");
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
@@ -557,7 +557,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_missingFilenameAndContentType_usesDefaults() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     // filename, contentType 필드 없음
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\""
@@ -590,7 +590,7 @@ class CompleteRawFileUploadServiceTest {
   void complete_objectKeyWithoutPendingPrefix_returnsKeyUnchanged() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
 
     // 이미 pending 접두사 없는 키로 멱등 경로(이미 PROCESSING)
     dataset.markProcessing();

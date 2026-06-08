@@ -13,6 +13,7 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("BillingOverviewService")
@@ -112,7 +112,7 @@ class BillingOverviewServiceTest {
 
   private Subscription activeSubscription() {
     Subscription subscription = Subscription.create(1L, 2L);
-    ReflectionTestUtils.setField(subscription, "id", 10L);
+    PersistenceTestFixtures.assignGeneratedId(subscription, 10L);
     subscription.assignCustomerKey("ws_1");
     subscription.activate(periodStart, periodEnd, "ws_1");
     return subscription;
@@ -120,20 +120,20 @@ class BillingOverviewServiceTest {
 
   private Plan plan() {
     Plan plan = Plan.create("pro_monthly", "Pro (Monthly)", 29000, "KRW", BillingInterval.MONTH);
-    ReflectionTestUtils.setField(plan, "id", 2L);
+    PersistenceTestFixtures.assignGeneratedId(plan, 2L);
     return plan;
   }
 
   private BillingKey billingKey() {
     BillingKey billingKey =
         BillingKey.create(1L, "ws_1", new byte[] {1, 2, 3}, "신한", "1234-****-****-5678");
-    ReflectionTestUtils.setField(billingKey, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(billingKey, 5L);
     return billingKey;
   }
 
   private Payment donePayment() {
     Payment payment = Payment.createOrder(1L, 10L, "ord_1", 29000, "KRW", "Pro (Monthly)");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     payment.complete(
         "pay_1", "카드", periodStart, "https://receipt.example", "{\"status\":\"DONE\"}");
     return payment;

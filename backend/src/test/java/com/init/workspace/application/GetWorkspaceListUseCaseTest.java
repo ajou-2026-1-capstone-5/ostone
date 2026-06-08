@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workspace.domain.model.Workspace;
 import com.init.workspace.domain.model.WorkspaceKey;
 import com.init.workspace.domain.model.WorkspaceMember;
@@ -22,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetWorkspaceListUseCase")
@@ -76,18 +76,19 @@ class GetWorkspaceListUseCaseTest {
 
   private Workspace buildWorkspace(Long id, String key, String name) {
     Workspace workspace = Workspace.create(WorkspaceKey.of(key), name, null);
-    ReflectionTestUtils.setField(workspace, "id", id);
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.assignGeneratedId(workspace, id);
+    PersistenceTestFixtures.setField(
         workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.setField(
         workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }
 
   private WorkspaceMember buildMember(Long workspaceId, Long userId, WorkspaceMemberRole role) {
     WorkspaceMember member = WorkspaceMember.create(workspaceId, userId, role);
-    ReflectionTestUtils.setField(member, "id", workspaceId);
-    ReflectionTestUtils.setField(member, "joinedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    PersistenceTestFixtures.assignGeneratedId(member, workspaceId);
+    PersistenceTestFixtures.setField(
+        member, "joinedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return member;
   }
 }

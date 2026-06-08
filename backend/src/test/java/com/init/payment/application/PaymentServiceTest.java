@@ -27,6 +27,7 @@ import com.init.payment.domain.repository.PaymentCancelRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -49,7 +50,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -150,7 +150,7 @@ class PaymentServiceTest {
   void cancel_full() {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -170,7 +170,7 @@ class PaymentServiceTest {
   void cancel_exceedsRemaining_throws() {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentCancelRepository.sumCancelAmountByPaymentId(7L)).willReturn(15000L);
@@ -189,7 +189,7 @@ class PaymentServiceTest {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
     payment.markPartialCanceled("{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentCancelRepository.sumCancelAmountByPaymentId(7L)).willReturn(29000L);
@@ -207,7 +207,7 @@ class PaymentServiceTest {
   void cancel_missingIdempotencyKey_generatesKey() {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -232,7 +232,7 @@ class PaymentServiceTest {
   @DisplayName("취소할 수 없는 결제 상태이면 Toss를 호출하지 않는다")
   void cancel_nonCancelableStatus_throws() {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
 
@@ -304,7 +304,7 @@ class PaymentServiceTest {
   void cancel_partial() {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -325,7 +325,7 @@ class PaymentServiceTest {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
     payment.markPartialCanceled("{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     PaymentCancel existingCancel = PaymentCancel.create(7L, 10000L, "고객 요청", "txn_1", "idem-dup-1");
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
@@ -347,7 +347,7 @@ class PaymentServiceTest {
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
     payment.markPartialCanceled("{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
     given(paymentCancelRepository.sumCancelAmountByPaymentId(7L)).willReturn(10000L);
@@ -392,7 +392,7 @@ class PaymentServiceTest {
 
     Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
     payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
-    ReflectionTestUtils.setField(payment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 7L);
     AtomicLong canceledTotal = new AtomicLong(0);
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
         .willReturn(Optional.of(payment));
@@ -482,13 +482,13 @@ class PaymentServiceTest {
   private Subscription subscription(Long id, Long planId) {
     Subscription subscription = Subscription.create(1L, planId);
     subscription.assignCustomerKey("wsk_1_abc");
-    ReflectionTestUtils.setField(subscription, "id", id);
+    PersistenceTestFixtures.assignGeneratedId(subscription, id);
     return subscription;
   }
 
   private Plan plan(Long id, long amount) {
     Plan plan = Plan.create("pro_monthly", "Pro", amount, "KRW", BillingInterval.MONTH);
-    ReflectionTestUtils.setField(plan, "id", id);
+    PersistenceTestFixtures.assignGeneratedId(plan, id);
     return plan;
   }
 

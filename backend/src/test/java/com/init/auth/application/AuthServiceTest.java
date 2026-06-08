@@ -19,6 +19,7 @@ import com.init.auth.domain.model.UserStatus;
 import com.init.auth.domain.repository.AppUserRepository;
 import com.init.auth.domain.repository.RefreshTokenRepository;
 import com.init.shared.application.TokenHasher;
+import com.init.testsupport.PersistenceTestFixtures;
 import io.jsonwebtoken.Claims;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService")
@@ -62,7 +62,7 @@ class AuthServiceTest {
     given(passwordEncoder.encode("password123")).willReturn("$2a$10$hashedpassword");
 
     AppUser savedUser = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(savedUser, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(savedUser, 1L);
     given(userRepository.save(any(AppUser.class))).willReturn(savedUser);
 
     // when
@@ -98,7 +98,7 @@ class AuthServiceTest {
     LoginCommand command = new LoginCommand("hong@example.com", "password123");
 
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(user, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(user, 1L);
     given(userRepository.findByEmail("hong@example.com")).willReturn(Optional.of(user));
     given(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).willReturn(true);
 
@@ -162,7 +162,7 @@ class AuthServiceTest {
     LoginCommand command = new LoginCommand("hong@example.com", "password123");
 
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(user, "status", UserStatus.INACTIVE);
+    PersistenceTestFixtures.setField(user, "status", UserStatus.INACTIVE);
     given(userRepository.findByEmail("hong@example.com")).willReturn(Optional.of(user));
     given(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).willReturn(true);
 
@@ -179,8 +179,8 @@ class AuthServiceTest {
     LoginCommand command = new LoginCommand("hong@example.com", "password123");
 
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(user, "id", 1L);
-    ReflectionTestUtils.setField(user, "passwordResetRequired", true);
+    PersistenceTestFixtures.assignGeneratedId(user, 1L);
+    PersistenceTestFixtures.setField(user, "passwordResetRequired", true);
     given(userRepository.findByEmail("hong@example.com")).willReturn(Optional.of(user));
     given(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).willReturn(true);
     given(tokenHasher.hash(anyString())).willReturn("sha256-reset-hash");
@@ -214,7 +214,7 @@ class AuthServiceTest {
     given(claims.get("type", String.class)).willReturn("refresh");
     given(claims.getSubject()).willReturn("1");
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(user, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(user, 1L);
     given(userRepository.findById(1L)).willReturn(Optional.of(user));
 
     given(jwtService.generateAccessToken(1L, "hong@example.com", "OPERATOR"))
@@ -340,7 +340,7 @@ class AuthServiceTest {
     given(tokenHasher.hash("reset-token")).willReturn("reset-token-hash");
 
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$oldhash");
-    ReflectionTestUtils.setField(user, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(user, 1L);
     user.initiatePasswordReset("reset-token-hash", OffsetDateTime.parse("2999-01-01T00:00:00Z"));
     given(userRepository.findByPasswordResetTokenHash("reset-token-hash"))
         .willReturn(Optional.of(user));

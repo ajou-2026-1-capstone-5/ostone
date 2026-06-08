@@ -24,6 +24,7 @@ import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
@@ -38,7 +39,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
@@ -98,7 +98,7 @@ class SubscriptionServiceTest {
     Plan enterprise =
         Plan.create(
             "enterprise", "Enterprise", 0, "KRW", BillingInterval.MONTH, -1, -1, -1, -1, true);
-    ReflectionTestUtils.setField(enterprise, "id", 20L);
+    PersistenceTestFixtures.assignGeneratedId(enterprise, 20L);
     given(planRepository.findByPlanKey("enterprise")).willReturn(Optional.of(enterprise));
 
     assertThatThrownBy(
@@ -260,7 +260,7 @@ class SubscriptionServiceTest {
         java.time.OffsetDateTime.parse("2026-05-01T00:00:00Z"),
         java.time.OffsetDateTime.parse("2026-06-01T00:00:00Z"),
         "wsk_1_abc");
-    org.springframework.test.util.ReflectionTestUtils.setField(activeSubscription, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(activeSubscription, 5L);
     given(subscriptionRepository.findCurrentByWorkspaceIdForUpdate(1L))
         .willReturn(Optional.of(activeSubscription));
 
@@ -409,13 +409,13 @@ class SubscriptionServiceTest {
   private Subscription subscription(Long id) {
     Subscription subscription = Subscription.create(1L, 10L);
     subscription.assignCustomerKey("wsk_1_abc");
-    ReflectionTestUtils.setField(subscription, "id", id);
+    PersistenceTestFixtures.assignGeneratedId(subscription, id);
     return subscription;
   }
 
   private Plan plan(Long id) {
     Plan plan = Plan.create("pro_monthly", "Pro", 29000, "KRW", BillingInterval.MONTH);
-    ReflectionTestUtils.setField(plan, "id", id);
+    PersistenceTestFixtures.assignGeneratedId(plan, id);
     return plan;
   }
 }
