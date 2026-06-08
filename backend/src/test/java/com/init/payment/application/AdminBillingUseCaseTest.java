@@ -40,6 +40,9 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 @DisplayName("AdminBillingUseCase")
 class AdminBillingUseCaseTest {
 
+  private static final OffsetDateTime APPROVED_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+  private static final OffsetDateTime CANCELED_AT = OffsetDateTime.parse("2026-06-03T12:00:00Z");
+
   @Mock private AdminBillingQueryRepository queryRepository;
   @Mock private PaymentRepository paymentRepository;
   @Mock private PaymentCancelRepository paymentCancelRepository;
@@ -59,11 +62,10 @@ class AdminBillingUseCaseTest {
   void should_결제취소와환불기록저장_when_TossCancel성공() {
     // given
     Payment payment = completedPayment("ord_1", "pay_1");
-    OffsetDateTime canceledAt = OffsetDateTime.parse("2026-06-03T12:00:00Z");
     given(paymentRepository.findByIdForUpdate(100L)).willReturn(Optional.of(payment));
     given(paymentCancelRepository.existsByPaymentId(100L)).willReturn(false);
     given(tossPaymentGateway.cancelPayment(eq("pay_1"), eq("고객 요청"), eq("admin-full-refund-100")))
-        .willReturn(new TossCancelResult("tx_cancel_1", canceledAt));
+        .willReturn(new TossCancelResult("tx_cancel_1", CANCELED_AT));
 
     // when
     AdminBillingRefundResult result =
@@ -225,7 +227,7 @@ class AdminBillingUseCaseTest {
   void should_Toss호출없이실패_when_완료상태아님() {
     // given
     Payment payment = completedPayment("ord_1", "pay_1");
-    payment.refundFull("고객 요청", "tx_cancel_1", OffsetDateTime.now());
+    payment.refundFull("고객 요청", "tx_cancel_1", CANCELED_AT);
     given(paymentRepository.findByIdForUpdate(100L)).willReturn(Optional.of(payment));
     given(paymentCancelRepository.existsByPaymentId(100L)).willReturn(false);
     AdminBillingRefundCommand command = new AdminBillingRefundCommand(100L, "고객 요청");
@@ -252,7 +254,7 @@ class AdminBillingUseCaseTest {
   private Payment completedPayment(String orderId, String paymentKey) {
     Payment payment = Payment.createOrder(1L, 10L, orderId, 29_000L, "KRW", "Pro");
     PersistenceTestFixtures.assignGeneratedId(payment, 100L);
-    payment.complete(paymentKey, "CARD", OffsetDateTime.now(), "https://receipt", "{}");
+    payment.complete(paymentKey, "CARD", APPROVED_AT, "https://receipt", "{}");
     return payment;
   }
 }

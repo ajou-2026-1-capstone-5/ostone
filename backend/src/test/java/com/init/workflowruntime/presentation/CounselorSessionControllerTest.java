@@ -41,6 +41,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class CounselorSessionControllerTest {
 
+  private static final OffsetDateTime STARTED_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+
   @Autowired private MockMvc mockMvc;
 
   @SuppressWarnings("removal")
@@ -55,7 +57,7 @@ class CounselorSessionControllerTest {
     response.setStatus("ACTIVE");
     response.setAssignedCounselorId(42L);
     response.setChannel("WEB");
-    response.setStartedAt(OffsetDateTime.now());
+    response.setStartedAt(STARTED_AT);
 
     given(counselorService.assignSession(eq(1L), eq(42L))).willReturn(response);
 
@@ -75,7 +77,7 @@ class CounselorSessionControllerTest {
     response.setStatus("ACTIVE");
     response.setAssignedCounselorId(42L);
     response.setChannel("WEB");
-    response.setStartedAt(OffsetDateTime.now());
+    response.setStartedAt(STARTED_AT);
 
     given(counselorService.assignSession(eq(1L), eq(42L))).willReturn(response);
 

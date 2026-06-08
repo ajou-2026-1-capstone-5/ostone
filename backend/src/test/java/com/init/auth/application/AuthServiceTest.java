@@ -35,6 +35,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @DisplayName("AuthService")
 class AuthServiceTest {
 
+  private static final OffsetDateTime FUTURE_EXPIRES_AT =
+      OffsetDateTime.parse("2099-01-01T00:00:00Z");
+  private static final OffsetDateTime PAST_EXPIRES_AT =
+      OffsetDateTime.parse("2000-01-01T00:00:00Z");
+
   @Mock private AppUserRepository userRepository;
   @Mock private RefreshTokenRepository refreshTokenRepository;
   @Mock private JwtService jwtService;
@@ -109,8 +114,7 @@ class AuthServiceTest {
     given(jwtService.getAccessTokenExpiration()).willReturn(3600000L);
     given(tokenHasher.hash("refresh-token-value")).willReturn("sha256-refresh-hash");
 
-    RefreshToken savedToken =
-        RefreshToken.create(1L, "sha256-refresh-hash", OffsetDateTime.now().plusDays(7));
+    RefreshToken savedToken = RefreshToken.create(1L, "sha256-refresh-hash", FUTURE_EXPIRES_AT);
     given(refreshTokenRepository.save(any(RefreshToken.class))).willReturn(savedToken);
 
     // when
@@ -204,8 +208,7 @@ class AuthServiceTest {
     TokenRefreshCommand command = new TokenRefreshCommand("valid-refresh-token");
     given(tokenHasher.hash("valid-refresh-token")).willReturn("sha256-hash-of-token");
 
-    RefreshToken refreshToken =
-        RefreshToken.create(1L, "sha256-hash-of-token", OffsetDateTime.now().plusDays(7));
+    RefreshToken refreshToken = RefreshToken.create(1L, "sha256-hash-of-token", FUTURE_EXPIRES_AT);
     given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-of-token"))
         .willReturn(Optional.of(refreshToken));
 
@@ -225,7 +228,7 @@ class AuthServiceTest {
     given(tokenHasher.hash("new-refresh-token")).willReturn("sha256-new-refresh-hash");
 
     RefreshToken newSavedToken =
-        RefreshToken.create(1L, "sha256-new-refresh-hash", OffsetDateTime.now().plusDays(7));
+        RefreshToken.create(1L, "sha256-new-refresh-hash", FUTURE_EXPIRES_AT);
     given(refreshTokenRepository.save(any(RefreshToken.class))).willReturn(newSavedToken);
 
     // when
@@ -247,8 +250,7 @@ class AuthServiceTest {
     given(tokenHasher.hash("expired-refresh-token")).willReturn("sha256-hash-expired");
 
     // 만료된 토큰 (expiresAt이 과거)
-    RefreshToken expiredToken =
-        RefreshToken.create(1L, "sha256-hash-expired", OffsetDateTime.now().minusSeconds(1));
+    RefreshToken expiredToken = RefreshToken.create(1L, "sha256-hash-expired", PAST_EXPIRES_AT);
     given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-expired"))
         .willReturn(Optional.of(expiredToken));
 
@@ -280,8 +282,7 @@ class AuthServiceTest {
     TokenRefreshCommand command = new TokenRefreshCommand("revoked-token");
     given(tokenHasher.hash("revoked-token")).willReturn("sha256-hash-revoked");
 
-    RefreshToken revokedToken =
-        RefreshToken.create(1L, "sha256-hash-revoked", OffsetDateTime.now().plusDays(7));
+    RefreshToken revokedToken = RefreshToken.create(1L, "sha256-hash-revoked", FUTURE_EXPIRES_AT);
     revokedToken.revoke();
     given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-revoked"))
         .willReturn(Optional.of(revokedToken));
@@ -301,8 +302,7 @@ class AuthServiceTest {
     LogoutCommand command = new LogoutCommand("valid-token");
     given(tokenHasher.hash("valid-token")).willReturn("sha256-hash");
 
-    RefreshToken refreshToken =
-        RefreshToken.create(1L, "sha256-hash", OffsetDateTime.now().plusDays(7));
+    RefreshToken refreshToken = RefreshToken.create(1L, "sha256-hash", FUTURE_EXPIRES_AT);
     given(refreshTokenRepository.findByTokenHash("sha256-hash"))
         .willReturn(Optional.of(refreshToken));
 

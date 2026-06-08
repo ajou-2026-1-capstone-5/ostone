@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Conversation")
 class ConversationTest {
 
+  private static final OffsetDateTime STARTED_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+
   @Test
   @DisplayName("유효한 입력으로 Conversation을 생성한다")
   void should_생성성공_when_유효한입력() {
@@ -61,7 +63,7 @@ class ConversationTest {
   @DisplayName("endedAt이 startedAt보다 이전이면 IllegalArgumentException을 던진다")
   void should_IAE_when_endedAtBeforeStartedAt() {
     // given
-    OffsetDateTime start = OffsetDateTime.now();
+    OffsetDateTime start = STARTED_AT;
     OffsetDateTime end = start.minusMinutes(1);
 
     // when & then

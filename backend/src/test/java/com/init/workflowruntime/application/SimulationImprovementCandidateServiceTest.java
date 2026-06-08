@@ -95,6 +95,7 @@ class SimulationImprovementCandidateServiceTest {
   private static final Long VERSION_ID = 101L;
   private static final Long SESSION_ID = 55L;
   private static final Long FEEDBACK_ID = 900L;
+  private static final OffsetDateTime REVIEWED_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
 
   @Mock private SimulationFeedbackRepository feedbackRepository;
   @Mock private SimulationImprovementCandidateRepository candidateRepository;
@@ -1036,7 +1037,7 @@ class SimulationImprovementCandidateServiceTest {
     feedback.markCandidateCreated();
     SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
     candidate.submitForReview(2000L, 3000L);
-    candidate.markApplied(VERSION_ID, USER_ID, "이미 반영됨", OffsetDateTime.now());
+    candidate.markApplied(VERSION_ID, USER_ID, "이미 반영됨", REVIEWED_AT);
     given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
     given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
 
@@ -1082,7 +1083,7 @@ class SimulationImprovementCandidateServiceTest {
     SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
     candidate.submitForReview(2000L, 3000L);
     ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
-    task.resolve(USER_ID, OffsetDateTime.now());
+    task.resolve(USER_ID, REVIEWED_AT);
     given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
     given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
@@ -1320,7 +1321,7 @@ class SimulationImprovementCandidateServiceTest {
             null,
             USER_ID,
             "{}",
-            OffsetDateTime.now());
+            REVIEWED_AT);
     return reviewSessionWithId(session, id);
   }
 
@@ -1334,7 +1335,7 @@ class SimulationImprovementCandidateServiceTest {
             "task",
             "NORMAL",
             "{}",
-            OffsetDateTime.now());
+            REVIEWED_AT);
     return reviewTaskWithId(task, id);
   }
 }
