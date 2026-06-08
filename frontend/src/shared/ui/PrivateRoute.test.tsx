@@ -71,6 +71,33 @@ describe("PrivateRoute", () => {
     );
   });
 
+  it("SUPER_ADMIN이면 보호 화면 대신 관리자 화면으로 이동한다", () => {
+    localStorage.setItem("accessToken", createAccessToken(3600, "SUPER_ADMIN"));
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ id: 1, email: "superadmin@ostone.com", name: "슈퍼관리자", role: "SUPER_ADMIN" }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/private"]}>
+        <Routes>
+          <Route
+            path="/private"
+            element={
+              <PrivateRoute>
+                <div>보호 화면</div>
+              </PrivateRoute>
+            }
+          />
+          <Route path="/admin" element={<div>관리자 화면</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("관리자 화면")).toBeInTheDocument();
+    expect(screen.queryByText("보호 화면")).not.toBeInTheDocument();
+  });
+
   it("refresh cookie 갱신에 실패하면 session을 정리하고 login으로 이동한다", async () => {
     localStorage.setItem("accessToken", createAccessToken(-60));
     localStorage.setItem("refreshToken", "legacy-expired-refresh-token");
