@@ -4,9 +4,8 @@ import { Icon } from "./Icon";
 
 describe("Icon", () => {
   it("renders an svg element for a valid name", () => {
-    render(<Icon name="search" />);
-    const svg = document.querySelector("svg");
-    expect(svg).toBeTruthy();
+    const { container } = render(<Icon name="search" />);
+    expect(container.firstElementChild).toBeInstanceOf(SVGSVGElement);
   });
 
   it("returns null for undefined name", () => {
@@ -20,22 +19,19 @@ describe("Icon", () => {
   });
 
   it("applies default size 16", () => {
-    render(<Icon name="arrow" />);
-    const svg = document.querySelector("svg");
-    expect(svg!.getAttribute("width")).toBe("16");
-    expect(svg!.getAttribute("height")).toBe("16");
+    const { container } = render(<Icon name="arrow" />);
+    expect(container.firstElementChild).toHaveAttribute("width", "16");
+    expect(container.firstElementChild).toHaveAttribute("height", "16");
   });
 
   it("applies custom size", () => {
-    render(<Icon name="arrow" size={24} />);
-    const svg = document.querySelector("svg");
-    expect(svg!.getAttribute("width")).toBe("24");
-    expect(svg!.getAttribute("height")).toBe("24");
+    const { container } = render(<Icon name="arrow" size={24} />);
+    expect(container.firstElementChild).toHaveAttribute("width", "24");
+    expect(container.firstElementChild).toHaveAttribute("height", "24");
   });
 
   it("accepts optional className", () => {
-    render(<Icon name="arrow" className="my-icon" />);
-    const svg = document.querySelector("svg");
-    expect(svg!.classList.contains("my-icon")).toBe(true);
+    const { container } = render(<Icon name="arrow" className="my-icon" />);
+    expect(container.firstElementChild).toHaveClass("my-icon");
   });
 });
