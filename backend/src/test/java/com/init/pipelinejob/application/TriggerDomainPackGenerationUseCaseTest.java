@@ -16,11 +16,11 @@ import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -71,7 +70,7 @@ class TriggerDomainPackGenerationUseCaseTest {
             invocation -> {
               PipelineJob job = invocation.getArgument(0);
               if (job.getId() == null) {
-                ReflectionTestUtils.setField(job, "id", 123L);
+                job = PipelineJobFixtures.persisted(job, 123L);
               }
               savedJob.set(job);
               return job;
@@ -163,8 +162,9 @@ class TriggerDomainPackGenerationUseCaseTest {
   @DisplayName("active job이 있으면 기존 job을 반환하고 새 Airflow trigger를 만들지 않는다")
   void execute_activeJob_returnsExistingJob() {
     allowAccess();
+    PipelineJob activeJob = pipelineJob(11L, PipelineJob.STATUS_RUNNING);
     given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
-        .willReturn(Optional.of(pipelineJob(11L, PipelineJob.STATUS_RUNNING)));
+        .willReturn(Optional.of(activeJob));
 
     TriggerDomainPackGenerationResult result = useCase.execute(command());
 
@@ -312,22 +312,6 @@ class TriggerDomainPackGenerationUseCaseTest {
   }
 
   private PipelineJob pipelineJob(Long id, String status) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", 1L);
-    ReflectionTestUtils.setField(job, "datasetId", 7L);
-    ReflectionTestUtils.setField(job, "jobType", PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION);
-    ReflectionTestUtils.setField(job, "status", status);
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.domainPackGeneration(id).status(status).build();
   }
 }

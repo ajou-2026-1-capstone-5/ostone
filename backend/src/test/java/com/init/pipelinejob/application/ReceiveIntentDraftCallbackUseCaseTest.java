@@ -20,8 +20,8 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -36,7 +36,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -134,10 +133,10 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 다른 webhook type으로 재조회되면 409 예외를 던진다")
   void execute_receiptInsertTypeConflict_throws() {
     WebhookReceipt receipt = receipt(11L, "evt-1", "DOMAIN_PACK_DRAFT_CALLBACK");
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
     given(webhookReceiptRepository.findByExternalEventId("evt-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unique violation"));
 
@@ -151,11 +150,11 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 재조회되면 duplicate ignored를 반환한다")
   void execute_duplicateOnReceiptInsert_returnsDuplicateIgnored() {
     WebhookReceipt receipt = webhookReceipt(11L, "evt-1");
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
     receipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unique violation"));
 
@@ -209,10 +208,10 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @Test
   @DisplayName("receipt 저장 예외가 중복으로 확인되지 않으면 예외를 그대로 던진다")
   void execute_nonDuplicateReceiptInsertFailure_throws() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
     given(webhookReceiptRepository.findByExternalEventId("evt-1"))
         .willReturn(Optional.empty(), Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unexpected violation"));
 
@@ -244,9 +243,9 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 종료된 job이면 409 예외를 던진다")
   void execute_finalizedJob_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_SUCCEEDED);
     given(webhookReceiptRepository.findByExternalEventId("evt-1")).willReturn(Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_SUCCEEDED)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobAlreadyFinalizedException.class);
@@ -255,9 +254,9 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @Test
   @DisplayName("중간 상태가 아닌 job에 intent callback이 오면 409 예외를 던진다")
   void execute_nonWaitingJob_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
     given(webhookReceiptRepository.findByExternalEventId("evt-1")).willReturn(Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobCallbackNotAllowedException.class);
@@ -298,22 +297,10 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   }
 
   private PipelineJob pipelineJob(Long id, Long workspaceId, String status) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", workspaceId);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.domainPackGeneration(id)
+        .workspaceId(workspaceId)
+        .status(status)
+        .build();
   }
 
   private WebhookReceipt webhookReceipt(Long jobId, String externalEventId) {
@@ -324,7 +311,6 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     WebhookReceipt receipt =
         WebhookReceipt.receive(
             jobId, externalEventId, webhookType, "{}", "{}", OffsetDateTime.now(fixedClock));
-    ReflectionTestUtils.setField(receipt, "id", 1L);
     return receipt;
   }
 }

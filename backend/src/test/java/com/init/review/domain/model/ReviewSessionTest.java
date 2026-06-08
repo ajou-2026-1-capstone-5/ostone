@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("ReviewSession")
 class ReviewSessionTest {
@@ -34,10 +33,10 @@ class ReviewSessionTest {
     assertThat(session.getTitle()).isEqualTo("도메인 확인");
     assertThat(session.getDescription()).isEqualTo("설명");
     assertThat(session.getMetaJson()).contains("domain");
-    assertThat(ReflectionTestUtils.getField(session, "domainPackVersionId")).isNull();
-    assertThat(ReflectionTestUtils.getField(session, "createdBy")).isNull();
-    assertThat(ReflectionTestUtils.getField(session, "openedAt")).isEqualTo(OPENED_AT);
-    assertThat(ReflectionTestUtils.getField(session, "closedAt")).isNull();
+    assertThat(session.getDomainPackVersionId()).isNull();
+    assertThat(session.getCreatedBy()).isNull();
+    assertThat(session.getOpenedAt()).isEqualTo(OPENED_AT);
+    assertThat(session.getClosedAt()).isNull();
   }
 
   @Test
@@ -73,10 +72,10 @@ class ReviewSessionTest {
     assertThat(session.getTitle()).isEqualTo("시뮬레이션 개선 후보 검토");
     assertThat(session.getDescription()).isEqualTo("설명");
     assertThat(session.getMetaJson()).isEqualTo("{}");
-    assertThat(ReflectionTestUtils.getField(session, "createdBy")).isEqualTo(5L);
-    assertThat(ReflectionTestUtils.getField(session, "pipelineJobId")).isNull();
-    assertThat(ReflectionTestUtils.getField(session, "datasetId")).isNull();
-    assertThat(ReflectionTestUtils.getField(session, "openedAt")).isEqualTo(OPENED_AT);
+    assertThat(session.getCreatedBy()).isEqualTo(5L);
+    assertThat(session.getPipelineJobId()).isNull();
+    assertThat(session.getDatasetId()).isNull();
+    assertThat(session.getOpenedAt()).isEqualTo(OPENED_AT);
   }
 
   @Test
@@ -90,6 +89,6 @@ class ReviewSessionTest {
     session.close(closedAt);
 
     assertThat(session.getStatus()).isEqualTo(ReviewSession.STATUS_CLOSED);
-    assertThat(ReflectionTestUtils.getField(session, "closedAt")).isEqualTo(closedAt);
+    assertThat(session.getClosedAt()).isEqualTo(closedAt);
   }
 }

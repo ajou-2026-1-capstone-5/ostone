@@ -14,6 +14,7 @@ import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidExc
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -61,7 +61,7 @@ class TriggerIngestionUseCaseTest {
             invocation -> {
               PipelineJob job = invocation.getArgument(0);
               if (job.getId() == null) {
-                ReflectionTestUtils.setField(job, "id", 99L);
+                job = PipelineJobFixtures.persisted(job, 99L);
                 saveCallCount.set(0);
               }
               savedJob.set(job);
