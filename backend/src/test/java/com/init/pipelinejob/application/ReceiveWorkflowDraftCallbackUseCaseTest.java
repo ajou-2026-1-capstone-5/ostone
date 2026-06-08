@@ -19,8 +19,8 @@ import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -220,10 +219,10 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   @Test
   @DisplayName("WAITING_WORKFLOW_CALLBACK이 아니면 409 예외를 던진다")
   void execute_notAllowedStatus_throws() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
     given(webhookReceiptRepository.findByExternalEventId("evt-workflow-1"))
         .willReturn(Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobCallbackNotAllowedException.class);
@@ -283,23 +282,11 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   }
 
   private PipelineJob pipelineJob(Long id, Long workspaceId, String status) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", workspaceId);
-    ReflectionTestUtils.setField(job, "domainPackId", 7L);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.domainPackGeneration(id)
+        .workspaceId(workspaceId)
+        .domainPackId(7L)
+        .status(status)
+        .build();
   }
 
   private WebhookReceipt workflowReceipt(Long jobId, String externalEventId) {
@@ -314,7 +301,6 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     WebhookReceipt receipt =
         WebhookReceipt.receive(
             jobId, externalEventId, webhookType, "{}", "{}", OffsetDateTime.now(fixedClock));
-    ReflectionTestUtils.setField(receipt, "id", 1L);
     return receipt;
   }
 

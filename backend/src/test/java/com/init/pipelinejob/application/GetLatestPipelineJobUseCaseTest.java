@@ -6,9 +6,9 @@ import static org.mockito.BDDMockito.given;
 
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetLatestPipelineJobUseCase")
@@ -114,28 +113,13 @@ class GetLatestPipelineJobUseCaseTest {
   }
 
   private PipelineJob pipelineJob() {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", 77L);
-    ReflectionTestUtils.setField(job, "workspaceId", 2L);
-    ReflectionTestUtils.setField(job, "datasetId", 15L);
-    ReflectionTestUtils.setField(job, "jobType", PipelineJob.JOB_TYPE_INGESTION);
-    ReflectionTestUtils.setField(job, "status", PipelineJob.STATUS_RUNNING);
-    ReflectionTestUtils.setField(job, "airflowDagId", "domain_pack_generation");
-    ReflectionTestUtils.setField(job, "airflowRunId", "pipeline_job_77");
-    ReflectionTestUtils.setField(job, "requestPayloadJson", "{}");
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    ReflectionTestUtils.setField(job, "requestedAt", OffsetDateTime.parse("2026-06-05T01:00:00Z"));
-    ReflectionTestUtils.setField(job, "startedAt", OffsetDateTime.parse("2026-06-05T01:01:00Z"));
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.ingestion(77L)
+        .workspaceId(2L)
+        .datasetId(15L)
+        .status(PipelineJob.STATUS_RUNNING)
+        .airflowRun("domain_pack_generation", "pipeline_job_77")
+        .requestedAt(OffsetDateTime.parse("2026-06-05T01:00:00Z"))
+        .startedAt(OffsetDateTime.parse("2026-06-05T01:01:00Z"))
+        .build();
   }
 }

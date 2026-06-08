@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -20,8 +21,8 @@ import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -35,7 +36,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -139,10 +139,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 다른 webhook type으로 재조회되면 409 예외를 던진다")
   void execute_receiptInsertTypeConflict_throws() {
     WebhookReceipt receipt = receipt(11L, "evt-draft-1", "INTENT_DRAFT_CALLBACK");
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unique violation"));
 
@@ -156,11 +156,11 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 재조회되면 duplicate ignored를 반환한다")
   void execute_duplicateOnReceiptInsert_returnsDuplicateIgnored() {
     WebhookReceipt receipt = webhookReceipt(11L, "evt-draft-1");
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
     receipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unique violation"));
 
@@ -214,10 +214,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Test
   @DisplayName("receipt 저장 예외가 중복으로 확인되지 않으면 예외를 그대로 던진다")
   void execute_nonDuplicateReceiptInsertFailure_throws() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty(), Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unexpected violation"));
 
@@ -250,10 +250,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 종료된 job이면 409 예외를 던진다")
   void execute_finalizedJob_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_SUCCEEDED);
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_SUCCEEDED)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobAlreadyFinalizedException.class);
@@ -262,10 +262,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 중간 상태인 job에 domain-pack callback이 다시 오면 409 예외를 던진다")
   void execute_waitingIntentJob_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty());
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     ReceiveDomainPackDraftCallbackCommand command = validCommand();
 
@@ -276,8 +276,13 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 DomainPack이 연결된 RUNNING job에 domain-pack callback이 다시 오면 409 예외를 던진다")
   void execute_runningJobWithDomainPack_throwsConflict() {
-    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
-    ReflectionTestUtils.setField(job, "domainPackId", 7L);
+    PipelineJob job = mock(PipelineJob.class);
+    lenient().doReturn(11L).when(job).getId();
+    lenient().doReturn(3L).when(job).getWorkspaceId();
+    lenient().doReturn(PipelineJob.STATUS_RUNNING).when(job).getStatus();
+    lenient().doReturn(7L).when(job).getDomainPackId();
+    lenient().doReturn(false).when(job).canAcceptDomainPackDraftCallback();
+    lenient().doReturn(false).when(job).isFinalized();
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty());
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
@@ -303,22 +308,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   }
 
   private PipelineJob pipelineJob(Long id, Long workspaceId, String status) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", workspaceId);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.domainPackGeneration(id)
+        .workspaceId(workspaceId)
+        .status(status)
+        .build();
   }
 
   private WebhookReceipt webhookReceipt(Long jobId, String externalEventId) {
@@ -329,7 +322,6 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     WebhookReceipt receipt =
         WebhookReceipt.receive(
             jobId, externalEventId, webhookType, "{}", "{}", OffsetDateTime.now(fixedClock));
-    ReflectionTestUtils.setField(receipt, "id", 1L);
     return receipt;
   }
 }

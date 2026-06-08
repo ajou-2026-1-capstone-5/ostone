@@ -2,6 +2,7 @@ package com.init.pipelinejob.infrastructure.corpus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CorpusIngestionDatasetStatusAdapter")
@@ -41,8 +41,9 @@ class CorpusIngestionDatasetStatusAdapterTest {
   @Test
   @DisplayName("이미 DONE dataset이면 상태를 바꾸거나 저장하지 않는다")
   void markIngestionTriggerFailed_fromDone_doesNotSave() {
-    Dataset dataset = Dataset.createUploading(1L, "key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "status", DatasetStatus.DONE);
+    Dataset dataset = mock(Dataset.class);
+    given(dataset.markIngestionTriggerFailed()).willReturn(false);
+    given(dataset.getStatus()).willReturn(DatasetStatus.DONE);
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
     CorpusIngestionDatasetStatusAdapter adapter =

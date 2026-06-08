@@ -11,7 +11,7 @@ import com.init.pipelinejob.application.exception.PipelineJobRetryInputMissingEx
 import com.init.pipelinejob.application.exception.PipelineJobRetryNotAllowedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
-import java.lang.reflect.Constructor;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RetryAdminPipelineJobUseCase")
@@ -45,7 +44,6 @@ class RetryAdminPipelineJobUseCaseTest {
     PipelineJob sourceJob =
         pipelineJob(
             11L,
-            PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION,
             PipelineJob.STATUS_FAILED,
             """
             {"objectKey":"workspaces/1/datasets/7/raw.json"}
@@ -81,14 +79,8 @@ class RetryAdminPipelineJobUseCaseTest {
   @Test
   @DisplayName("FAILED가 아니면 재시도를 거부한다")
   void execute_nonFailed_throwsNotAllowed() {
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(
-            Optional.of(
-                pipelineJob(
-                    11L,
-                    PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION,
-                    PipelineJob.STATUS_RUNNING,
-                    "{}")));
+    PipelineJob job = pipelineJob(11L, PipelineJob.STATUS_RUNNING, "{}");
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(11L, 99L))
         .isInstanceOf(PipelineJobRetryNotAllowedException.class);
@@ -97,14 +89,8 @@ class RetryAdminPipelineJobUseCaseTest {
   @Test
   @DisplayName("원본 objectKey가 없으면 입력 누락 오류를 반환한다")
   void execute_missingObjectKey_throwsInputMissing() {
-    given(pipelineJobRepository.findById(11L))
-        .willReturn(
-            Optional.of(
-                pipelineJob(
-                    11L,
-                    PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION,
-                    PipelineJob.STATUS_FAILED,
-                    "{}")));
+    PipelineJob job = pipelineJob(11L, PipelineJob.STATUS_FAILED, "{}");
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
 
     assertThatThrownBy(() -> useCase.execute(11L, 99L))
         .isInstanceOf(PipelineJobRetryInputMissingException.class);
@@ -113,27 +99,11 @@ class RetryAdminPipelineJobUseCaseTest {
   private final ArgumentCaptor<TriggerDomainPackGenerationCommand> commandCaptor =
       ArgumentCaptor.forClass(TriggerDomainPackGenerationCommand.class);
 
-  private PipelineJob pipelineJob(
-      Long id, String jobType, String status, String requestPayloadJson) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", 1L);
-    ReflectionTestUtils.setField(job, "datasetId", 7L);
-    ReflectionTestUtils.setField(job, "jobType", jobType);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "requestPayloadJson", requestPayloadJson);
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    ReflectionTestUtils.setField(job, "requestedAt", OffsetDateTime.parse("2026-06-03T01:00:00Z"));
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+  private PipelineJob pipelineJob(Long id, String status, String requestPayloadJson) {
+    return PipelineJobFixtures.domainPackGeneration(id)
+        .status(status)
+        .requestPayloadJson(requestPayloadJson)
+        .requestedAt(OffsetDateTime.parse("2026-06-03T01:00:00Z"))
+        .build();
   }
 }
