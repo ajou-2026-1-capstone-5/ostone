@@ -3,6 +3,7 @@ package com.init.domainpack.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
@@ -31,7 +33,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DemoRefundRequestSeedRunner guard")
@@ -87,30 +88,25 @@ class DemoRefundSeedRunnerGuardTest {
         .willAnswer(
             invocation -> {
               IntentDefinition intent = invocation.getArgument(0);
-              ReflectionTestUtils.setField(intent, "id", 111L);
+              DomainPackEntityFixtures.persisted(intent, 111L);
               return intent;
             });
     given(workflowDefinitionRepository.save(any(WorkflowDefinition.class)))
         .willAnswer(
             invocation -> {
               WorkflowDefinition workflow = invocation.getArgument(0);
-              ReflectionTestUtils.setField(workflow, "id", 153L);
+              DomainPackEntityFixtures.persisted(workflow, 153L);
               return workflow;
             });
     given(chatSessionRepository.save(any(ChatSession.class)))
         .willAnswer(
             invocation -> {
-              ChatSession session = invocation.getArgument(0);
-              ReflectionTestUtils.setField(session, "id", 1L);
+              ChatSession session = mock(ChatSession.class);
+              given(session.getId()).willReturn(1L);
               return session;
             });
     given(chatMessageRepository.save(any(ChatMessage.class)))
-        .willAnswer(
-            invocation -> {
-              ChatMessage message = invocation.getArgument(0);
-              ReflectionTestUtils.setField(message, "id", 10L);
-              return message;
-            });
+        .willAnswer(invocation -> invocation.getArgument(0));
     when(entityManager.createNativeQuery(any(String.class))).thenReturn(query);
     when(query.setParameter(any(String.class), any())).thenReturn(query);
 
@@ -132,7 +128,7 @@ class DemoRefundSeedRunnerGuardTest {
         .willAnswer(
             invocation -> {
               IntentDefinition intent = invocation.getArgument(0);
-              ReflectionTestUtils.setField(intent, "id", 111L);
+              DomainPackEntityFixtures.persisted(intent, 111L);
               return intent;
             });
     ArgumentCaptor<WorkflowDefinition> workflowCaptor =
@@ -141,23 +137,18 @@ class DemoRefundSeedRunnerGuardTest {
         .willAnswer(
             invocation -> {
               WorkflowDefinition workflow = invocation.getArgument(0);
-              ReflectionTestUtils.setField(workflow, "id", 153L);
+              DomainPackEntityFixtures.persisted(workflow, 153L);
               return workflow;
             });
     given(chatSessionRepository.save(any(ChatSession.class)))
         .willAnswer(
             invocation -> {
-              ChatSession session = invocation.getArgument(0);
-              ReflectionTestUtils.setField(session, "id", 1L);
+              ChatSession session = mock(ChatSession.class);
+              given(session.getId()).willReturn(1L);
               return session;
             });
     given(chatMessageRepository.save(any(ChatMessage.class)))
-        .willAnswer(
-            invocation -> {
-              ChatMessage message = invocation.getArgument(0);
-              ReflectionTestUtils.setField(message, "id", 10L);
-              return message;
-            });
+        .willAnswer(invocation -> invocation.getArgument(0));
     when(entityManager.createNativeQuery(any(String.class))).thenReturn(query);
     when(query.setParameter(any(String.class), any())).thenReturn(query);
 

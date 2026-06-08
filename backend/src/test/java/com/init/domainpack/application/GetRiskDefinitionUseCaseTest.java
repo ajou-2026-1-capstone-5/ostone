@@ -10,6 +10,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.RiskDefinitionNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetRiskDefinitionUseCase")
@@ -208,9 +208,7 @@ class GetRiskDefinitionUseCaseTest {
     RiskDefinition risk =
         RiskDefinition.create(
             VERSION_ID, riskCode, name, "비정상적인 결제 패턴 감지 시 차단", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(risk, "id", id);
-    ReflectionTestUtils.setField(risk, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
-    ReflectionTestUtils.setField(risk, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    DomainPackEntityFixtures.persisted(risk, id);
     return risk;
   }
 }

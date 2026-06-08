@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.IntentRevisionTargetNotPublishedException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateDraftIntentUseCase")
@@ -127,17 +127,13 @@ class UpdateDraftIntentUseCaseTest {
   }
 
   private DomainPackVersion version(Long id, Long packId, String status) {
-    DomainPackVersion version = DomainPackVersion.ofForTest(id, packId, status);
-    ReflectionTestUtils.setField(version, "versionNo", 3);
-    ReflectionTestUtils.setField(version, "summaryJson", "{}");
-    return version;
+    return DomainPackEntityFixtures.version(id, packId, 3, status, "{}");
   }
 
   private IntentDefinition intent(Long id, Long versionId, String status) {
     IntentDefinition intent =
         IntentDefinition.create(versionId, "refund", "환불", null, 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", id);
-    ReflectionTestUtils.setField(intent, "status", status);
+    DomainPackEntityFixtures.persisted(intent, id, status, intent.getParentIntentId());
     return intent;
   }
 }

@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("SlotDefinition")
 class SlotDefinitionTest {
@@ -42,9 +41,7 @@ class SlotDefinitionTest {
   @Test
   @DisplayName("updateFields: null isSensitive, validationRuleJson, metaJson은 기존 값 유지")
   void updateFields_nullOptionalFields_keepsExistingValues() {
-    ReflectionTestUtils.setField(slot, "isSensitive", true);
-    ReflectionTestUtils.setField(slot, "validationRuleJson", "{\"existing\":true}");
-    ReflectionTestUtils.setField(slot, "metaJson", "{\"meta\":1}");
+    slot.updateFields("기존 이름", null, true, "{\"existing\":true}", null, "{\"meta\":1}");
 
     slot.updateFields("이름", null, null, null, null, null);
 
@@ -78,7 +75,7 @@ class SlotDefinitionTest {
   @Test
   @DisplayName("changeStatus: INACTIVE → ACTIVE 정상 전환")
   void changeStatus_toActive_changesStatus() {
-    ReflectionTestUtils.setField(slot, "status", SlotDefinition.STATUS_INACTIVE);
+    slot.changeStatus(SlotDefinition.STATUS_INACTIVE);
 
     slot.changeStatus(SlotDefinition.STATUS_ACTIVE);
 

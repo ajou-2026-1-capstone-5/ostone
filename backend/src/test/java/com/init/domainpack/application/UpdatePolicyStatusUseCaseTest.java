@@ -11,6 +11,7 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.PolicyCodeReferencedByWorkflowException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdatePolicyStatusUseCase")
@@ -71,7 +71,7 @@ class UpdatePolicyStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 10L);
-    ReflectionTestUtils.setField(policy, "status", PolicyDefinition.STATUS_INACTIVE);
+    policy.changeStatus(PolicyDefinition.STATUS_INACTIVE);
     given(policyRepository.findByIdOrThrow(55L)).willReturn(policy);
     given(policyRepository.save(any())).willReturn(policy);
 
@@ -247,7 +247,7 @@ class UpdatePolicyStatusUseCaseTest {
   void should_역참조체크스킵_when_ACTIVE전환() {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
     PolicyDefinition policy = policy(55L, 10L);
-    ReflectionTestUtils.setField(policy, "status", PolicyDefinition.STATUS_INACTIVE);
+    policy.changeStatus(PolicyDefinition.STATUS_INACTIVE);
     given(policyRepository.findByIdOrThrow(55L)).willReturn(policy);
     given(policyRepository.save(any())).willReturn(policy);
 
@@ -284,7 +284,7 @@ class UpdatePolicyStatusUseCaseTest {
     PolicyDefinition policy =
         PolicyDefinition.create(
             versionId, "refund_check", "환불 검증", "설명", "MEDIUM", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
+    DomainPackEntityFixtures.persisted(policy, id);
     return policy;
   }
 }

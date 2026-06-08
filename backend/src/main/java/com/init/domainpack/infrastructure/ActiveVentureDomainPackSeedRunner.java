@@ -130,6 +130,10 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     this.profileBuildEnqueueEnabled = !environment.acceptsProfiles(Profiles.of("prod"));
   }
 
+  boolean isProfileBuildEnqueueEnabled() {
+    return profileBuildEnqueueEnabled;
+  }
+
   @Override
   @Transactional
   public void run(ApplicationArguments args) {
@@ -291,7 +295,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         .collect(Collectors.toMap(IntentDefinition::getIntentCode, Function.identity()));
   }
 
-  private int backfillIntentInternalResources(Long versionId, JsonNode intentDrafts) {
+  int backfillIntentInternalResources(Long versionId, JsonNode intentDrafts) {
     int updatedCount = 0;
     for (JsonNode draft : iterable(intentDrafts)) {
       int updatedRows =
@@ -327,7 +331,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     return updatedCount;
   }
 
-  private String buildIntentSourceClusterRef(JsonNode draft) {
+  String buildIntentSourceClusterRef(JsonNode draft) {
     ObjectNode source = objectNodeFromJson(jsonValue(draft, "sourceClusterRef", "{}"));
     JsonNode entryCondition = readJson(jsonValue(draft, "entryConditionJson", "{}"));
     JsonNode meta = readJson(jsonValue(draft, "metaJson", "{}"));
@@ -358,7 +362,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     return writeJson(source);
   }
 
-  private String buildIntentEvidenceJson(JsonNode draft) {
+  String buildIntentEvidenceJson(JsonNode draft) {
     JsonNode representativeCases = draft.path("representativeCases");
     if (!representativeCases.isArray() || representativeCases.isEmpty()) {
       return jsonValue(draft, "evidenceJson", "[]");
@@ -420,7 +424,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         .collect(Collectors.toMap(SlotDefinition::getSlotCode, Function.identity()));
   }
 
-  private int backfillSlotNames(Long versionId, JsonNode slotDrafts) {
+  int backfillSlotNames(Long versionId, JsonNode slotDrafts) {
     int updatedCount = 0;
     for (JsonNode draft : iterable(slotDrafts)) {
       int updatedRows =
@@ -443,7 +447,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     return updatedCount;
   }
 
-  private int backfillIntentSlotBindingPrompts(Long versionId, JsonNode bindingDrafts) {
+  int backfillIntentSlotBindingPrompts(Long versionId, JsonNode bindingDrafts) {
     int updatedCount = 0;
     for (JsonNode draft : iterable(bindingDrafts)) {
       int updatedRows =

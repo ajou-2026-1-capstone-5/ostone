@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import com.init.domainpack.domain.model.DomainPack;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackCommandRepository;
 import java.util.Optional;
@@ -15,7 +16,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateDomainPackDraftFromPipelineUseCase")
@@ -29,10 +29,8 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
   @DisplayName("기존 pack이 있으면 재사용하고 DRAFT 버전을 생성한다")
   void execute_existingPack_reusesPack() {
     DomainPack existingPack = DomainPack.create(3L, "refund-pack", "환불 Pack", null, null);
-    ReflectionTestUtils.setField(existingPack, "id", 7L);
-    DomainPackVersion version = DomainPackVersion.ofForTest(101L, 7L, "DRAFT");
-    ReflectionTestUtils.setField(version, "versionNo", 3);
-    ReflectionTestUtils.setField(version, "sourcePipelineJobId", 11L);
+    DomainPackEntityFixtures.persisted(existingPack, 7L);
+    DomainPackVersion version = savedDraftVersion(3);
 
     given(domainPackCommandRepository.findByWorkspaceIdAndPackKey(3L, "refund-pack"))
         .willReturn(Optional.of(existingPack));
@@ -56,10 +54,8 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
   @DisplayName("pack이 없으면 새로 생성한 뒤 DRAFT 버전을 생성한다")
   void execute_noPack_createsNewPack() {
     DomainPack newPack = DomainPack.create(3L, "refund-pack", "환불 Pack", null, null);
-    ReflectionTestUtils.setField(newPack, "id", 7L);
-    DomainPackVersion version = DomainPackVersion.ofForTest(101L, 7L, "DRAFT");
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "sourcePipelineJobId", 11L);
+    DomainPackEntityFixtures.persisted(newPack, 7L);
+    DomainPackVersion version = savedDraftVersion(1);
 
     given(domainPackCommandRepository.findByWorkspaceIdAndPackKey(3L, "refund-pack"))
         .willReturn(Optional.empty());
@@ -82,10 +78,8 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
   @DisplayName("pack 생성 경쟁 시 재조회 후 기존 pack을 사용한다")
   void execute_raceCondition_requeriesExistingPack() {
     DomainPack existingPack = DomainPack.create(3L, "refund-pack", "환불 Pack", null, null);
-    ReflectionTestUtils.setField(existingPack, "id", 7L);
-    DomainPackVersion version = DomainPackVersion.ofForTest(101L, 7L, "DRAFT");
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "sourcePipelineJobId", 11L);
+    DomainPackEntityFixtures.persisted(existingPack, 7L);
+    DomainPackVersion version = savedDraftVersion(1);
 
     given(domainPackCommandRepository.findByWorkspaceIdAndPackKey(3L, "refund-pack"))
         .willReturn(Optional.empty(), Optional.of(existingPack));
@@ -102,5 +96,10 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
 
     assertThat(result.domainPackId()).isEqualTo(7L);
     assertThat(result.createdPack()).isFalse();
+  }
+
+  private DomainPackVersion savedDraftVersion(Integer versionNo) {
+    return DomainPackEntityFixtures.version(
+        101L, 7L, versionNo, "DRAFT", 11L, "{}", null, null, null, null);
   }
 }

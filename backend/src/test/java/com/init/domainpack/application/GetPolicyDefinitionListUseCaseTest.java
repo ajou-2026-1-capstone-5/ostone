@@ -9,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -16,7 +17,6 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetPolicyDefinitionListUseCase")
@@ -196,9 +195,7 @@ class GetPolicyDefinitionListUseCaseTest {
   private PolicyDefinition createPolicy(Long id, String policyCode, String name) {
     PolicyDefinition policy =
         PolicyDefinition.create(VERSION_ID, policyCode, name, "설명", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
-    ReflectionTestUtils.setField(policy, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
-    ReflectionTestUtils.setField(policy, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    DomainPackEntityFixtures.persisted(policy, id);
     return policy;
   }
 }

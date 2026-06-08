@@ -11,6 +11,7 @@ import com.init.domainpack.application.exception.DomainPackVersionNotFoundExcept
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetWorkflowDefinitionUseCase")
@@ -196,9 +196,8 @@ class GetWorkflowDefinitionUseCaseTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(wf, "id", id);
-    ReflectionTestUtils.setField(wf, "createdAt", OffsetDateTime.parse("2026-04-14T10:00:00Z"));
-    ReflectionTestUtils.setField(wf, "updatedAt", OffsetDateTime.parse("2026-04-14T10:00:00Z"));
+    OffsetDateTime persistedAt = OffsetDateTime.parse("2026-04-14T10:00:00Z");
+    DomainPackEntityFixtures.persisted(wf, id, persistedAt, persistedAt);
     return wf;
   }
 }

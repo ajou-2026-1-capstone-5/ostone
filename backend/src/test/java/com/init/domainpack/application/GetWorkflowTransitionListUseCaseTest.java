@@ -12,6 +12,7 @@ import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundExce
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetWorkflowTransitionListUseCase")
@@ -297,7 +297,7 @@ class GetWorkflowTransitionListUseCaseTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(wf, "id", id);
+    DomainPackEntityFixtures.persisted(wf, id);
     return wf;
   }
 }

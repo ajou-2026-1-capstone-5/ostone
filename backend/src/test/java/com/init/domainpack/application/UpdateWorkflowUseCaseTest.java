@@ -20,6 +20,7 @@ import com.init.domainpack.application.exception.WorkflowInvalidStartNodeExcepti
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
 import com.init.domainpack.application.exception.WorkflowUnreachableNodeException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateWorkflowUseCase")
@@ -486,7 +486,7 @@ class UpdateWorkflowUseCaseTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(wf, "id", id);
+    DomainPackEntityFixtures.persisted(wf, id);
     return wf;
   }
 }

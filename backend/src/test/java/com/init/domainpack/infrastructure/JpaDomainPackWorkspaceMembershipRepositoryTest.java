@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
 import com.init.domainpack.infrastructure.persistence.DomainPackWorkspaceMemberRef;
 import com.init.domainpack.infrastructure.persistence.JpaDomainPackWorkspaceMembershipRepository;
-import java.lang.reflect.Constructor;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -130,24 +128,10 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
 
   private DomainPackWorkspaceMemberRef createAndPersistMember(
       long workspaceId, long userId, String memberRole) {
-    DomainPackWorkspaceMemberRef member = newMember();
-    ReflectionTestUtils.setField(member, "workspaceId", workspaceId);
-    ReflectionTestUtils.setField(member, "userId", userId);
-    ReflectionTestUtils.setField(member, "memberRole", memberRole);
+    DomainPackWorkspaceMemberRef member =
+        DomainPackWorkspaceMemberRef.createForTest(workspaceId, userId, memberRole);
     em.persist(member);
     em.flush();
     return member;
-  }
-
-  private DomainPackWorkspaceMemberRef newMember() {
-    try {
-      Constructor<DomainPackWorkspaceMemberRef> ctor =
-          DomainPackWorkspaceMemberRef.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      return ctor.newInstance();
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(
-          "failed to instantiate DomainPackWorkspaceMemberRef via reflection", e);
-    }
   }
 }
