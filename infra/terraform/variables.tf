@@ -333,6 +333,24 @@ variable "toss_billing_key_encryption_key" {
   sensitive   = true
 }
 
+variable "super_admin_email" {
+  description = "Email for the bootstrap SUPER_ADMIN account created on first backend startup."
+  type        = string
+  default     = "superadmin@ajou-cstone.com"
+}
+
+variable "super_admin_name" {
+  description = "Display name for the bootstrap SUPER_ADMIN account."
+  type        = string
+  default     = "Super Admin"
+}
+
+variable "super_admin_password" {
+  description = "Password for the bootstrap SUPER_ADMIN account (8-72 UTF-8 bytes). Empty disables bootstrap creation."
+  type        = string
+  sensitive   = true
+}
+
 variable "airflow_api_desired_count" {
   description = "Desired ECS task count for Airflow API server."
   type        = number

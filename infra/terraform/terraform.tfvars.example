@@ -20,6 +20,12 @@ toss_secret_key                 = "replace-with-toss-api-secret-key"
 toss_webhook_secret             = "replace-with-toss-webhook-secret"
 toss_billing_key_encryption_key = "replace-with-billing-key-encryption-key"
 
+# 최초 기동 시 SUPER_ADMIN 계정이 없으면 SuperAdminBootstrapRunner가 생성한다(멱등).
+# super_admin_email/name 은 기본값이 있어 선택, super_admin_password 는 필수(8-72 UTF-8 bytes).
+# super_admin_email    = "superadmin@ajou-cstone.com"
+# super_admin_name     = "Super Admin"
+super_admin_password = "replace-with-secure-super-admin-password"
+
 backend_desired_count = 0
 backend_autoscaling_min_capacity = 0
 backend_autoscaling_max_capacity = 3
