@@ -308,7 +308,15 @@ class DomainPackSeedRunnerTest {
 
   private Set<String> collectCodes(JsonNode nodes, String fieldName) {
     Set<String> codes = new HashSet<>();
-    nodes.forEach(node -> codes.add(node.path(fieldName).asText()));
+    nodes.forEach(
+        node -> {
+          String code = node.path(fieldName).asText();
+          if (code == null || code.isBlank()) {
+            throw new IllegalStateException(
+                "Seed node missing required field '" + fieldName + "': " + node);
+          }
+          codes.add(code);
+        });
     return codes;
   }
 

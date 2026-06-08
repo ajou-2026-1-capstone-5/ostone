@@ -61,6 +61,7 @@ public class DomainPackSeedRunner implements ApplicationRunner {
 
   private static final Logger log = LoggerFactory.getLogger(DomainPackSeedRunner.class);
   private static final String DESCRIPTION_FIELD = "description";
+  private static final String INTENT_SLOT_BINDINGS_FIELD = "intentSlotBindings";
   private static final List<SeedConfig> SEED_CONFIGS =
       List.of(
           new SeedConfig(
@@ -172,7 +173,7 @@ public class DomainPackSeedRunner implements ApplicationRunner {
         backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
     int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
     int bindingUpdatedCount =
-        backfillIntentSlotBindingPrompts(versionId, workflowDraft.path("intentSlotBindings"));
+        backfillIntentSlotBindingPrompts(versionId, workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD));
     log.info(
         "Seed domain pack '{}' already has the current published seed version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
         packKey,
@@ -197,12 +198,13 @@ public class DomainPackSeedRunner implements ApplicationRunner {
         persistSlots(version.getId(), workflowDraft.path("slots"));
     persistPolicies(version.getId(), workflowDraft.path("policies"));
     persistRisks(version.getId(), workflowDraft.path("risks"));
-    persistIntentSlotBindings(workflowDraft.path("intentSlotBindings"), intentsByCode, slotsByCode);
+    persistIntentSlotBindings(
+        workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD), intentsByCode, slotsByCode);
     persistWorkflows(
         version.getId(),
         workflowDraft.path("workflows"),
         intentsByCode,
-        requiredSlotsByIntentCode(workflowDraft.path("intentSlotBindings")),
+        requiredSlotsByIntentCode(workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD)),
         seedConfig);
 
     version.activate(OffsetDateTime.now());
