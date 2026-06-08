@@ -46,6 +46,11 @@ public class WorkflowMatchingCore {
       return WorkflowMatchResult.blocked(MATCH_FAILURE_MESSAGE, ranked.stream().limit(3).toList());
     }
     WorkflowMatchCandidate second = ranked.size() > 1 ? ranked.get(1) : null;
+    if (isSameIntentWorkflowOverlap(top, second)
+        && top.confidence() >= properties.confidentThresholdOrDefault()
+        && top.autoRunEligible()) {
+      return WorkflowMatchResult.confident(top);
+    }
     double margin = second == null ? 1.0 : top.confidence() - second.confidence();
     if (top.confidence() >= properties.confidentThresholdOrDefault()
         && margin >= properties.confidentMarginOrDefault()
@@ -57,6 +62,11 @@ public class WorkflowMatchingCore {
           buildConfirmationQuestion(ranked), ranked.stream().limit(3).toList());
     }
     return WorkflowMatchResult.unknown(MATCH_FAILURE_MESSAGE);
+  }
+
+  private boolean isSameIntentWorkflowOverlap(
+      WorkflowMatchCandidate top, WorkflowMatchCandidate second) {
+    return second != null && top.intentDefinitionId().equals(second.intentDefinitionId());
   }
 
   private WorkflowMatchCandidate rerank(

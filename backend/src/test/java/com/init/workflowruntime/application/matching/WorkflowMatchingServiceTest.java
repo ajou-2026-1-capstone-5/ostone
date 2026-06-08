@@ -449,8 +449,8 @@ class WorkflowMatchingServiceTest {
   }
 
   @Test
-  @DisplayName("top 후보 간 margin이 좁으면 혼동 유형을 남기고 확인 질문으로 내린다")
-  void should_markConfusionType_when_candidatesAreTooClose() {
+  @DisplayName("같은 intent의 workflow 후보만 겹치면 top 후보를 확정한다")
+  void should_returnConfident_when_sameIntentWorkflowCandidatesOverlap() {
     givenSession();
     given(profileRepository.countActiveProfiles(101L)).willReturn(2);
     given(embeddingClient.embed(anyString(), eq(EmbeddingInputType.SEARCH_QUERY)))
@@ -485,16 +485,17 @@ class WorkflowMatchingServiceTest {
 
     WorkflowMatchResult result = service.match(1L, "환불하고 싶어요", "");
 
-    assertThat(result.status()).isEqualTo("AMBIGUOUS");
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.candidates().getFirst().workflowDefinitionId()).isEqualTo(20L);
     assertThat(result.candidates().getFirst().confusionType())
         .isEqualTo("same_intent_workflow_overlap");
     verify(decisionRepository)
         .record(
             eq(1L),
             eq(101L),
-            eq(null),
-            eq(null),
-            eq("AMBIGUOUS"),
+            eq(20L),
+            eq(10L),
+            eq("CONFIDENT"),
             eq(result.candidates().getFirst().confidence()),
             anyString(),
             eq("profile-v1"),
@@ -504,7 +505,7 @@ class WorkflowMatchingServiceTest {
             anyString(),
             org.mockito.ArgumentMatchers.contains("same_intent_workflow_overlap"),
             org.mockito.ArgumentMatchers.contains("same_intent_workflow_overlap"),
-            eq("confusion_same_intent_workflow_overlap"));
+            eq(null));
   }
 
   @Test
