@@ -1098,7 +1098,11 @@
 .candidateActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--s-2);
+  gap: var(--s-3);
+}
+
+.candidateActions button {
+  min-width: 88px;
 }
 
 .decisionReason {
