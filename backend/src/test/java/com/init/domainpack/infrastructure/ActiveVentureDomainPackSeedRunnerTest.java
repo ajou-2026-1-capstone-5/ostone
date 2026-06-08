@@ -195,6 +195,64 @@ class ActiveVentureDomainPackSeedRunnerTest {
   }
 
   @Test
+  @DisplayName("확장된 ActiveVenture seed resource의 참조와 workflow graph 계약이 유효하다")
+  void shouldLoadExpandedActiveVentureSeedResource() throws Exception {
+    JsonNode seed;
+    try (InputStream inputStream =
+        new ClassPathResource("seed/activeventure-workflow-candidate.json").getInputStream()) {
+      seed = objectMapper.readTree(inputStream);
+    }
+
+    JsonNode summary =
+        objectMapper.readTree(seed.path("domainPackDraft").path("summaryJson").asText());
+    assertThat(summary.path("consultationCount").asInt()).isEqualTo(900);
+    assertThat(summary.path("availableUniqueConsultationCount").asInt()).isEqualTo(900);
+    assertThat(seed.path("intentDraft").path("intents")).hasSize(100);
+    assertThat(seed.path("workflowDraft").path("workflows")).hasSize(100);
+
+    Set<String> intentCodes = collectCodes(seed.path("intentDraft").path("intents"), "intentCode");
+    Set<String> slotCodes = collectCodes(seed.path("workflowDraft").path("slots"), "slotCode");
+    Set<String> policyCodes =
+        collectCodes(seed.path("workflowDraft").path("policies"), "policyCode");
+    Set<String> workflowCodes =
+        collectCodes(seed.path("workflowDraft").path("workflows"), "workflowCode");
+
+    assertThat(intentCodes).hasSize(seed.path("intentDraft").path("intents").size());
+    assertThat(slotCodes).hasSize(seed.path("workflowDraft").path("slots").size());
+    assertThat(policyCodes).hasSize(seed.path("workflowDraft").path("policies").size());
+    assertThat(workflowCodes).hasSize(seed.path("workflowDraft").path("workflows").size());
+
+    Set<String> bindingKeys = new HashSet<>();
+    for (JsonNode binding : seed.path("workflowDraft").path("intentSlotBindings")) {
+      assertThat(intentCodes).contains(binding.path("intentCode").asText());
+      assertThat(slotCodes).contains(binding.path("slotCode").asText());
+      String bindingKey =
+          binding.path("intentCode").asText() + ":" + binding.path("slotCode").asText();
+      assertThat(bindingKeys).doesNotContain(bindingKey);
+      bindingKeys.add(bindingKey);
+    }
+
+    for (JsonNode workflow : seed.path("workflowDraft").path("workflows")) {
+      String workflowCode = workflow.path("workflowCode").asText();
+      String graphJson = workflow.path("graphJson").asText();
+      assertThat(intentCodes).contains(workflow.path("intentCode").asText());
+      assertThat(objectMapper.readTree(workflow.path("evidenceJson").asText()))
+          .allSatisfy(
+              evidence ->
+                  assertThat(evidence.path("type").asText())
+                      .isIn("exemplar_conv_id", "member_conv_id", "keyword"));
+
+      JsonNode graph = objectMapper.readTree(graphJson);
+      for (JsonNode node : graph.path("nodes")) {
+        if ("ACTION".equals(node.path("type").asText())) {
+          assertThat(policyCodes).contains(node.path("policyRef").asText());
+        }
+      }
+      ReflectionTestUtils.invokeMethod(runner, "validateGraph", graphJson, workflowCode);
+    }
+  }
+
+  @Test
   @DisplayName("확장된 HanaCard seed resource의 참조와 workflow graph 계약이 유효하다")
   void shouldLoadExpandedHanaCardSeedResource() throws Exception {
     JsonNode seed;
