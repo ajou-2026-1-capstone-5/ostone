@@ -211,8 +211,12 @@ def test_initial_llm_lifecycle_starts_only_for_initial_run(monkeypatch: pytest.M
     dag_module = _import_dag_module(monkeypatch)
     calls: list[str] = []
 
+    def fake_start_llm_ecs_service() -> dict[str, bool]:
+        calls.append("start")
+        return {"enabled": True}
+
     monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
-    monkeypatch.setattr(dag_module, "start_llm_ecs_service", lambda: calls.append("start") or {"enabled": True})
+    monkeypatch.setattr(dag_module, "start_llm_ecs_service", fake_start_llm_ecs_service)
 
     assert dag_module._start_initial_llm_service() == {"enabled": True}
     assert calls == ["start"]
@@ -227,8 +231,12 @@ def test_initial_llm_lifecycle_stops_only_for_initial_run(monkeypatch: pytest.Mo
     dag_module = _import_dag_module(monkeypatch)
     calls: list[str] = []
 
+    def fake_stop_llm_ecs_service() -> dict[str, bool]:
+        calls.append("stop")
+        return {"enabled": True}
+
     monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
-    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", lambda: calls.append("stop") or {"enabled": True})
+    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", fake_stop_llm_ecs_service)
 
     assert dag_module._stop_initial_llm_service() == {"enabled": True}
     assert calls == ["stop"]
@@ -243,8 +251,12 @@ def test_replay_llm_lifecycle_does_not_stop_initial_run(monkeypatch: pytest.Monk
     dag_module = _import_dag_module(monkeypatch)
     calls: list[str] = []
 
+    def fake_stop_llm_ecs_service() -> dict[str, bool]:
+        calls.append("stop")
+        return {"enabled": True}
+
     monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
-    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", lambda: calls.append("stop") or {"enabled": True})
+    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", fake_stop_llm_ecs_service)
 
     assert dag_module._stop_replay_llm_service() == {"enabled": False, "reason": "initial_run"}
     assert calls == []
