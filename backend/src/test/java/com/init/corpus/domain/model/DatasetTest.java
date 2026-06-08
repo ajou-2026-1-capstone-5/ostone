@@ -3,6 +3,7 @@ package com.init.corpus.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -71,8 +72,7 @@ class DatasetTest {
   @DisplayName("markIngestionTriggerFailed: DONE 상태면 전이 없이 false를 반환한다")
   void markIngestionTriggerFailed_fromDone_returnsFalse() {
     Dataset dataset = Dataset.createUploading(1L, "key", "테스트", "CRM", 1L);
-    org.springframework.test.util.ReflectionTestUtils.setField(
-        dataset, "status", DatasetStatus.DONE);
+    PersistenceTestFixtures.setField(dataset, "status", DatasetStatus.DONE);
 
     boolean changed = dataset.markIngestionTriggerFailed();
 

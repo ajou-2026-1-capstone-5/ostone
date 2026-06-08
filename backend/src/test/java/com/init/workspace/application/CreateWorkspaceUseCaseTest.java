@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workspace.application.exception.WorkspaceInvalidKeyException;
 import com.init.workspace.application.exception.WorkspaceKeyAlreadyExistsException;
 import com.init.workspace.domain.model.Workspace;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateWorkspaceUseCase")
@@ -114,17 +114,17 @@ class CreateWorkspaceUseCaseTest {
 
   private Workspace buildWorkspace(Long id, String key, String name, String description) {
     Workspace workspace = Workspace.create(WorkspaceKey.of(key), name, description);
-    ReflectionTestUtils.setField(workspace, "id", id);
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.assignGeneratedId(workspace, id);
+    PersistenceTestFixtures.setField(
         workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.setField(
         workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }
 
   private WorkspaceMember buildMember(Long workspaceId, Long userId, WorkspaceMemberRole role) {
     WorkspaceMember member = WorkspaceMember.create(workspaceId, userId, role);
-    ReflectionTestUtils.setField(member, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(member, 1L);
     return member;
   }
 }

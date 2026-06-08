@@ -20,6 +20,7 @@ import com.init.payment.domain.model.PaymentStatus;
 import com.init.payment.domain.repository.PaymentCancelRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.shared.application.exception.BusinessException;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,6 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -192,7 +192,7 @@ class AdminBillingUseCaseTest {
   void should_Toss호출없이실패_when_결제키없음() {
     // given
     Payment payment = completedPayment("ord_1", "pay_1");
-    ReflectionTestUtils.setField(payment, "paymentKey", null);
+    PersistenceTestFixtures.setField(payment, "paymentKey", null);
     given(paymentRepository.findByIdForUpdate(100L)).willReturn(Optional.of(payment));
     given(paymentCancelRepository.existsByPaymentId(100L)).willReturn(false);
 
@@ -251,7 +251,7 @@ class AdminBillingUseCaseTest {
 
   private Payment completedPayment(String orderId, String paymentKey) {
     Payment payment = Payment.createOrder(1L, 10L, orderId, 29_000L, "KRW", "Pro");
-    ReflectionTestUtils.setField(payment, "id", 100L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 100L);
     payment.complete(paymentKey, "CARD", OffsetDateTime.now(), "https://receipt", "{}");
     return payment;
   }

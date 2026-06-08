@@ -18,6 +18,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.DuplicateException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
@@ -45,7 +46,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -94,7 +94,7 @@ class DemoChatSessionRegistrationServiceTest {
         .willAnswer(
             invocation -> {
               ChatSession session = invocation.getArgument(0);
-              ReflectionTestUtils.setField(session, "id", SESSION_ID);
+              PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
               return session;
             });
     given(chatMessageRepository.save(any(ChatMessage.class)))
@@ -129,7 +129,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_appendUserAndAssistantMessages_when_appendMessage() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.empty());
@@ -169,7 +169,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_appendOnlyUserMessage_when_humanActiveSession() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     session.assignTo(11L);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
@@ -202,7 +202,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_appendOnlyUserMessage_when_aiAssistOnlySession() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     session.assignTo(11L);
     session.switchResponseMode(ChatSessionResponseMode.AI_ASSIST_ONLY);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
@@ -236,7 +236,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_appendFallbackAssistantMessage_when_llmCallFails() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.empty());
@@ -265,7 +265,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_appendFallbackAssistantMessage_when_llmCallFailsWithRuntimeException() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.empty());
@@ -297,7 +297,7 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(lease).isPresent();
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
 
     try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
@@ -322,9 +322,9 @@ class DemoChatSessionRegistrationServiceTest {
   void should_listRegisteredMessages_when_listMessages() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     ChatMessage greeting = ChatMessage.create(SESSION_ID, 1, "ASSISTANT", "TEXT", "안녕하세요");
-    ReflectionTestUtils.setField(greeting, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(greeting, 1L);
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(SESSION_ID))
         .willReturn(List.of(greeting));
@@ -343,7 +343,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_throwNotFound_when_listMessagesWorkspaceMismatch() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID + 1, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
 
     assertThatThrownBy(
@@ -357,7 +357,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_sendConversationContextInAscendingOrder_when_appendMessage() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.of(ChatMessage.create(SESSION_ID, 3, "ASSISTANT", "TEXT", "최근 답변")));
@@ -411,7 +411,7 @@ class DemoChatSessionRegistrationServiceTest {
   void should_swallowBroadcastError_afterCommit() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    PersistenceTestFixtures.assignGeneratedId(session, SESSION_ID);
     given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.empty());

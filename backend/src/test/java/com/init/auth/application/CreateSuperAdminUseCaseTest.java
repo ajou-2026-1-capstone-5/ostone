@@ -11,6 +11,7 @@ import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.domain.model.AppUser;
 import com.init.auth.domain.model.UserRole;
 import com.init.auth.domain.repository.AppUserRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateSuperAdminUseCase")
@@ -46,7 +46,7 @@ class CreateSuperAdminUseCaseTest {
 
     AppUser savedUser =
         AppUser.createSuperAdmin("운영 관리자", "super@example.com", "$2a$10$hashedpassword");
-    ReflectionTestUtils.setField(savedUser, "id", 10L);
+    PersistenceTestFixtures.assignGeneratedId(savedUser, 10L);
     given(userRepository.save(any(AppUser.class))).willReturn(savedUser);
 
     // when

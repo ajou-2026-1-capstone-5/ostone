@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.application.exception.WorkspaceInvalidDescriptionException;
 import com.init.workspace.application.exception.WorkspaceInvalidNameException;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateWorkspaceUseCase")
@@ -114,10 +114,10 @@ class UpdateWorkspaceUseCaseTest {
 
   private Workspace buildWorkspace(String name, String description) {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), name, description);
-    ReflectionTestUtils.setField(workspace, "id", 1L);
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.assignGeneratedId(workspace, 1L);
+    PersistenceTestFixtures.setField(
         workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(
+    PersistenceTestFixtures.setField(
         workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }

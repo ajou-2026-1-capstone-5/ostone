@@ -3,12 +3,12 @@ package com.init.payment.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("Payment 도메인")
 class PaymentTest {
@@ -164,7 +164,7 @@ class PaymentTest {
 
   private Payment completedPayment(String orderId) {
     Payment payment = Payment.createOrder(1L, 5L, orderId, 29000, "KRW", "Pro");
-    ReflectionTestUtils.setField(payment, "id", 100L);
+    PersistenceTestFixtures.assignGeneratedId(payment, 100L);
     payment.complete("pay_" + orderId, "카드", NOW, "https://receipt", "{}");
     return payment;
   }
