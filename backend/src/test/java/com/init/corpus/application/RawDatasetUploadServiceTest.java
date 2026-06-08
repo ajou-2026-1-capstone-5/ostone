@@ -76,6 +76,51 @@ class RawDatasetUploadServiceTest {
             transactionManager);
   }
 
+  private void givenWorkspaceAccessAllowed() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+  }
+
+  private void givenDatasetKeyAvailable() {
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+  }
+
+  private void givenDatasetKeyAvailable(String datasetKey) {
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, datasetKey)).willReturn(false);
+  }
+
+  private void givenUploadAllowed() {
+    givenWorkspaceAccessAllowed();
+    givenDatasetKeyAvailable();
+  }
+
+  private Dataset givenSavedDataset(String datasetKey) {
+    Dataset savedDataset = givenSavedDatasetIdOnly();
+    given(savedDataset.getDatasetKey()).willReturn(datasetKey);
+    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
+    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
+    return savedDataset;
+  }
+
+  private Dataset givenSavedDatasetIdOnly() {
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+    return savedDataset;
+  }
+
+  private Conversation givenSavedConversation() {
+    Conversation savedConversation = mock(Conversation.class);
+    given(savedConversation.getId()).willReturn(100L);
+    given(conversationRepository.save(any())).willReturn(savedConversation);
+    return savedConversation;
+  }
+
+  private void givenSuccessfulUploadPersistence(String datasetKey) {
+    givenSavedDataset(datasetKey);
+    givenSavedConversation();
+  }
+
   @Test
   @DisplayName("워크스페이스 없음 → WorkspaceNotFoundException, DB write 없음")
   void should_WorkspaceNotFoundException발생_when_워크스페이스없음() {
@@ -107,8 +152,7 @@ class RawDatasetUploadServiceTest {
   @DisplayName("데이터셋 키 중복 (사전 검증) → DatasetKeyConflictException, DB write 없음")
   void should_DatasetKeyConflictException발생_when_데이터셋키중복사전검증() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenWorkspaceAccessAllowed();
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
         .willReturn(true);
 
@@ -123,10 +167,8 @@ class RawDatasetUploadServiceTest {
   @DisplayName("quota 초과 → QuotaExceededException, DB write 없음")
   void should_QuotaExceededException발생_when_quota초과() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
-        .willReturn(false);
+    givenWorkspaceAccessAllowed();
+    givenDatasetKeyAvailable("test-dataset-key");
     willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3))
         .given(workspaceQuotaValidator)
         .assertDatasetUploadAllowed(1L);
@@ -142,19 +184,8 @@ class RawDatasetUploadServiceTest {
   @DisplayName("화자 prefix 없는 멀티라인 turn 을 포함한 content 도 거부 없이 업로드된다 (#505)")
   void should_업로드성공_when_멀티라인turn포함() {
     // given: 한 화자가 번호 목록으로 여러 줄에 걸쳐 말하는 실제 상담 로그 형태 (과거에는 400으로 거부됨)
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(savedDataset.getDatasetKey()).willReturn("test-key");
-    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
-    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
-    Conversation savedConversation = mock(Conversation.class);
-    given(savedConversation.getId()).willReturn(100L);
-    given(conversationRepository.save(any())).willReturn(savedConversation);
+    givenUploadAllowed();
+    givenSuccessfulUploadPersistence("test-key");
 
     RawDatasetUploadCommand command =
         new RawDatasetUploadCommand(
@@ -185,21 +216,9 @@ class RawDatasetUploadServiceTest {
   @DisplayName("정상 업로드 → DatasetUploadResult 반환, conversation/turn 저장 확인")
   void should_DatasetUploadResult반환_when_정상업로드() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
-        .willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(savedDataset.getDatasetKey()).willReturn("test-dataset-key");
-    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
-    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
-
-    Conversation savedConversation = mock(Conversation.class);
-    given(savedConversation.getId()).willReturn(100L);
-    given(conversationRepository.save(any())).willReturn(savedConversation);
+    givenWorkspaceAccessAllowed();
+    givenDatasetKeyAvailable("test-dataset-key");
+    givenSuccessfulUploadPersistence("test-dataset-key");
 
     // when
     DatasetUploadResult result = service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L));
@@ -217,9 +236,7 @@ class RawDatasetUploadServiceTest {
   @DisplayName("Dataset 저장 시 DataIntegrityViolationException → DatasetKeyConflictException")
   void should_DatasetKeyConflictException발생_when_Dataset저장DataIntegrityViolation() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+    givenUploadAllowed();
     given(datasetRepository.save(any()))
         .willThrow(new DataIntegrityViolationException("duplicate key"));
 
@@ -232,13 +249,8 @@ class RawDatasetUploadServiceTest {
   @DisplayName("conversationRepository.save() 실패 시 dataset/conversation 보상 삭제 실행")
   void should_보상삭제실행_when_conversationSave실패() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
+    givenUploadAllowed();
+    givenSavedDatasetIdOnly();
 
     given(conversationRepository.save(any())).willThrow(new RuntimeException("flush failed"));
 
@@ -256,17 +268,9 @@ class RawDatasetUploadServiceTest {
       "conversationTurnRepository.flush() DataIntegrityViolationException(uq_turn_index) → DuplicateTurnIndexException, 보상 삭제 실행")
   void should_DuplicateTurnIndexException발생_when_flushDataIntegrityViolation() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
-
-    Conversation savedConversation = mock(Conversation.class);
-    given(savedConversation.getId()).willReturn(100L);
-    given(conversationRepository.save(any())).willReturn(savedConversation);
+    givenUploadAllowed();
+    givenSavedDatasetIdOnly();
+    givenSavedConversation();
 
     given(conversationTurnRepository.saveAll(anyList()))
         .willReturn(List.of(mock(ConversationTurn.class)));
@@ -289,17 +293,9 @@ class RawDatasetUploadServiceTest {
       "conversationTurnRepository.flush() 비turn_index 제약 위반 → DataIntegrityViolationException 전파, 보상 삭제 실행")
   void should_DataIntegrityViolationException전파_when_flush비turnIndex제약위반() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
-
-    Conversation savedConversation = mock(Conversation.class);
-    given(savedConversation.getId()).willReturn(100L);
-    given(conversationRepository.save(any())).willReturn(savedConversation);
+    givenUploadAllowed();
+    givenSavedDatasetIdOnly();
+    givenSavedConversation();
 
     given(conversationTurnRepository.saveAll(anyList()))
         .willReturn(List.of(mock(ConversationTurn.class)));
@@ -325,20 +321,8 @@ class RawDatasetUploadServiceTest {
   @DisplayName("1000건 업로드 시 conversationRepository.save() 1000회 호출 [Assumption: NI-3 Default A]")
   void should_1000회저장호출_when_1000건업로드() {
     // given
-    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
-
-    Dataset savedDataset = mock(Dataset.class);
-    given(savedDataset.getId()).willReturn(1L);
-    given(savedDataset.getDatasetKey()).willReturn("batch-key");
-    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
-    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
-    given(datasetRepository.save(any())).willReturn(savedDataset);
-
-    Conversation savedConversation = mock(Conversation.class);
-    given(savedConversation.getId()).willReturn(100L);
-    given(conversationRepository.save(any())).willReturn(savedConversation);
+    givenUploadAllowed();
+    givenSuccessfulUploadPersistence("batch-key");
 
     List<RawConversationInput> conversations = new ArrayList<>(1000);
     for (int i = 0; i < 1000; i++) {
