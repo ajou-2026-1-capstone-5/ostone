@@ -67,6 +67,12 @@ def _stop_initial_llm_service() -> Mapping[str, object]:
     return stop_llm_ecs_service()
 
 
+def _stop_replay_llm_service() -> Mapping[str, object]:
+    if _run_mode() == RUN_MODE_INITIAL:
+        return {"enabled": False, "reason": "initial_run"}
+    return stop_llm_ecs_service()
+
+
 def _set_task_dependency(upstream: Any, downstream: Any) -> None:
     upstream >> downstream
 
@@ -480,7 +486,7 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
 
     @task(task_id="stop_llm_service", trigger_rule="all_done")
     def stop_llm_service() -> dict[str, object]:
-        return stop_llm_ecs_service()
+        return dict(_stop_replay_llm_service())
 
     @task(task_id="evaluation")
     def evaluation(draft_generation_result: dict[str, str]) -> dict[str, str]:
