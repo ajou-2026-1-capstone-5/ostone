@@ -59,6 +59,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       LoggerFactory.getLogger(ActiveVentureDomainPackSeedRunner.class);
   private static final String DESCRIPTION_FIELD = "description";
   private static final String DEMO_SIGN_IN_VALUE = String.join("", "demo", "1234");
+  private static final String SUPER_ADMIN_DEMO_EMAIL = "superadmin.demo@ostone.local";
+  private static final String SUPER_ADMIN_DEMO_NAME = "슈퍼 어드민 데모 계정";
   private static final List<SeedConfig> SEED_CONFIGS =
       List.of(
           new SeedConfig(
@@ -242,8 +244,40 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
           accountConfig.email(),
           accountConfig.workspaceId());
     }
+    seedSuperAdminAccount();
     resetAppUserSequence();
     resetWorkspaceMemberSequence();
+  }
+
+  // 워크스페이스에 종속되지 않는 글로벌 SUPER_ADMIN 데모 계정을 멱등 upsert 한다.
+  // SUPER_ADMIN 전용 콘솔/관리 API 로컬 시연·검증용이며, 운영자 데모 계정과 동일한
+  // DEMO_SIGN_IN_VALUE 비밀번호를 사용한다(workspace_member 매핑은 만들지 않는다).
+  private void seedSuperAdminAccount() {
+    entityManager
+        .createNativeQuery(
+            """
+            INSERT INTO app.app_user (
+              email, name, password_hash, password_reset_required, role, status, profile_json
+            )
+            VALUES (
+              :email, :name, :credentialHash, false, 'SUPER_ADMIN', 'ACTIVE', '{}'::jsonb
+            )
+            ON CONFLICT (email) DO UPDATE
+              SET name = EXCLUDED.name,
+                  password_hash = EXCLUDED.password_hash,
+                  password_reset_required = false,
+                  role = 'SUPER_ADMIN',
+                  status = 'ACTIVE',
+                  profile_json = '{}'::jsonb,
+                  password_reset_token_hash = null,
+                  password_reset_token_expires_at = null,
+                  updated_at = now()
+            """)
+        .setParameter("email", SUPER_ADMIN_DEMO_EMAIL)
+        .setParameter("name", SUPER_ADMIN_DEMO_NAME)
+        .setParameter("credentialHash", passwordEncoder.encode(DEMO_SIGN_IN_VALUE))
+        .executeUpdate();
+    log.info("Seed super admin demo account '{}'", SUPER_ADMIN_DEMO_EMAIL);
   }
 
   private Long upsertDemoUser(DemoAccountConfig accountConfig) {

@@ -61,6 +61,16 @@ resource "aws_ecs_task_definition" "backend" {
           value = "8080"
         },
         {
+          # 최초 기동 시 SUPER_ADMIN 계정이 없으면 SuperAdminBootstrapRunner가
+          # 이 이메일 + SUPER_ADMIN_PASSWORD(시크릿)로 1회 생성한다(이미 있으면 건너뜀).
+          name  = "SUPER_ADMIN_EMAIL"
+          value = var.super_admin_email
+        },
+        {
+          name  = "SUPER_ADMIN_NAME"
+          value = var.super_admin_name
+        },
+        {
           name  = "DB_HOST"
           value = aws_db_instance.postgres.address
         },
@@ -202,6 +212,10 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name      = "TOSS_BILLING_KEY_ENCRYPTION_KEY"
           valueFrom = "${aws_secretsmanager_secret.app.arn}:toss_billing_key_encryption_key::"
+        },
+        {
+          name      = "SUPER_ADMIN_PASSWORD"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:super_admin_password::"
         }
       ]
 

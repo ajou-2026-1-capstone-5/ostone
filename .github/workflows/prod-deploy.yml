@@ -109,6 +109,8 @@ jobs:
       TF_VAR_toss_secret_key: ${{ secrets.PROD_TOSS_SECRET_KEY }}
       TF_VAR_toss_webhook_secret: ${{ secrets.PROD_TOSS_WEBHOOK_SECRET }}
       TF_VAR_toss_billing_key_encryption_key: ${{ secrets.PROD_TOSS_BILLING_KEY_ENCRYPTION_KEY }}
+      TF_VAR_super_admin_email: ${{ vars.PROD_SUPER_ADMIN_EMAIL || 'superadmin@ajou-cstone.com' }}
+      TF_VAR_super_admin_password: ${{ secrets.PROD_SUPER_ADMIN_PASSWORD }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -161,6 +163,7 @@ jobs:
             TF_VAR_toss_secret_key
             TF_VAR_toss_webhook_secret
             TF_VAR_toss_billing_key_encryption_key
+            TF_VAR_super_admin_password
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }

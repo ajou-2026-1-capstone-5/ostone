@@ -42,6 +42,7 @@ resource "aws_secretsmanager_secret_version" "app" {
     toss_secret_key                = var.toss_secret_key
     toss_webhook_secret            = var.toss_webhook_secret
     toss_billing_key_encryption_key = var.toss_billing_key_encryption_key
+    super_admin_password           = var.super_admin_password
   })
 }
 
