@@ -75,7 +75,10 @@ public class WorkflowMatchingService {
       if (!candidateProvider.hasActiveProfiles(session.getDomainPackVersionId())) {
         decisionRecorder.recordNoCandidate(session, textHash, "profile_missing");
         metrics.recordProfileMissing();
-        return WorkflowMatchResult.unknown("아직 이 도메인팩의 매칭 프로필이 준비되지 않았습니다.");
+        // 임베딩 매칭 프로필이 아직 없으면 임베딩 매칭을 dead-end(UNKNOWN) 로 끝내지 않고 UNAVAILABLE 로
+        // 반환한다. 그래야 IntentClassificationService 가 키워드 기반 폴백 분류를 수행한다. (시드 도메인팩은
+        // prod 에서 profile build 를 의도적으로 건너뛰므로, 프로필이 없을 때 키워드 매칭으로 우아하게 저하한다.)
+        return WorkflowMatchResult.unavailable();
       }
 
       WorkflowMatchingEvaluation evaluation =
