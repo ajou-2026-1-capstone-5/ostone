@@ -7,7 +7,7 @@ import { test } from "node:test";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SEED_RUNNER = join(
   ROOT,
-  "backend/src/main/java/com/init/domainpack/infrastructure/ActiveVentureDomainPackSeedRunner.java",
+  "backend/src/main/java/com/init/domainpack/infrastructure/DemoAccountSeedRunner.java",
 );
 const README = join(ROOT, "README.md");
 
