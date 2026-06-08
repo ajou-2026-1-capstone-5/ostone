@@ -239,6 +239,22 @@ def test_initial_llm_lifecycle_stops_only_for_initial_run(monkeypatch: pytest.Mo
     assert calls == ["stop"]
 
 
+def test_replay_llm_lifecycle_does_not_stop_initial_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    calls: list[str] = []
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_INITIAL)
+    monkeypatch.setattr(dag_module, "stop_llm_ecs_service", lambda: calls.append("stop") or {"enabled": True})
+
+    assert dag_module._stop_replay_llm_service() == {"enabled": False, "reason": "initial_run"}
+    assert calls == []
+
+    monkeypatch.setattr(dag_module, "_run_mode", lambda: dag_module.RUN_MODE_DOMAIN_CONFIRMED_REPLAY)
+
+    assert dag_module._stop_replay_llm_service() == {"enabled": True}
+    assert calls == ["stop"]
+
+
 def test_set_task_dependency_links_airflow_task_like_objects(monkeypatch: pytest.MonkeyPatch) -> None:
     dag_module = _import_dag_module(monkeypatch)
     linked: list[tuple[str, str]] = []

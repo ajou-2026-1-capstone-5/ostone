@@ -25,6 +25,9 @@ MAX_SAMPLE_SIZE = 24
 MAX_CANDIDATES = 5
 MIN_CANDIDATES = 3
 MAX_SNIPPET_CHARS = 360
+DEFAULT_LLM_TIMEOUT_SECONDS = 90.0
+MAX_LLM_TIMEOUT_SECONDS = 300.0
+LLM_MAX_TOKENS = 520
 STOPWORDS = frozenset(
     {
         "고객",
@@ -125,10 +128,14 @@ def _generate_llm_candidates(
     request_payload = {
         "model": runtime_config.llm_model_name,
         "temperature": 0.1,
+        "max_tokens": LLM_MAX_TOKENS,
         "messages": [
             {
                 "role": "system",
-                "content": "You classify customer-service consultation logs into concise business domains.",
+                "content": (
+                    "You classify customer-service consultation logs into concise business domains. "
+                    "Return only the requested JSON object. Do not include analysis or markdown."
+                ),
             },
             {"role": "user", "content": prompt},
         ],
@@ -162,7 +169,9 @@ def _prompt(sampled: list[ProcessedConversation], fallback_terms: list[str], sam
                 "Each candidate must include displayName, confidence, description, "
                 "evidenceTerms, evidenceConversationIds, suggestedDomainLexicon.",
                 "Keep displayName short and operator-facing.",
+                "Return JSON only. Do not include reasoning, explanations, or markdown.",
             ],
+            "thinking": "disabled",
             "sampleHash": sample_hash,
             "topTerms": fallback_terms,
             "samples": samples,
@@ -253,12 +262,12 @@ def _sample_size() -> int:
 
 
 def _llm_timeout() -> float:
-    raw = os.getenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "20").strip()
+    raw = os.getenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", str(DEFAULT_LLM_TIMEOUT_SECONDS)).strip()
     try:
         parsed = float(raw)
     except ValueError:
-        return 20.0
-    return max(1.0, min(120.0, parsed))
+        return DEFAULT_LLM_TIMEOUT_SECONDS
+    return max(1.0, min(MAX_LLM_TIMEOUT_SECONDS, parsed))
 
 
 def _allow_generation_fallback(runtime_config: PipelineRuntimeConfig) -> bool:

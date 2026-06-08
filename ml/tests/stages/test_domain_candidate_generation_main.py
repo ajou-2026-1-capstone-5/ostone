@@ -92,7 +92,7 @@ def test_sampling_and_runtime_knobs_are_bounded(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_SAMPLE_SIZE", "not-a-number")
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "not-a-number")
     assert main._sample_size() == main.MAX_SAMPLE_SIZE
-    assert main._llm_timeout() == 20.0
+    assert main._llm_timeout() == main.DEFAULT_LLM_TIMEOUT_SECONDS
 
 
 def test_generation_fallback_is_allowed_when_llm_runtime_is_not_configured() -> None:
@@ -253,6 +253,7 @@ def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: p
     assert request["endpoint"] == "http://llm.local/chat/completions"
     assert request["headers"]["Authorization"] == "Bearer secret-token"
     assert request["json"]["model"] == "model-a"
+    assert request["json"]["max_tokens"] == main.LLM_MAX_TOKENS
 
 
 def test_generate_llm_candidates_requires_candidates_list() -> None:

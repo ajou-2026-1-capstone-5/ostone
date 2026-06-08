@@ -41,6 +41,7 @@ def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> No
     monkeypatch.setenv("PIPELINE_ECS_SUBNET_IDS", "subnet-a,subnet-b")
     monkeypatch.setenv("PIPELINE_ECS_SECURITY_GROUP_IDS", "sg-stage")
     monkeypatch.setenv("PIPELINE_ECS_POLL_INTERVAL_SECONDS", "0")
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "90")
 
     runtime_config = PipelineRuntimeConfig(
         artifact_root=Path("/tmp/artifacts"),
@@ -76,6 +77,7 @@ def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> No
         "name": "PIPELINE_UPSTREAM_MANIFEST_URI",
         "value": "s3://artifacts/domain-pack/dag/run/ingestion/manifest.json",
     } in environment
+    assert {"name": "PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "value": "90"} in environment
 
 
 def test_run_stage_task_forwards_raw_object_key_to_ingestion(monkeypatch) -> None:
