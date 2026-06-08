@@ -54,6 +54,10 @@ describe("accessDeniedMessage", () => {
     expect(accessDeniedMessage(new ApiRequestError(500, "INTERNAL_ERROR", "서버 오류"))).toBeNull();
   });
 
+  it("403이지만 WORKSPACE_ACCESS_DENIED 코드가 아니면 null을 반환한다", () => {
+    expect(accessDeniedMessage(new ApiRequestError(403, "OTHER_FORBIDDEN", "거부"))).toBeNull();
+  });
+
   it("ApiRequestError가 아니면 null을 반환한다", () => {
     expect(accessDeniedMessage(new Error("network"))).toBeNull();
     expect(accessDeniedMessage(null)).toBeNull();

@@ -187,13 +187,13 @@ describe("BillingPage", () => {
   it("구독 로딩 중 로딩 상태 표시", () => {
     setupDefaults({ isLoading: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByTestId("billing-loading")).toBeTruthy();
+    expect(screen.getByText("빌링 정보를 불러오는 중입니다.")).toBeInTheDocument();
   });
 
   it("구독 에러 시 에러 상태 표시", () => {
     setupDefaults({ isError: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByTestId("billing-error")).toBeTruthy();
+    expect(screen.getByText("빌링 정보를 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
   it("권한 부족(403)이면 권한 안내를 보여주고 일반 에러는 숨긴다", () => {
@@ -220,15 +220,15 @@ describe("BillingPage", () => {
       isError: false,
       refetch: vi.fn(),
     } as never);
-    const { container } = render(<BillingPage />);
-    expect(container).toBeTruthy();
+    render(<BillingPage />);
+    expect(screen.getByText("Free")).toBeInTheDocument();
   });
 
   it("구독 있을 때 구독 섹션 렌더링", () => {
     setupDefaults();
     render(<BillingPage />);
-    expect(screen.getByRole("heading", { level: 1, name: "구독" })).toBeTruthy();
-    expect(screen.getByText("다음 결제일")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "구독" })).toBeInTheDocument();
+    expect(screen.getByText("다음 결제일")).toBeInTheDocument();
   });
 
   it("구독 중이면 기본은 관리 화면 + '플랜 업그레이드' 버튼을 보여주고 비교 카드는 숨긴다", () => {
@@ -240,8 +240,8 @@ describe("BillingPage", () => {
       refetch: vi.fn(),
     } as never);
     render(<BillingPage />);
-    expect(screen.getByText("다음 결제일")).toBeTruthy();
-    expect(screen.getByTestId("upgrade-plan-button")).toBeTruthy();
+    expect(screen.getByText("다음 결제일")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "업그레이드" })).toBeInTheDocument();
     expect(screen.queryByText("Max")).toBeNull();
   });
 
@@ -254,36 +254,35 @@ describe("BillingPage", () => {
       refetch: vi.fn(),
     } as never);
     render(<BillingPage />);
-    fireEvent.click(screen.getByTestId("upgrade-plan-button"));
-    expect(screen.getByText("Max")).toBeTruthy();
-    expect(screen.getByText("Enterprise")).toBeTruthy();
-    expect(screen.getByTestId("current-plan-cta")).toBeTruthy();
-    expect(screen.getByText("이용 중")).toBeTruthy();
-    expect(screen.getByText("← 구독 관리로 돌아가기")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "업그레이드" }));
+    expect(screen.getByText("Max")).toBeInTheDocument();
+    expect(screen.getByText("Enterprise")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이용 중" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "← 구독 관리로 돌아가기" })).toBeInTheDocument();
   });
 
   it("overview 에러 시 에러 메시지 표시", () => {
     setupDefaults({ isError: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByText("빌링 정보를 불러오지 못했습니다.")).toBeTruthy();
+    expect(screen.getByText("빌링 정보를 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
   it("overview 로딩 중 로딩 표시", () => {
     setupDefaults({ isLoading: true, data: undefined });
-    const { container } = render(<BillingPage />);
-    expect(container).toBeTruthy();
+    render(<BillingPage />);
+    expect(screen.getByText("빌링 정보를 불러오는 중입니다.")).toBeInTheDocument();
   });
 
   it("결제 내역 있을 때 PaymentHistoryList 렌더링 (DONE 포함)", () => {
     setupDefaults({ data: { ...baseOverview, payments: [donePayment] } });
     render(<BillingPage />);
-    expect(screen.getByText("결제 내역")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "결제 내역" })).toBeInTheDocument();
   });
 
   it("활성 구독이면 구독 해지 CTA를 표시한다", () => {
     setupDefaults();
     render(<BillingPage />);
-    expect(screen.getByText("구독 해지")).toBeTruthy();
+    expect(screen.getByText("구독 해지")).toBeInTheDocument();
   });
 
   it("환불 완료 콜백 이후 결제 상태와 CTA를 갱신한다", () => {
@@ -296,7 +295,7 @@ describe("BillingPage", () => {
       refundProps.onRefunded?.(undefined);
     });
 
-    expect(screen.getByText("취소됨")).toBeTruthy();
+    expect(screen.getByText("취소됨")).toBeInTheDocument();
     expect(mockRefundButton.mock.calls.length).toBe(refundButtonCallsBeforeCompletion);
   });
 
@@ -315,7 +314,7 @@ describe("BillingPage", () => {
       });
     });
 
-    expect(screen.getByText("해지됨")).toBeTruthy();
+    expect(screen.getByText("해지됨")).toBeInTheDocument();
     expect(screen.queryByText("구독 해지")).toBeNull();
   });
 
@@ -330,7 +329,7 @@ describe("BillingPage", () => {
       cancelProps.onCanceled?.(undefined);
     });
 
-    expect(screen.getByText(/현재 주기 종료일/)).toBeTruthy();
+    expect(screen.getByText(/현재 주기 종료일/)).toBeInTheDocument();
     expect(screen.queryByText("구독 해지")).toBeNull();
   });
 
@@ -359,26 +358,26 @@ describe("BillingPage", () => {
   it("quota 사용량과 한도 경고를 표시한다", () => {
     setupDefaults();
     render(<BillingPage />);
-    expect(screen.getByText("Dataset 업로드")).toBeTruthy();
-    expect(screen.getByText("10 / 10")).toBeTruthy();
+    expect(screen.getByText("Dataset 업로드")).toBeInTheDocument();
+    expect(screen.getByText("10 / 10")).toBeInTheDocument();
     expect(screen.getAllByText("한도에 도달했습니다.")).toHaveLength(2);
   });
 
   it("persistent masked card information을 표시한다", () => {
     setupDefaults();
     render(<BillingPage />);
-    expect(screen.getByText("신한카드")).toBeTruthy();
-    expect(screen.getByText("1234-****-****-5678")).toBeTruthy();
+    expect(screen.getByText("신한카드")).toBeInTheDocument();
+    expect(screen.getByText("1234-****-****-5678")).toBeInTheDocument();
   });
 
   it("미구독 시 Free/Pro/Max/Enterprise 비교 카드와 도입 문의를 렌더링한다", () => {
     setupRegister(null, { data: catalog });
     render(<BillingPage />);
-    expect(screen.getByText("Free")).toBeTruthy();
-    expect(screen.getByText("Pro")).toBeTruthy();
-    expect(screen.getByText("Max")).toBeTruthy();
-    expect(screen.getByText("Enterprise")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "도입 문의" })).toBeTruthy();
+    expect(screen.getByText("Free")).toBeInTheDocument();
+    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("Max")).toBeInTheDocument();
+    expect(screen.getByText("Enterprise")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "도입 문의" })).toBeInTheDocument();
     // Free 카드: 이름 옆 "현재 플랜" 태그 + 비활성 "현재 플랜" CTA (둘 다 노출)
     expect(screen.getAllByText("현재 플랜").length).toBeGreaterThan(0);
   });
@@ -386,14 +385,13 @@ describe("BillingPage", () => {
   it("요금제 로딩 중 plans-loading 패널 표시", () => {
     setupRegister(null, { isLoading: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByTestId("plans-loading")).toBeTruthy();
+    expect(screen.getByText("요금제를 불러오는 중입니다.")).toBeInTheDocument();
   });
 
   it("요금제 에러 시 plans-error 패널 표시", () => {
     setupRegister(null, { isError: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByTestId("plans-error")).toBeTruthy();
-    expect(screen.getByText("요금제를 불러오지 못했습니다.")).toBeTruthy();
+    expect(screen.getByText("요금제를 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
   it("INCOMPLETE 구독이면 Free 카드는 비활성 '기본 제공'을 표시한다", () => {
@@ -402,7 +400,7 @@ describe("BillingPage", () => {
       { data: catalog },
     );
     render(<BillingPage />);
-    expect(screen.getByText("기본 제공")).toBeTruthy();
+    expect(screen.getByText("기본 제공")).toBeInTheDocument();
   });
 
   it("INCOMPLETE 구독이면 현재 플랜이 아닌 유료 플랜은 비활성 '선택 불가'로 막는다", () => {
@@ -413,9 +411,9 @@ describe("BillingPage", () => {
       { data: catalog },
     );
     render(<BillingPage />);
-    const disabled = screen.getByTestId("plan-switch-disabled-cta");
-    expect(disabled.textContent).toBe("선택 불가");
-    expect(disabled.hasAttribute("disabled")).toBe(true);
+    const disabled = screen.getByRole("button", { name: "선택 불가" });
+    expect(disabled).toHaveTextContent("선택 불가");
+    expect(disabled).toBeDisabled();
   });
 
   it("미구독 시에는 유료 플랜을 막지 않는다('선택 불가' 없음)", () => {

@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
-import java.lang.reflect.Constructor;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetAdminPipelineJobListUseCase")
@@ -86,30 +85,12 @@ class GetAdminPipelineJobListUseCaseTest {
       OffsetDateTime startedAt,
       OffsetDateTime finishedAt,
       Long retriedFromJobId) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", id);
-    ReflectionTestUtils.setField(job, "workspaceId", 1L);
-    ReflectionTestUtils.setField(job, "datasetId", 7L);
-    ReflectionTestUtils.setField(job, "jobType", PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "airflowDagId", "domain_pack_generation");
-    ReflectionTestUtils.setField(job, "airflowRunId", "pipeline_job_" + id);
-    ReflectionTestUtils.setField(job, "requestPayloadJson", "{}");
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    ReflectionTestUtils.setField(job, "requestedAt", requestedAt);
-    ReflectionTestUtils.setField(job, "startedAt", startedAt);
-    ReflectionTestUtils.setField(job, "finishedAt", finishedAt);
-    ReflectionTestUtils.setField(job, "retriedFromJobId", retriedFromJobId);
-    return job;
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
+    return PipelineJobFixtures.domainPackGeneration(id)
+        .status(status)
+        .requestedAt(requestedAt)
+        .startedAt(startedAt)
+        .finishedAt(finishedAt)
+        .retriedFromJobId(retriedFromJobId)
+        .build();
   }
 }

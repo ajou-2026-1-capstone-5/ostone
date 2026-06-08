@@ -1,5 +1,6 @@
 package com.init.workflowruntime.interceptor;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
@@ -31,7 +32,6 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JwtChannelInterceptor")
@@ -189,7 +189,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, null)));
+    ChatSession session = createSession(1L, null);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     Message<?> result = interceptor.preSend(message, channel);
 
@@ -218,7 +219,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 42L)));
+    ChatSession session = createSession(1L, 42L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> interceptor.preSend(message, channel))
         .isInstanceOf(MissingAuthHeaderException.class)
@@ -262,7 +264,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 2L, 99L)));
+    ChatSession session = createSession(1L, 2L, 99L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
         .willReturn(Optional.of(WorkspaceMember.create(2L, 42L, WorkspaceMemberRole.OPERATOR)));
 
@@ -281,7 +284,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 2L, 99L)));
+    ChatSession session = createSession(1L, 2L, 99L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
         .willReturn(Optional.empty());
 
@@ -377,7 +381,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 1L, 99L)));
+    ChatSession session = createSession(1L, 1L, 99L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 42L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 42L, WorkspaceMemberRole.OPERATOR)));
 
@@ -397,7 +402,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 42L)));
+    ChatSession session = createSession(1L, 42L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     Message<?> result = interceptor.preSend(message, channel);
 
@@ -413,7 +419,8 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 99L)));
+    ChatSession session = createSession(1L, 99L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> interceptor.preSend(message, channel))
         .isInstanceOf(AccessDeniedException.class);
@@ -492,7 +499,6 @@ class JwtChannelInterceptorTest {
   private ChatSession createSession(Long id, Long workspaceId, Long startedBy) {
     ChatSession session =
         ChatSession.create(workspaceId, 1L, ChatSessionStatus.OPEN, "WEB", "{}", startedBy);
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 }

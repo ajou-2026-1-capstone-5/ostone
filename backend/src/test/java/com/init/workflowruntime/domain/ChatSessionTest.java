@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("ChatSession")
 class ChatSessionTest {
@@ -13,10 +12,9 @@ class ChatSessionTest {
   @Test
   @DisplayName("reopen: RESOLVED → OPEN, assignedCounselorId와 endedAt이 초기화된다")
   void should_clearCounselorAndEndedAt_when_reopen() {
-    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.RESOLVED, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
-    ReflectionTestUtils.setField(session, "responseMode", ChatSessionResponseMode.HUMAN_ACTIVE);
-    ReflectionTestUtils.setField(session, "endedAt", java.time.OffsetDateTime.now());
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(42L);
+    session.resolve();
 
     session.reopen();
 
@@ -37,8 +35,8 @@ class ChatSessionTest {
   @Test
   @DisplayName("closeSession: assignedCounselorId가 초기화되고 endedAt이 설정된다")
   void should_clearCounselorAndSetEndedAt_when_closeSession() {
-    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.ACTIVE, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(42L);
 
     session.closeSession();
 

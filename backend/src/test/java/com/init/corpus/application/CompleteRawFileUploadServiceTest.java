@@ -23,6 +23,7 @@ import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -73,9 +73,45 @@ class CompleteRawFileUploadServiceTest {
 
   private Dataset uploadingDataset() {
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(buildMeta(EXPECTED_SIZE));
     return dataset;
+  }
+
+  private Dataset givenUploadingDataset() {
+    Dataset dataset = uploadingDataset();
+    givenDatasetForCompletion(dataset);
+    return dataset;
+  }
+
+  private void givenDatasetForCompletion(Dataset dataset) {
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+  }
+
+  private void givenMember() {
+    givenMember(1L);
+  }
+
+  private void givenMember(long userId) {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, userId)).willReturn(true);
+  }
+
+  private void givenUploadedObject() {
+    givenUploadedObject(EXPECTED_SIZE, "\"etag-123\"");
+  }
+
+  private void givenUploadedObject(long size, String etag) {
+    given(storagePort.headObject(OBJECT_KEY))
+        .willReturn(Optional.of(new ObjectMetadata(size, etag)));
+  }
+
+  private void givenDatasetSaveReturnsArgument() {
+    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+  }
+
+  private List<TransactionSynchronization> registeredSynchronizations() {
+    return List.copyOf(TransactionSynchronizationManager.getSynchronizations());
   }
 
   private String buildMeta(long size) {
@@ -97,13 +133,10 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_promote_pending_to_completed_persist_rawfile_and_trigger_with_completed_key")
   void complete_success_promotesTransitionsAndTriggers() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
-    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+    givenMember();
+    Dataset dataset = givenUploadingDataset();
+    givenUploadedObject();
+    givenDatasetSaveReturnsArgument();
 
     TransactionSynchronizationManager.initSynchronization();
     CompleteRawFileUploadResult result;
@@ -114,8 +147,7 @@ class CompleteRawFileUploadServiceTest {
       verify(storagePort, never()).delete(anyString());
       verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
 
-      List<TransactionSynchronization> synchronizations =
-          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      List<TransactionSynchronization> synchronizations = registeredSynchronizations();
       assertThat(synchronizations).hasSize(2);
       synchronizations.forEach(TransactionSynchronization::afterCommit);
       synchronizations.forEach(
@@ -148,12 +180,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_not_persist_or_trigger_when_storage_promotion_fails")
   void complete_copyFails_doesNotPersistOrTrigger() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
+    givenMember();
+    Dataset dataset = givenUploadingDataset();
+    givenUploadedObject();
     org.mockito.BDDMockito.willThrow(new IllegalStateException("copy failed"))
         .given(storagePort)
         .copyObject(OBJECT_KEY, COMPLETED_KEY);
@@ -170,12 +199,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_delete_completed_object_when_db_save_rolls_back_after_promotion")
   void complete_dbSaveFails_deletesCompletedObjectOnRollback() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
+    givenMember();
+    givenUploadingDataset();
+    givenUploadedObject();
     org.mockito.BDDMockito.willThrow(new IllegalStateException("db down"))
         .given(rawFileRepository)
         .save(any());
@@ -186,8 +212,7 @@ class CompleteRawFileUploadServiceTest {
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("db down");
 
-      List<TransactionSynchronization> synchronizations =
-          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      List<TransactionSynchronization> synchronizations = registeredSynchronizations();
       assertThat(synchronizations).hasSize(1);
       synchronizations.forEach(
           synchronization ->
@@ -206,20 +231,16 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_delete_completed_object_when_transaction_completion_is_unknown")
   void complete_transactionUnknown_deletesCompletedObject() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
-    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+    givenMember();
+    givenUploadingDataset();
+    givenUploadedObject();
+    givenDatasetSaveReturnsArgument();
 
     TransactionSynchronizationManager.initSynchronization();
     try {
       service.complete(command());
 
-      List<TransactionSynchronization> synchronizations =
-          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      List<TransactionSynchronization> synchronizations = registeredSynchronizations();
       assertThat(synchronizations).hasSize(2);
       synchronizations.forEach(
           synchronization ->
@@ -236,13 +257,10 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_propagate_afterCommit_trigger_failure_after_processing_transition")
   void complete_triggerFails_propagatesAfterCommitFailure() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
-    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+    givenMember();
+    Dataset dataset = givenUploadingDataset();
+    givenUploadedObject();
+    givenDatasetSaveReturnsArgument();
     org.mockito.BDDMockito.willThrow(new IllegalStateException("airflow down"))
         .given(triggerPort)
         .trigger(1L, 42L, COMPLETED_KEY);
@@ -252,8 +270,7 @@ class CompleteRawFileUploadServiceTest {
       service.complete(command());
 
       verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
-      List<TransactionSynchronization> synchronizations =
-          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      List<TransactionSynchronization> synchronizations = registeredSynchronizations();
 
       // 트리거 실패는 afterCommit 단계에서 전파되며, DB 상태 전이는 이미 완료된 상태다.
       assertThatThrownBy(() -> synchronizations.forEach(TransactionSynchronization::afterCommit))
@@ -269,11 +286,10 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_be_idempotent_when_already_processing")
   void complete_alreadyProcessing_doesNotRetrigger() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = uploadingDataset();
     dataset.markProcessing();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     CompleteRawFileUploadResult result = service.complete(command());
 
@@ -299,7 +315,7 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_DatasetNotFoundException_when_데이터셋_없음")
   void complete_datasetNotFound_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.complete(command()))
@@ -311,9 +327,8 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_object_missing_in_storage")
   void complete_objectMissing_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(uploadingDataset()));
+    givenMember();
+    givenUploadingDataset();
     given(storagePort.headObject(OBJECT_KEY)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.complete(command()))
@@ -327,11 +342,10 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_session_expired")
   void complete_expiredUploadSession_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = uploadingDataset();
     dataset.updateMetaJson(buildMeta(EXPECTED_SIZE, OffsetDateTime.now().minusMinutes(1), 1L));
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -347,7 +361,7 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_session_expiresAt_missing")
   void complete_missingExpiresAt_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = uploadingDataset();
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\""
@@ -355,8 +369,7 @@ class CompleteRawFileUploadServiceTest {
             + "\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"createdBy\":1}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -370,7 +383,7 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_session_expiresAt_malformed")
   void complete_malformedExpiresAt_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = uploadingDataset();
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\""
@@ -378,8 +391,7 @@ class CompleteRawFileUploadServiceTest {
             + "\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\"not-a-date\",\"createdBy\":1}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -393,7 +405,7 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_session_createdBy_missing")
   void complete_missingCreatedBy_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = uploadingDataset();
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\""
@@ -403,8 +415,7 @@ class CompleteRawFileUploadServiceTest {
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
             + OffsetDateTime.now().plusMinutes(15)
             + "\"}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -418,10 +429,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_session_createdBy_mismatches_request_user")
   void complete_createdByMismatch_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 2L)).willReturn(true);
+    givenMember(2L);
     Dataset dataset = uploadingDataset();
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(new CompleteRawFileUploadCommand(1L, 42L, 2L)))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -437,11 +447,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_object_size_mismatches_expected")
   void complete_sizeMismatch_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(uploadingDataset()));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE + 1, "\"etag\"")));
+    givenMember();
+    givenUploadingDataset();
+    givenUploadedObject(EXPECTED_SIZE + 1, "\"etag\"");
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -454,17 +462,13 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_object_size_over_4GB")
   void complete_sizeOverLimit_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     long huge = InitRawFileUploadService.MAX_UPLOAD_BYTES + 10;
     dataset.updateMetaJson(buildMeta(huge));
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(
-            Optional.of(
-                new ObjectMetadata(InitRawFileUploadService.MAX_UPLOAD_BYTES + 1, "\"etag\"")));
+    givenDatasetForCompletion(dataset);
+    givenUploadedObject(InitRawFileUploadService.MAX_UPLOAD_BYTES + 1, "\"etag\"");
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -476,17 +480,16 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_uploading_object_key_has_no_pending_prefix")
   void complete_uploadingObjectKeyWithoutPendingPrefix_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
             + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
             + OffsetDateTime.now().plusMinutes(15)
             + "\",\"createdBy\":1}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
     given(storagePort.headObject("direct/key.zip"))
         .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag\"")));
 
@@ -503,12 +506,11 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_upload_field_missing_in_meta")
   void complete_noUploadFieldInMeta_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson("{\"other\":\"value\"}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -520,12 +522,11 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_objectKey_missing_in_upload_session")
   void complete_objectKeyMissingInSession_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson("{\"upload\":{\"expectedSizeBytes\":1024,\"filename\":\"d.zip\"}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -537,13 +538,12 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_throw_when_expectedSizeBytes_missing_in_upload_session")
   void complete_expectedSizeBytesMissing_throws() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\"" + OBJECT_KEY + "\",\"filename\":\"d.zip\"}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     assertThatThrownBy(() -> service.complete(command()))
         .isInstanceOf(InvalidUploadStateException.class)
@@ -555,9 +555,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_use_default_filename_and_contentType_when_missing_in_session")
   void complete_missingFilenameAndContentType_usesDefaults() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
     // filename, contentType 필드 없음
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\""
@@ -567,11 +567,9 @@ class CompleteRawFileUploadServiceTest {
             + ",\"expiresAt\":\""
             + OffsetDateTime.now().plusMinutes(15)
             + "\",\"createdBy\":1}}");
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
-    given(storagePort.headObject(OBJECT_KEY))
-        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag\"")));
-    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+    givenDatasetForCompletion(dataset);
+    givenUploadedObject(EXPECTED_SIZE, "\"etag\"");
+    givenDatasetSaveReturnsArgument();
 
     CompleteRawFileUploadResult result = service.complete(command());
 
@@ -588,9 +586,9 @@ class CompleteRawFileUploadServiceTest {
   @Test
   @DisplayName("should_promote_key_without_pending_prefix_unchanged")
   void complete_objectKeyWithoutPendingPrefix_returnsKeyUnchanged() {
-    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    givenMember();
     Dataset dataset = Dataset.createUploading(1L, "test-key", "테스트", "CRM", 1L);
-    ReflectionTestUtils.setField(dataset, "id", 42L);
+    PersistenceTestFixtures.assignGeneratedId(dataset, 42L);
 
     // 이미 pending 접두사 없는 키로 멱등 경로(이미 PROCESSING)
     dataset.markProcessing();
@@ -601,8 +599,7 @@ class CompleteRawFileUploadServiceTest {
             + OffsetDateTime.now().plusMinutes(15)
             + "\",\"createdBy\":1}}";
     dataset.updateMetaJson(nonPendingMeta);
-    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
-        .willReturn(Optional.of(dataset));
+    givenDatasetForCompletion(dataset);
 
     CompleteRawFileUploadResult result = service.complete(command());
 

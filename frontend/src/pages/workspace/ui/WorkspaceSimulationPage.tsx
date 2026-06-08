@@ -1113,8 +1113,10 @@ export function WorkspaceSimulationPage() {
       });
       setDetail(created);
       setSelectedSessionId(created.session.id ?? null);
-      await reloadSessions();
       toast.success("새 시뮬레이션 세션을 만들었습니다.");
+      await reloadSessions().catch(() => {
+        toast.error("세션 목록을 새로고침하지 못했습니다.");
+      });
     } catch (err) {
       toast.error(
         err instanceof ApiRequestError

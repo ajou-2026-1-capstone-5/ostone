@@ -1,5 +1,16 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.intentDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.policyDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.reviewSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.reviewTaskWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.riskDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationCandidateWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationCandidateWithWorkspaceId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationFeedbackWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.slotDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,7 +85,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SimulationImprovementCandidateService")
@@ -1092,7 +1102,7 @@ class SimulationImprovementCandidateServiceTest {
     givenMembership();
     SimulationImprovementCandidate candidate =
         withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
-    ReflectionTestUtils.setField(candidate, "workspaceId", 99L);
+    candidate = simulationCandidateWithWorkspaceId(candidate, 99L);
     given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
 
     assertThatThrownBy(() -> service.getCandidate(WORKSPACE_ID, USER_ID, 1000L))
@@ -1201,7 +1211,7 @@ class SimulationImprovementCandidateServiceTest {
         IntentDefinition intent =
             IntentDefinition.create(
                 VERSION_ID, targetCode, "의도", "기존 설명", 1, "{}", "{}", "[]", "{}");
-        ReflectionTestUtils.setField(intent, "id", targetId);
+        intent = intentDefinitionWithId(intent, targetId);
         given(intentDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
             .willReturn(Optional.of(intent));
         given(
@@ -1214,7 +1224,7 @@ class SimulationImprovementCandidateServiceTest {
         SlotDefinition slot =
             SlotDefinition.create(
                 VERSION_ID, targetCode, "슬롯", "기존 설명", "STRING", false, "{}", null, "{}");
-        ReflectionTestUtils.setField(slot, "id", targetId);
+        slot = slotDefinitionWithId(slot, targetId);
         given(slotDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
             .willReturn(Optional.of(slot));
         given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, targetCode))
@@ -1225,7 +1235,7 @@ class SimulationImprovementCandidateServiceTest {
         PolicyDefinition policy =
             PolicyDefinition.create(
                 VERSION_ID, targetCode, "정책", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
-        ReflectionTestUtils.setField(policy, "id", targetId);
+        policy = policyDefinitionWithId(policy, targetId);
         given(policyDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
             .willReturn(Optional.of(policy));
         given(
@@ -1238,7 +1248,7 @@ class SimulationImprovementCandidateServiceTest {
         RiskDefinition risk =
             RiskDefinition.create(
                 VERSION_ID, targetCode, "위험", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
-        ReflectionTestUtils.setField(risk, "id", targetId);
+        risk = riskDefinitionWithId(risk, targetId);
         given(riskDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
             .willReturn(Optional.of(risk));
         given(riskDefinitionRepository.findByDomainPackVersionIdAndRiskCode(VERSION_ID, targetCode))
@@ -1260,7 +1270,7 @@ class SimulationImprovementCandidateServiceTest {
                 1L,
                 true,
                 "{}");
-        ReflectionTestUtils.setField(workflow, "id", targetId);
+        workflow = workflowDefinitionWithId(workflow, targetId);
         given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
             .willReturn(Optional.of(workflow));
         given(
@@ -1288,19 +1298,16 @@ class SimulationImprovementCandidateServiceTest {
   }
 
   private SimulationFeedback withFeedbackId(SimulationFeedback feedback, Long id) {
-    ReflectionTestUtils.setField(feedback, "id", id);
-    return feedback;
+    return simulationFeedbackWithId(feedback, id);
   }
 
   private ChatSession withSessionId(ChatSession session, Long id) {
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private SimulationImprovementCandidate withCandidateId(
       SimulationImprovementCandidate candidate, Long id) {
-    ReflectionTestUtils.setField(candidate, "id", id);
-    return candidate;
+    return simulationCandidateWithId(candidate, id);
   }
 
   private ReviewSession reviewSession(Long id) {
@@ -1314,8 +1321,7 @@ class SimulationImprovementCandidateServiceTest {
             USER_ID,
             "{}",
             OffsetDateTime.now());
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return reviewSessionWithId(session, id);
   }
 
   private ReviewTask reviewTask(Long sessionId, Long candidateId, Long id) {
@@ -1329,7 +1335,6 @@ class SimulationImprovementCandidateServiceTest {
             "NORMAL",
             "{}",
             OffsetDateTime.now());
-    ReflectionTestUtils.setField(task, "id", id);
-    return task;
+    return reviewTaskWithId(task, id);
   }
 }

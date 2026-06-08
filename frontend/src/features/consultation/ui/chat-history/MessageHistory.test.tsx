@@ -73,16 +73,16 @@ describe("MessageHistory", () => {
 
     render(<MessageHistory sessionId="7" />);
 
-    expect(screen.getByText("최근 답변입니다")).toBeTruthy();
-    expect(screen.getByText("1/2개 메시지")).toBeTruthy();
+    expect(screen.getByText("최근 답변입니다")).toBeInTheDocument();
+    expect(screen.getByText("1/2개 메시지")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이전 메시지 불러오기" }));
 
     await waitFor(() => {
       expect(getMessagePageMock).toHaveBeenCalledWith(7, { page: 1, size: 50 });
     });
-    expect(await screen.findByText("이전 문의입니다")).toBeTruthy();
-    expect(screen.getByText("2/2개 메시지")).toBeTruthy();
+    expect(await screen.findByText("이전 문의입니다")).toBeInTheDocument();
+    expect(screen.getByText("2/2개 메시지")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "이전 메시지 불러오기" })).toBeNull();
   });
 
@@ -132,6 +132,8 @@ describe("MessageHistory", () => {
     render(<MessageHistory sessionId="invalid" />);
 
     expect(useChatMessagePageMock).toHaveBeenCalledWith("");
-    expect(screen.getByText("현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다")).toBeTruthy();
+    expect(
+      screen.getByText("현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다"),
+    ).toBeInTheDocument();
   });
 });

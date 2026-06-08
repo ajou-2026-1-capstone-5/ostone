@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithIdAndStartedAt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,7 +43,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ConsultationService")
@@ -400,26 +402,22 @@ class ConsultationServiceTest {
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private ChatSession createSimulationSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private ChatSession createSession(Long id, ChatSessionStatus status, String startedAt) {
-    ChatSession session = createSession(id, status);
-    ReflectionTestUtils.setField(session, "startedAt", OffsetDateTime.parse(startedAt));
-    return session;
+    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
+    return chatSessionWithIdAndStartedAt(session, id, OffsetDateTime.parse(startedAt));
   }
 
   private ChatMessage createMessage(Long sessionId, int seqNo, String role, String content) {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
-    ReflectionTestUtils.setField(msg, "id", 1L);
-    return msg;
+    return chatMessageWithId(msg, 1L);
   }
 
   private void givenWorkspaceMember(Long workspaceId, Long userId) {

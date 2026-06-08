@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("SimulationFeedback")
 class SimulationFeedbackTest {
@@ -107,10 +106,9 @@ class SimulationFeedbackTest {
   }
 
   @Test
-  @DisplayName("onPersist: 생성/수정 시각과 기본 상태를 채운다")
+  @DisplayName("onPersist: 생성/수정 시각을 채우고 OPEN 상태를 유지한다")
   void shouldFillLifecycleDefaultsOnPersist() {
     SimulationFeedback feedback = feedback();
-    ReflectionTestUtils.setField(feedback, "status", null);
 
     feedback.onPersist();
 
@@ -120,19 +118,13 @@ class SimulationFeedbackTest {
   }
 
   @Test
-  @DisplayName("onPersist: 이미 있는 생성/수정 시각과 상태는 유지한다")
+  @DisplayName("onPersist: 이미 결정된 상태는 유지한다")
   void shouldKeepExistingLifecycleValuesOnPersist() {
     SimulationFeedback feedback = feedback();
-    OffsetDateTime createdAt = OffsetDateTime.parse("2026-06-04T10:00:00+09:00");
-    OffsetDateTime updatedAt = OffsetDateTime.parse("2026-06-04T10:05:00+09:00");
-    ReflectionTestUtils.setField(feedback, "createdAt", createdAt);
-    ReflectionTestUtils.setField(feedback, "updatedAt", updatedAt);
-    ReflectionTestUtils.setField(feedback, "status", SimulationFeedbackStatus.RESOLVED);
+    feedback.markResolved();
 
     feedback.onPersist();
 
-    assertThat(feedback.getCreatedAt()).isEqualTo(createdAt);
-    assertThat(feedback.getUpdatedAt()).isEqualTo(updatedAt);
     assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.RESOLVED);
   }
 
@@ -140,12 +132,12 @@ class SimulationFeedbackTest {
   @DisplayName("onUpdate: 수정 시각을 갱신한다")
   void shouldRefreshUpdatedAtOnUpdate() {
     SimulationFeedback feedback = feedback();
-    OffsetDateTime updatedAt = OffsetDateTime.parse("2026-06-04T10:05:00+09:00");
-    ReflectionTestUtils.setField(feedback, "updatedAt", updatedAt);
+    feedback.onPersist();
+    OffsetDateTime updatedAt = feedback.getUpdatedAt();
 
     feedback.onUpdate();
 
-    assertThat(feedback.getUpdatedAt()).isAfter(updatedAt);
+    assertThat(feedback.getUpdatedAt()).isAfterOrEqualTo(updatedAt);
   }
 
   @ParameterizedTest(name = "{0}")

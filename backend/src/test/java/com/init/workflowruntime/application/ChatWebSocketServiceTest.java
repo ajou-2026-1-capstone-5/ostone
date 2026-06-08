@@ -1,5 +1,7 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -31,7 +33,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -108,8 +109,7 @@ class ChatWebSocketServiceTest {
   @Test
   @DisplayName("saveAndBroadcast: 세션 소유자가 다른 사용자 → SESSION_ACCESS_DENIED")
   void should_throwBadRequest_when_userDoesNotOwnSession() {
-    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    ReflectionTestUtils.setField(session, "startedBy", 99L);
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN, 99L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     BadRequestException ex =
@@ -122,8 +122,7 @@ class ChatWebSocketServiceTest {
   @Test
   @DisplayName("saveAndBroadcast: USER 메시지인데 세션 소유자가 없음 → SESSION_ACCESS_DENIED")
   void should_throwBadRequest_when_userMessageHasNoOwner() {
-    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    ReflectionTestUtils.setField(session, "startedBy", null);
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN, null);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     BadRequestException ex =
@@ -202,15 +201,17 @@ class ChatWebSocketServiceTest {
   }
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
-    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}", 1L);
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return createSession(id, status, 1L);
+  }
+
+  private ChatSession createSession(Long id, ChatSessionStatus status, Long startedBy) {
+    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}", startedBy);
+    return chatSessionWithId(session, id);
   }
 
   private ChatMessage createMessage(Long sessionId, int seqNo, String role, String content) {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
-    ReflectionTestUtils.setField(msg, "id", 1L);
-    return msg;
+    return chatMessageWithId(msg, 1L);
   }
 
   private void assertQueueUpsertEventPublished() {

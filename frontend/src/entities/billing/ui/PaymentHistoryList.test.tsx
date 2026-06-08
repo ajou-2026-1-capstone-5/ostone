@@ -20,13 +20,16 @@ const stubPayment: PaymentResponse = {
 describe("PaymentHistoryList", () => {
   it("결제 내역을 렌더링한다", () => {
     render(<PaymentHistoryList payments={[stubPayment]} />);
-    expect(screen.getByText("결제 내역")).toBeTruthy();
-    expect(screen.getByText("영수증 보기")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "결제 내역" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "영수증 보기" })).toHaveAttribute(
+      "href",
+      stubPayment.receiptUrl,
+    );
   });
 
   it("빈 목록도 에러 없이 렌더링", () => {
     render(<PaymentHistoryList payments={[]} />);
-    expect(screen.getByText("결제 내역")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "결제 내역" })).toBeInTheDocument();
   });
 
   it("receiptUrl 없으면 '-' 표시", () => {
@@ -42,7 +45,7 @@ describe("PaymentHistoryList", () => {
         renderActions={() => <button type="button">환불</button>}
       />,
     );
-    expect(screen.getByText("환불")).toBeTruthy();
-    expect(screen.getByText("관리")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "환불" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "관리" })).toBeInTheDocument();
   });
 });

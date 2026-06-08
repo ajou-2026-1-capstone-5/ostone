@@ -23,6 +23,7 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
@@ -89,7 +89,7 @@ class RecurringBillingServiceTest {
             inv -> {
               Payment payment = inv.getArgument(0);
               if (payment.getId() == null) {
-                ReflectionTestUtils.setField(payment, "id", 7L);
+                PersistenceTestFixtures.assignGeneratedId(payment, 7L);
               }
               holder[0] = payment;
               return payment;
@@ -116,13 +116,13 @@ class RecurringBillingServiceTest {
     subscription.markPastDue(end.plusDays(1));
     subscription.markPastDue(end.plusDays(2));
     subscription.markPastDue(end.plusDays(3));
-    ReflectionTestUtils.setField(subscription, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(subscription, 5L);
     return subscription;
   }
 
   private Plan plan() {
     Plan plan = Plan.create("pro_monthly", "Pro", 29000, "KRW", BillingInterval.MONTH);
-    ReflectionTestUtils.setField(plan, "id", 10L);
+    PersistenceTestFixtures.assignGeneratedId(plan, 10L);
     return plan;
   }
 
@@ -134,7 +134,7 @@ class RecurringBillingServiceTest {
   @DisplayName("구독 조회 결과가 없으면 청구를 건너뛴다")
   void subscriptionNotFound_skips() {
     Subscription stub = Subscription.create(1L, 10L);
-    ReflectionTestUtils.setField(stub, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(stub, 5L);
 
     given(subscriptionRepository.findExpiringCancellations(any())).willReturn(List.of());
     given(subscriptionRepository.findChargeable(any())).willReturn(List.of(stub));
@@ -155,7 +155,7 @@ class RecurringBillingServiceTest {
     subscription.assignCustomerKey("wsk_1_abc");
     subscription.activate(start, end, "wsk_1_abc");
     subscription.cancel();
-    ReflectionTestUtils.setField(subscription, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(subscription, 5L);
 
     given(subscriptionRepository.findExpiringCancellations(any())).willReturn(List.of());
     given(subscriptionRepository.findChargeable(any())).willReturn(List.of(subscription));
@@ -171,8 +171,8 @@ class RecurringBillingServiceTest {
   @DisplayName("구독에 현재 주기 종료일이 없으면 청구를 건너뛴다")
   void periodStartNull_skips() {
     Subscription subscription = Subscription.create(1L, 10L);
-    ReflectionTestUtils.setField(subscription, "id", 5L);
-    ReflectionTestUtils.setField(subscription, "status", SubscriptionStatus.ACTIVE);
+    PersistenceTestFixtures.assignGeneratedId(subscription, 5L);
+    PersistenceTestFixtures.setField(subscription, "status", SubscriptionStatus.ACTIVE);
 
     given(subscriptionRepository.findExpiringCancellations(any())).willReturn(List.of());
     given(subscriptionRepository.findChargeable(any())).willReturn(List.of(subscription));
@@ -192,7 +192,7 @@ class RecurringBillingServiceTest {
         Payment.createRecurring(
             1L, 5L, "ord_1", 29000, "KRW", "Pro", "2026-06-01T00:00:00Z", "idem");
     donePayment.complete("pay_1", "카드", OffsetDateTime.parse("2026-06-01T10:00:00Z"), "url", "{}");
-    ReflectionTestUtils.setField(donePayment, "id", 7L);
+    PersistenceTestFixtures.assignGeneratedId(donePayment, 7L);
 
     given(subscriptionRepository.findExpiringCancellations(any())).willReturn(List.of());
     given(subscriptionRepository.findChargeable(any())).willReturn(List.of());
@@ -228,7 +228,7 @@ class RecurringBillingServiceTest {
             inv -> {
               Payment payment = inv.getArgument(0);
               if (payment.getId() == null) {
-                ReflectionTestUtils.setField(payment, "id", 7L);
+                PersistenceTestFixtures.assignGeneratedId(payment, 7L);
               }
               holder[0] = payment;
               return payment;
@@ -264,7 +264,7 @@ class RecurringBillingServiceTest {
     subscription.assignCustomerKey("wsk_1_abc");
     subscription.activate(start, end, "wsk_1_abc");
     subscription.scheduleCancelAtPeriodEnd();
-    ReflectionTestUtils.setField(subscription, "id", 5L);
+    PersistenceTestFixtures.assignGeneratedId(subscription, 5L);
 
     given(subscriptionRepository.findExpiringCancellations(any()))
         .willReturn(List.of(subscription));

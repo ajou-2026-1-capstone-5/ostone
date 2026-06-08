@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { NodeProps } from "@xyflow/react";
 import { StartNode } from "./StartNode";
 
 vi.mock("@xyflow/react", () => ({
@@ -25,24 +26,28 @@ const baseProps: Record<string, unknown> = {
   targetPosition: "right",
 };
 
+function makeNodeProps(data: NodeProps["data"] | undefined): NodeProps {
+  return { ...baseProps, data } as NodeProps;
+}
+
 describe("StartNode", () => {
   it("renders label from data", () => {
-    render(<StartNode {...(baseProps as any)} data={{ label: "Start" }} />);
+    render(<StartNode {...makeNodeProps({ label: "Start" })} />);
     expect(screen.getByText("Start")).toBeInTheDocument();
   });
 
   it("renders empty when label is not a string", () => {
-    const { container } = render(<StartNode {...(baseProps as any)} data={{}} />);
-    expect(container.firstElementChild).toBeTruthy();
+    render(<StartNode {...makeNodeProps({})} />);
+    expect(screen.getAllByTestId("handle")).toHaveLength(1);
   });
 
   it("renders without crash when label is empty string", () => {
-    const { container } = render(<StartNode {...(baseProps as any)} data={{ label: "" }} />);
-    expect(container.firstElementChild).toBeTruthy();
+    render(<StartNode {...makeNodeProps({ label: "" })} />);
+    expect(screen.getAllByTestId("handle")).toHaveLength(1);
   });
 
   it("renders without crash when data is undefined", () => {
-    const { container } = render(<StartNode {...(baseProps as any)} data={undefined} />);
-    expect(container.firstElementChild).toBeTruthy();
+    render(<StartNode {...makeNodeProps(undefined)} />);
+    expect(screen.getAllByTestId("handle")).toHaveLength(1);
   });
 });

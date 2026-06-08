@@ -25,7 +25,7 @@ MAX_SAMPLE_SIZE = 24
 MAX_CANDIDATES = 5
 MIN_CANDIDATES = 3
 MAX_SNIPPET_CHARS = 360
-DEFAULT_LLM_TIMEOUT_SECONDS = 90.0
+DEFAULT_LLM_TIMEOUT_SECONDS = 240.0
 MAX_LLM_TIMEOUT_SECONDS = 300.0
 LLM_MAX_TOKENS = 520
 STOPWORDS = frozenset(
@@ -140,6 +140,7 @@ def _generate_llm_candidates(
             {"role": "user", "content": prompt},
         ],
         "response_format": {"type": "json_object"},
+        "options": {"think": False},
     }
     with httpx.Client(timeout=_llm_timeout()) as client:
         response = client.post(endpoint, headers=headers, json=request_payload)

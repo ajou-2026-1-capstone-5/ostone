@@ -3,10 +3,10 @@ package com.init.payment.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("PaymentCancel 도메인")
 class PaymentCancelTest {
@@ -56,8 +56,8 @@ class PaymentCancelTest {
     PaymentCancel explicit = PaymentCancel.create(10L, 5000L, "고객 요청", "txn_001", null, canceledAt);
     PaymentCancel defaulted = PaymentCancel.create(10L, 5000L, "고객 요청", "txn_002", null);
 
-    ReflectionTestUtils.invokeMethod(explicit, "onPersist");
-    ReflectionTestUtils.invokeMethod(defaulted, "onPersist");
+    PersistenceTestFixtures.invokeLifecycleCallback(explicit, "onPersist");
+    PersistenceTestFixtures.invokeLifecycleCallback(defaulted, "onPersist");
 
     assertThat(explicit.getCanceledAt()).isEqualTo(canceledAt);
     assertThat(defaulted.getCanceledAt()).isNotNull();

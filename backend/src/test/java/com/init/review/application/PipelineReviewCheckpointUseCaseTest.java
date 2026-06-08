@@ -23,12 +23,14 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.review.domain.model.ReviewDecision;
 import com.init.review.domain.model.ReviewSession;
 import com.init.review.domain.model.ReviewTask;
 import com.init.review.domain.repository.ReviewDecisionRepository;
 import com.init.review.domain.repository.ReviewSessionRepository;
 import com.init.review.domain.repository.ReviewTaskRepository;
+import com.init.review.testfixture.ReviewFixtures;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
@@ -47,7 +49,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PipelineReviewCheckpointUseCase")
@@ -199,8 +200,7 @@ class PipelineReviewCheckpointUseCaseTest {
         .willAnswer(
             invocation -> {
               ReviewSession session = invocation.getArgument(0);
-              ReflectionTestUtils.setField(session, "id", 55L);
-              return session;
+              return ReviewFixtures.persisted(session, 55L);
             });
     given(callbackSupportService.executeInTransactionOrMarkFailure(eq(7L), eq("evt-domain"), any()))
         .willAnswer(invocation -> invocation.<Supplier<?>>getArgument(2).get());
@@ -395,8 +395,7 @@ class PipelineReviewCheckpointUseCaseTest {
         .willAnswer(
             invocation -> {
               ReviewDecision decision = invocation.getArgument(0);
-              ReflectionTestUtils.setField(decision, "id", 77L);
-              return decision;
+              return ReviewFixtures.persisted(decision, 77L);
             });
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
@@ -501,8 +500,7 @@ class PipelineReviewCheckpointUseCaseTest {
         .willAnswer(
             invocation -> {
               ReviewDecision decision = invocation.getArgument(0);
-              ReflectionTestUtils.setField(decision, "id", 77L);
-              return decision;
+              return ReviewFixtures.persisted(decision, 77L);
             });
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
@@ -533,9 +531,7 @@ class PipelineReviewCheckpointUseCaseTest {
     JsonNode constraints =
         objectMapper.readTree(artifactCaptor.getValue().getPayloadJson()).path("constraints");
     List<String> decisionPayloads =
-        decisionCaptor.getAllValues().stream()
-            .map(decision -> (String) ReflectionTestUtils.getField(decision, "decisionPayloadJson"))
-            .toList();
+        decisionCaptor.getAllValues().stream().map(ReviewDecision::getDecisionPayloadJson).toList();
 
     assertThat(constraints).hasSize(1);
     assertThat(constraints.get(0).path("sourceId").asText()).isEqualTo("wf3");
@@ -585,28 +581,31 @@ class PipelineReviewCheckpointUseCaseTest {
   }
 
   private PipelineJob job(String status, String summaryJson) {
-    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 3L, 9L, "{}", NOW.minusHours(1));
-    ReflectionTestUtils.setField(job, "id", 7L);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "resultSummaryJson", summaryJson);
-    return job;
+    return PipelineJobFixtures.domainPackGeneration(7L)
+        .workspaceId(1L)
+        .datasetId(3L)
+        .triggeredBy(9L)
+        .status(status)
+        .resultSummaryJson(summaryJson)
+        .requestedAt(NOW.minusHours(1))
+        .build();
   }
 
   private ReviewSession session(String reviewKind, String status, Long id) {
     ReviewSession session =
         ReviewSession.createPipelineCheckpoint(
             1L, 7L, 3L, reviewKind, "리뷰", "설명", "{}", NOW.minusMinutes(10));
-    ReflectionTestUtils.setField(session, "id", id);
-    ReflectionTestUtils.setField(session, "status", status);
-    return session;
+    if (ReviewSession.STATUS_CLOSED.equals(status)) {
+      session.close(NOW.minusMinutes(1));
+    }
+    return ReviewFixtures.persisted(session, id);
   }
 
   private ReviewTask task(Long id, String targetType, String payloadJson) {
     ReviewTask task =
-        ReviewTask.create(55L, targetType, payloadJson, "리뷰 태스크", "NORMAL", "{}", NOW);
-    ReflectionTestUtils.setField(task, "id", id);
-    ReflectionTestUtils.setField(task, "reviewSessionId", id >= 200 ? 56L : 55L);
-    return task;
+        ReviewTask.create(
+            id >= 200 ? 56L : 55L, targetType, payloadJson, "리뷰 태스크", "NORMAL", "{}", NOW);
+    return ReviewFixtures.persisted(task, id);
   }
 
   private List<ReviewTask> toList(Iterable<ReviewTask> tasks) {
