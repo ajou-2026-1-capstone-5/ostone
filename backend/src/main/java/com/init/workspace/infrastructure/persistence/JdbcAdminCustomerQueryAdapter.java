@@ -82,8 +82,10 @@ public class JdbcAdminCustomerQueryAdapter implements AdminCustomerQueryPort {
               ORDER BY requested_at DESC, id DESC
               LIMIT 1
             ) pj ON TRUE
-            WHERE (:search IS NULL OR LOWER(w.name) LIKE :search OR LOWER(w.workspace_key) LIKE :search)
-              AND (:status IS NULL OR w.status = :status)
+            WHERE (CAST(:search AS text) IS NULL
+                   OR LOWER(w.name) LIKE CAST(:search AS text)
+                   OR LOWER(w.workspace_key) LIKE CAST(:search AS text))
+              AND (CAST(:status AS text) IS NULL OR w.status = CAST(:status AS text))
             ORDER BY w.id DESC
             LIMIT :limit OFFSET :offset
             """,

@@ -51,10 +51,10 @@ public interface JpaPipelineJobRepository
       """
       select j
       from PipelineJob j
-      where (:status is null or j.status = :status)
+      where (cast(:status as string) is null or j.status = cast(:status as string))
         and (:workspaceId is null or j.workspaceId = :workspaceId)
-        and (:dagId is null or lower(j.airflowDagId) like lower(concat('%', :dagId, '%')))
-        and (:runId is null or lower(j.airflowRunId) like lower(concat('%', :runId, '%')))
+        and (cast(:dagId as string) is null or lower(j.airflowDagId) like lower(concat('%', cast(:dagId as string), '%')))
+        and (cast(:runId as string) is null or lower(j.airflowRunId) like lower(concat('%', cast(:runId as string), '%')))
       order by j.requestedAt desc
       """)
   Page<PipelineJob> findAdminPipelineJobs(
