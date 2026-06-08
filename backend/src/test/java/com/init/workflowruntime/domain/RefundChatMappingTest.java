@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("RefundChatMapping")
 class RefundChatMappingTest {
@@ -28,7 +27,7 @@ class RefundChatMappingTest {
     // given
     ChatSession session = createSession();
     List<ExpectedMessage> expectedMessages = expectedMessages();
-    List<ChatMessage> messages = expectedMessages.stream().map(this::createMessage).toList();
+    List<SeededMessage> messages = expectedMessages.stream().map(this::createMessage).toList();
 
     // then
     assertThat(session.getWorkspaceId()).isEqualTo(WORKSPACE_ID);
@@ -42,7 +41,7 @@ class RefundChatMappingTest {
 
     assertThat(messages)
         .hasSize(5)
-        .extracting(ChatMessage::getSeqNo)
+        .extracting(message -> message.chatMessage().getSeqNo())
         .containsExactly(1, 2, 3, 4, 5);
     assertThat(messages)
         .zipSatisfy(
@@ -54,7 +53,7 @@ class RefundChatMappingTest {
   void should_매핑검증실패_when_edgeIdInvalid() {
     // given
     ExpectedMessage expected = expectedMessages().get(1);
-    ChatMessage message =
+    SeededMessage message =
         createMessage(
             new ExpectedMessage(
                 expected.seqNo(),
@@ -77,7 +76,7 @@ class RefundChatMappingTest {
         WORKSPACE_ID, DOMAIN_PACK_VERSION_ID, ChatSessionStatus.ACTIVE, "DEMO", SESSION_META_JSON);
   }
 
-  private ChatMessage createMessage(ExpectedMessage expected) {
+  private SeededMessage createMessage(ExpectedMessage expected) {
     ChatMessage message =
         ChatMessage.create(
             CHAT_SESSION_ID,
@@ -85,8 +84,7 @@ class RefundChatMappingTest {
             expected.senderRole(),
             expected.messageType(),
             expected.content());
-    ReflectionTestUtils.setField(message, "payloadJson", payloadJson(expected));
-    return message;
+    return new SeededMessage(message, payloadJson(expected));
   }
 
   private String payloadJson(ExpectedMessage expected) {
@@ -107,13 +105,14 @@ class RefundChatMappingTest {
     return "{" + mappingJson + "}";
   }
 
-  private void assertMessageMatches(ChatMessage message, ExpectedMessage expected) {
+  private void assertMessageMatches(SeededMessage seededMessage, ExpectedMessage expected) {
+    ChatMessage message = seededMessage.chatMessage();
     assertThat(message.getChatSessionId()).isEqualTo(CHAT_SESSION_ID);
     assertThat(message.getSeqNo()).isEqualTo(expected.seqNo());
     assertThat(message.getSenderRole()).isEqualTo(expected.senderRole());
     assertThat(message.getMessageType()).isEqualTo(expected.messageType());
     assertThat(message.getContent()).isEqualTo(expected.content());
-    JsonNode payload = parseJson(message.getPayloadJson());
+    JsonNode payload = parseJson(seededMessage.payloadJson());
     assertThat(payload.path("workflowCode").asText()).isEqualTo(WORKFLOW_CODE);
     assertThat(payload.path("workflowId").asLong()).isEqualTo(WORKFLOW_ID);
     assertThat(payload.path("currentNodeId").asText()).isEqualTo(expected.currentNodeId());
@@ -121,8 +120,8 @@ class RefundChatMappingTest {
     assertOptionalText(payload, "policyRef", expected.policyRef());
   }
 
-  private boolean payloadMatchesExpectedMapping(ChatMessage message, ExpectedMessage expected) {
-    JsonNode payload = parseJson(message.getPayloadJson());
+  private boolean payloadMatchesExpectedMapping(SeededMessage message, ExpectedMessage expected) {
+    JsonNode payload = parseJson(message.payloadJson());
     boolean requiredFieldsMatch =
         WORKFLOW_CODE.equals(payload.path("workflowCode").asText())
             && WORKFLOW_ID.equals(payload.path("workflowId").asLong())
@@ -189,4 +188,6 @@ class RefundChatMappingTest {
       String currentNodeId,
       String incomingEdgeId,
       String policyRef) {}
+
+  private record SeededMessage(ChatMessage chatMessage, String payloadJson) {}
 }

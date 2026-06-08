@@ -1,5 +1,11 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.policyDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.riskDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.slotDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -35,7 +41,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ConsultationEvidenceService")
@@ -175,19 +180,16 @@ class ConsultationEvidenceServiceTest {
   private ChatSession createSession(Long id, Long workspaceId, Long versionId, String channel) {
     ChatSession session =
         ChatSession.create(workspaceId, versionId, ChatSessionStatus.OPEN, channel, "{}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private ChatMessage createMessage(Long id, Long sessionId) {
     ChatMessage message = ChatMessage.create(sessionId, 1, "CUSTOMER", "TEXT", "환불 요청");
-    ReflectionTestUtils.setField(message, "id", id);
-    return message;
+    return chatMessageWithId(message, id);
   }
 
   private WorkflowExecution createExecution() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "id", 50L);
     execution.assignIntentWorkflow(40L, 60L, "collect_refund_info");
     execution.replaceSlotValuesJson("{\"orderNumber\":\"ORD-1\",\"cardLast4\":\"1234\"}");
     execution.replacePolicySnapshotJson(
@@ -211,26 +213,23 @@ class ConsultationEvidenceServiceTest {
           ]
         }
         """);
-    return execution;
+    return workflowExecutionWithId(execution, 50L);
   }
 
   private SlotDefinition createSlot(Long id, String code, String name, boolean sensitive) {
     SlotDefinition slot =
         SlotDefinition.create(3L, code, name, "", "STRING", sensitive, "{}", null, "{}");
-    ReflectionTestUtils.setField(slot, "id", id);
-    return slot;
+    return slotDefinitionWithId(slot, id);
   }
 
   private PolicyDefinition createPolicy(Long id, String code, String name) {
     PolicyDefinition policy =
         PolicyDefinition.create(3L, code, name, "", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
-    return policy;
+    return policyDefinitionWithId(policy, id);
   }
 
   private RiskDefinition createRisk(Long id, String code, String name, String level) {
     RiskDefinition risk = RiskDefinition.create(3L, code, name, "", level, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(risk, "id", id);
-    return risk;
+    return riskDefinitionWithId(risk, id);
   }
 }

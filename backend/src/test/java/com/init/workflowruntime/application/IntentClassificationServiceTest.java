@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("IntentClassificationService")
@@ -107,8 +107,8 @@ class IntentClassificationServiceTest {
 
   private void givenSession() {
     ChatSession session = ChatSession.create(10L, 101L, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", 1L);
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    ChatSession identifiedSession = chatSessionWithId(session, 1L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(identifiedSession));
   }
 
   private IntentClassificationCommand command(

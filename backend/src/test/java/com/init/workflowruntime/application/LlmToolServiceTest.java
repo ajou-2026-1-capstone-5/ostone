@@ -1,5 +1,17 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.intentDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.sensitiveSlotDefinition;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.slotDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionNamed;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithGraphJson;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithTerminalStatesJson;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithCurrentState;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithIntentDefinitionId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithWorkflowDefinitionId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +81,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LlmToolService")
@@ -227,7 +238,7 @@ class LlmToolServiceTest {
   void should_returnPolicyContext_when_executionExists() throws Exception {
     ChatSession session = createSession(1L, 10L, 101L);
     WorkflowExecution execution = createExecution(50L, 1L, 70L, "{\"order_id\":\"A-100\"}");
-    ReflectionTestUtils.setField(execution, "currentState", "policy_check");
+    execution = workflowExecutionWithCurrentState(execution, "policy_check");
     execution.replacePolicySnapshotJson("{\"hits\":[{\"policyCode\":\"refund_policy\"}]}");
     LlmToolPolicyResponse policyResponse =
         new LlmToolPolicyResponse(
@@ -337,10 +348,9 @@ class LlmToolServiceTest {
         .willAnswer(
             invocation -> {
               WorkflowExecution execution = invocation.getArgument(0);
-              if (execution.getId() == null) {
-                ReflectionTestUtils.setField(execution, "id", 90L);
-              }
-              return execution;
+              return execution.getId() == null
+                  ? workflowExecutionWithId(execution, 90L)
+                  : execution;
             });
 
     JsonNode value = objectMapper.readTree("\"A-100\"");
@@ -519,16 +529,17 @@ class LlmToolServiceTest {
   private ChatSession createSession(Long id, Long workspaceId, Long versionId) {
     ChatSession session =
         ChatSession.create(workspaceId, versionId, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private WorkflowExecution createExecution(
       Long id, Long sessionId, Long intentDefinitionId, String slotValuesJson) {
     WorkflowExecution execution = WorkflowExecution.create(sessionId);
-    ReflectionTestUtils.setField(execution, "id", id);
-    ReflectionTestUtils.setField(execution, "intentDefinitionId", intentDefinitionId);
     execution.replaceSlotValuesJson(slotValuesJson);
+    execution = workflowExecutionWithId(execution, id);
+    if (intentDefinitionId != null) {
+      execution = workflowExecutionWithIntentDefinitionId(execution, intentDefinitionId);
+    }
     return execution;
   }
 
@@ -544,8 +555,7 @@ class LlmToolServiceTest {
             "{\"type\":\"string\"}",
             null,
             "{}");
-    ReflectionTestUtils.setField(slot, "id", id);
-    return slot;
+    return slotDefinitionWithId(slot, id);
   }
 
   private IntentSlotBinding createBinding(
@@ -562,8 +572,7 @@ class LlmToolServiceTest {
     IntentDefinition intent =
         IntentDefinition.create(
             versionId, intentCode, name, "intent description", 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", id);
-    return intent;
+    return intentDefinitionWithId(intent, id);
   }
 
   private WorkflowDefinition createWorkflow(
@@ -584,8 +593,7 @@ class LlmToolServiceTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", id);
-    return workflow;
+    return workflowDefinitionWithId(workflow, id);
   }
 
   @Nested
@@ -668,8 +676,7 @@ class LlmToolServiceTest {
     @DisplayName("upsertSlotValue 의 sensitive slot 은 payload_json.value 가 '***' 로 마스킹")
     void upsertSlotValue_masksSensitiveSlotValue() throws Exception {
       ChatSession session = createSession(1L, 10L, 101L);
-      SlotDefinition sensitiveSlot = createSlot(11L, 101L, "credit_card");
-      ReflectionTestUtils.setField(sensitiveSlot, "isSensitive", true);
+      SlotDefinition sensitiveSlot = sensitiveSlotDefinition(createSlot(11L, 101L, "credit_card"));
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
@@ -760,7 +767,7 @@ class LlmToolServiceTest {
       ChatSession session = createSession(1L, 10L, 101L);
       SlotDefinition slot = createSlot(11L, 101L, "order_id");
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "currentState", "collect_slots");
+      execution = workflowExecutionWithCurrentState(execution, "collect_slots");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
@@ -1063,10 +1070,10 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
-      ReflectionTestUtils.setField(execution, "currentState", "collect_slots");
+      execution = workflowExecutionWithWorkflowDefinitionId(execution, 77L);
+      execution = workflowExecutionWithCurrentState(execution, "collect_slots");
       WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "collect_slots");
-      ReflectionTestUtils.setField(definition, "name", "환불 처리 워크플로우");
+      definition = workflowDefinitionNamed(definition, "환불 처리 워크플로우");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
@@ -1153,7 +1160,7 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      execution = workflowExecutionWithWorkflowDefinitionId(execution, 77L);
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
@@ -1190,9 +1197,9 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      execution = workflowExecutionWithWorkflowDefinitionId(execution, 77L);
       WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
-      ReflectionTestUtils.setField(definition, "graphJson", "not-valid-json");
+      definition = workflowDefinitionWithGraphJson(definition, "not-valid-json");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
@@ -1213,9 +1220,9 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      execution = workflowExecutionWithWorkflowDefinitionId(execution, 77L);
       WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
-      ReflectionTestUtils.setField(definition, "terminalStatesJson", "not-valid-json");
+      definition = workflowDefinitionWithTerminalStatesJson(definition, "not-valid-json");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
@@ -1236,9 +1243,9 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
-      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      execution = workflowExecutionWithWorkflowDefinitionId(execution, 77L);
       WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
-      ReflectionTestUtils.setField(definition, "terminalStatesJson", "{\"key\":\"value\"}");
+      definition = workflowDefinitionWithTerminalStatesJson(definition, "{\"key\":\"value\"}");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
@@ -1259,7 +1266,7 @@ class LlmToolServiceTest {
       // given
       ChatSession session = createSession(1L, 10L, 101L);
       WorkflowDefinition fallback = createWorkflow(88L, 101L, "refund_fallback", "start");
-      ReflectionTestUtils.setField(fallback, "name", "기본 워크플로우");
+      fallback = workflowDefinitionNamed(fallback, "기본 워크플로우");
 
       given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
       given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
