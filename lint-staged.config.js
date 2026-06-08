@@ -1,5 +1,5 @@
 export default {
-  "backend/**/*.java": ["pnpm run format:backend:check"],
+  "backend/**/*.java": () => "pnpm run format:backend:check",
   "frontend/**/*.{ts,tsx}": (filenames) => {
     const filtered = filenames
       .map((f) => f.replace(/\\/g, "/"))
