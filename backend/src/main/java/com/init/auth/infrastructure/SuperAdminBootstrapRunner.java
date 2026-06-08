@@ -9,11 +9,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+// env/secret 기반 운영 SUPER_ADMIN 을 먼저 생성하도록 DemoAccountSeedRunner(-50)보다 앞선 순서로 고정한다.
+// 데모 SUPER_ADMIN 이 먼저 들어가면 existsByRole 가드에 걸려 운영 계정이 누락되므로, 둘의 공존을 위해 순서가 중요하다.
 @Component
+@Order(Ordered.LOWEST_PRECEDENCE - 60)
 public class SuperAdminBootstrapRunner implements ApplicationRunner {
 
   private static final Logger log = LoggerFactory.getLogger(SuperAdminBootstrapRunner.class);

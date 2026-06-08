@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,7 +47,6 @@ class ActiveVentureDomainPackSeedRunnerTest {
   @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
   @Mock private EntityManager entityManager;
   @Mock private Query query;
-  @Mock private PasswordEncoder passwordEncoder;
 
   private ActiveVentureDomainPackSeedRunner runner;
 
@@ -66,8 +64,7 @@ class ActiveVentureDomainPackSeedRunnerTest {
             intentSlotBindingRepository,
             profileBuildRequestService,
             entityManager,
-            objectMapper,
-            passwordEncoder);
+            objectMapper);
   }
 
   @Test
