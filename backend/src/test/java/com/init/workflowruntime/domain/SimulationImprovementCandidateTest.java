@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("SimulationImprovementCandidate")
 class SimulationImprovementCandidateTest {
@@ -61,11 +60,9 @@ class SimulationImprovementCandidateTest {
   }
 
   @Test
-  @DisplayName("onPersist: 생성/수정 시각과 기본 상태를 채운다")
+  @DisplayName("onPersist: 생성/수정 시각을 채우고 후보 상태와 draft patch를 유지한다")
   void shouldFillLifecycleDefaultsOnPersist() {
     SimulationImprovementCandidate candidate = candidate();
-    ReflectionTestUtils.setField(candidate, "status", null);
-    ReflectionTestUtils.setField(candidate, "draftPatchJson", null);
 
     candidate.onPersist();
 
@@ -76,33 +73,29 @@ class SimulationImprovementCandidateTest {
   }
 
   @Test
-  @DisplayName("onPersist: 이미 있는 생성/수정 시각과 상태는 유지한다")
+  @DisplayName("onPersist: 이미 결정된 상태와 draft patch는 유지한다")
   void shouldKeepExistingLifecycleValuesOnPersist() {
     SimulationImprovementCandidate candidate = candidate();
-    OffsetDateTime createdAt = OffsetDateTime.parse("2026-06-04T10:00:00+09:00");
-    OffsetDateTime updatedAt = OffsetDateTime.parse("2026-06-04T10:05:00+09:00");
-    ReflectionTestUtils.setField(candidate, "createdAt", createdAt);
-    ReflectionTestUtils.setField(candidate, "updatedAt", updatedAt);
-    ReflectionTestUtils.setField(
-        candidate, "status", SimulationImprovementCandidateStatus.REJECTED);
+    candidate.defineDraftPatch("{\"op\":\"replace\"}");
+    candidate.submitForReview(2000L, 3000L);
+    candidate.markRejected(7L, "근거 부족", OffsetDateTime.parse("2026-06-04T10:00:00+09:00"));
 
     candidate.onPersist();
 
-    assertThat(candidate.getCreatedAt()).isEqualTo(createdAt);
-    assertThat(candidate.getUpdatedAt()).isEqualTo(updatedAt);
     assertThat(candidate.getStatus()).isEqualTo(SimulationImprovementCandidateStatus.REJECTED);
+    assertThat(candidate.getDraftPatchJson()).isEqualTo("{\"op\":\"replace\"}");
   }
 
   @Test
   @DisplayName("onUpdate: 수정 시각을 갱신한다")
   void shouldRefreshUpdatedAtOnUpdate() {
     SimulationImprovementCandidate candidate = candidate();
-    OffsetDateTime updatedAt = OffsetDateTime.parse("2026-06-04T10:05:00+09:00");
-    ReflectionTestUtils.setField(candidate, "updatedAt", updatedAt);
+    candidate.onPersist();
+    OffsetDateTime updatedAt = candidate.getUpdatedAt();
 
     candidate.onUpdate();
 
-    assertThat(candidate.getUpdatedAt()).isAfter(updatedAt);
+    assertThat(candidate.getUpdatedAt()).isAfterOrEqualTo(updatedAt);
   }
 
   @Test

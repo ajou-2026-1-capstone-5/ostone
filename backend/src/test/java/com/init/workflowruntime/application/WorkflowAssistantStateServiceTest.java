@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,7 +41,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WorkflowAssistantStateService")
@@ -413,10 +415,10 @@ class WorkflowAssistantStateServiceTest {
 
   private void givenRuntimeMetadata() {
     ChatSession session = ChatSession.create(2L, 3L, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", 1L);
+    session = chatSessionWithId(session, 1L);
     WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "id", 10L);
     execution.assignIntentWorkflow(70L, 80L, "collect_order");
+    execution = workflowExecutionWithId(execution, 10L);
     WorkflowDefinition workflow =
         WorkflowDefinition.create(
             3L,
@@ -439,7 +441,7 @@ class WorkflowAssistantStateServiceTest {
             70L,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", 80L);
+    workflow = workflowDefinitionWithId(workflow, 80L);
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))

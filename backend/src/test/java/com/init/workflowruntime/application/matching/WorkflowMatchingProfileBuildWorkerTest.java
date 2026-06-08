@@ -1,5 +1,7 @@
 package com.init.workflowruntime.application.matching;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.intentDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,7 +27,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WorkflowMatchingProfileBuildWorker")
@@ -118,11 +119,12 @@ class WorkflowMatchingProfileBuildWorkerTest {
   void should_markFailed_when_embeddingFails() {
     WorkflowMatchingProfileBuildJob job =
         new WorkflowMatchingProfileBuildJob(7L, 101L, "DEPLOY", "profile-v2");
+    IntentDefinition intent = intent(10L, "refund_request", "PUBLISHED");
+    WorkflowDefinition workflow = workflow(20L, 10L, "refund_flow", true);
     given(buildRepository.claimNext()).willReturn(Optional.of(job));
-    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
-        .willReturn(List.of(intent(10L, "refund_request", "PUBLISHED")));
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
     given(workflowDefinitionRepository.findAllByDomainPackVersionId(101L))
-        .willReturn(List.of(workflow(20L, 10L, "refund_flow", true)));
+        .willReturn(List.of(workflow));
     given(embeddingClient.embed(any(), eq(EmbeddingInputType.SEARCH_DOCUMENT)))
         .willThrow(new IllegalStateException("bedrock timeout"));
 
@@ -148,9 +150,8 @@ class WorkflowMatchingProfileBuildWorkerTest {
             "{\"optionalTerms\":[\"환불\"]}",
             "[{\"customerPhrase\":\"환불하고 싶어요\"}]",
             "{}");
-    ReflectionTestUtils.setField(intent, "id", id);
     intent.changeStatus(status);
-    return intent;
+    return intentDefinitionWithId(intent, id);
   }
 
   private WorkflowDefinition workflow(
@@ -169,8 +170,7 @@ class WorkflowMatchingProfileBuildWorkerTest {
             intentDefinitionId,
             primary,
             "{\"optionalTerms\":[\"환불\"]}");
-    ReflectionTestUtils.setField(workflow, "id", id);
-    return workflow;
+    return workflowDefinitionWithId(workflow, id);
   }
 
   private float[] vector(float first, float second) {

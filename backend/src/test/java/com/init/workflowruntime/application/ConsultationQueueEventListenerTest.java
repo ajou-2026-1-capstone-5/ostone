@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,7 +23,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ConsultationQueueEventListener")
@@ -37,7 +37,7 @@ class ConsultationQueueEventListenerTest {
     ConsultationQueueEventListener listener =
         new ConsultationQueueEventListener(chatSessionRepository, messagingTemplate);
     ChatSession session = ChatSession.create(2L, 10L, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", 1L);
+    session = chatSessionWithId(session, 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     listener.handleQueueChanged(

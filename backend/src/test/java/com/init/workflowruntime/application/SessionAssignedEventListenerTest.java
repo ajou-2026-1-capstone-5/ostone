@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SessionAssignedEventListener")
@@ -38,7 +38,7 @@ class SessionAssignedEventListenerTest {
   @DisplayName("세션이 존재하면 상담사 큐에 STOMP 메시지를 전송한다")
   void should_sendNotification_when_sessionExists() {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.ACTIVE, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", 1L);
+    session = chatSessionWithId(session, 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     listener.handleSessionAssigned(new SessionAssignedEvent(1L, 42L));

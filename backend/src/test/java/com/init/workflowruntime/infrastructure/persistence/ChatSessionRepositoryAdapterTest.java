@@ -1,5 +1,6 @@
 package com.init.workflowruntime.infrastructure.persistence;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -16,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChatSessionRepositoryAdapter")
@@ -66,7 +66,6 @@ class ChatSessionRepositoryAdapterTest {
   }
 
   private ChatSession withId(ChatSession session, Long id) {
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 }
