@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 데모 로그인 계정(OPERATOR 2개 + SUPER_ADMIN 1개)과 그 소속 워크스페이스(1·2)를 멱등 시드한다.
  *
- * <p>도메인팩 본문 시드는 {@link ActiveVentureDomainPackSeedRunner}(local/dev 전용)가 담당하고, 이 러너는 계정/멤버십만 다룬다.
- * {@code app.workspace} · {@code app.app_user} · {@code app.workspace_member}만 건드리므로 {@code
+ * <p>도메인팩 본문 시드는 {@link DomainPackSeedRunner}(local/dev 전용)가 담당하고, 이 러너는 계정/멤버십만 다룬다. {@code
+ * app.workspace} · {@code app.app_user} · {@code app.workspace_member}만 건드리므로 {@code
  * domain_pack_version} 의존이 없어 prod 프로파일에서도 안전하게 실행된다.
  *
  * <p>prod 에서는 {@code SuperAdminBootstrapRunner}(env/secret 기반)가 먼저 실행되어 운영용 SUPER_ADMIN 을 만든 뒤, 이
@@ -34,7 +34,7 @@ public class DemoAccountSeedRunner implements ApplicationRunner {
   private static final String SUPER_ADMIN_DEMO_EMAIL = "superadmin.demo@ostone.local";
   private static final String SUPER_ADMIN_DEMO_NAME = "슈퍼 어드민 데모 계정";
 
-  // 워크스페이스 정체성(id/key/name)은 ActiveVentureDomainPackSeedRunner 의 SEED_CONFIGS 와 동일해야 한다.
+  // 워크스페이스 정체성(id/key/name)은 DomainPackSeedRunner 의 SEED_CONFIGS 와 동일해야 한다.
   // 도메인팩 시더가 돌지 않는 prod 에서도 OPERATOR 멤버십 FK 가 유효하도록 여기서 워크스페이스 존재를 보장한다.
   private static final List<DemoWorkspaceConfig> DEMO_WORKSPACE_CONFIGS =
       List.of(

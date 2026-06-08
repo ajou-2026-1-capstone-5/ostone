@@ -57,10 +57,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Profile({"local", "dev", "prod"})
 @Order(Ordered.LOWEST_PRECEDENCE - 90)
-public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
+public class DomainPackSeedRunner implements ApplicationRunner {
 
-  private static final Logger log =
-      LoggerFactory.getLogger(ActiveVentureDomainPackSeedRunner.class);
+  private static final Logger log = LoggerFactory.getLogger(DomainPackSeedRunner.class);
   private static final String DESCRIPTION_FIELD = "description";
   private static final List<SeedConfig> SEED_CONFIGS =
       List.of(
@@ -107,7 +106,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   // prod 가 아닐 때만 임베딩 matching profile build 를 enqueue 한다(prod ML 런타임 트리거 회피).
   private final boolean profileBuildEnqueueEnabled;
 
-  public ActiveVentureDomainPackSeedRunner(
+  public DomainPackSeedRunner(
       DomainPackCommandRepository domainPackRepository,
       DomainPackVersionRepository domainPackVersionRepository,
       IntentDefinitionRepository intentDefinitionRepository,

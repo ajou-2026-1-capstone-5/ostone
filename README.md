@@ -450,7 +450,7 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 ### 데모 시드 데이터
 
-`local`(또는 `dev`) 프로필로 backend를 기동하면 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다(`ActiveVentureDomainPackSeedRunner`, `@Profile({"local","dev"})`, 멱등 upsert). 아래 데모 계정으로 운영자 콘솔(http://localhost:5173)에 바로 로그인할 수 있다.
+`local`(또는 `dev`) 프로필로 backend를 기동하면 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다(`DomainPackSeedRunner`, `@Profile({"local","dev"})`, 멱등 upsert). 아래 데모 계정으로 운영자 콘솔(http://localhost:5173)에 바로 로그인할 수 있다.
 
 | 워크스페이스 | 이메일 | 비밀번호 | 역할 |
 | --- | --- | --- | --- |
@@ -460,7 +460,7 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 - `SUPER_ADMIN` 데모 계정은 특정 워크스페이스에 종속되지 않으며, SUPER_ADMIN 전용 콘솔/관리 API(`/api/v1/admin/**`) 접근 검증용이다.
 - **로컬 데모 전용** 계정이다. 환경별 secret(`JWT_SECRET` 등)과 혼동하지 않는다.
-- 로그인이 안 되면: ① 활성 프로필이 `local` 또는 `dev`인지 확인 → ② backend 로그에서 `ActiveVentureDomainPackSeedRunner`의 `Seed demo account ...` 라인 확인 → ③ DB `app.app_user` / `app.workspace_member` 행 확인.
+- 로그인이 안 되면: ① 활성 프로필이 `local` 또는 `dev`인지 확인 → ② backend 로그에서 `DomainPackSeedRunner`의 `Seed demo account ...` 라인 확인 → ③ DB `app.app_user` / `app.workspace_member` 행 확인.
 - 비밀번호는 seed runner의 `DEMO_SIGN_IN_VALUE` 상수에서 정의된다. 코드와 본 표의 일치는 `scripts/demo-credentials-consistency.test.mjs`가 CI에서 검증한다.
 - 별도의 환불 요청 데모 워크플로우는 `demo` 프로필에서만 시드된다.
 

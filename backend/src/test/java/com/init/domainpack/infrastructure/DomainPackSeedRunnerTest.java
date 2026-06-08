@@ -37,8 +37,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ActiveVentureDomainPackSeedRunner")
-class ActiveVentureDomainPackSeedRunnerTest {
+@DisplayName("DomainPackSeedRunner")
+class DomainPackSeedRunnerTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -55,12 +55,12 @@ class ActiveVentureDomainPackSeedRunnerTest {
   @Mock private Query query;
   @Mock private Environment environment;
 
-  private ActiveVentureDomainPackSeedRunner runner;
+  private DomainPackSeedRunner runner;
 
   @BeforeEach
   void setUp() {
     runner =
-        new ActiveVentureDomainPackSeedRunner(
+        new DomainPackSeedRunner(
             domainPackRepository,
             domainPackVersionRepository,
             intentDefinitionRepository,
@@ -168,8 +168,8 @@ class ActiveVentureDomainPackSeedRunnerTest {
   void shouldDisableProfileBuildEnqueueInProd() {
     given(environment.acceptsProfiles(any(Profiles.class))).willReturn(true);
 
-    ActiveVentureDomainPackSeedRunner prodRunner =
-        new ActiveVentureDomainPackSeedRunner(
+    DomainPackSeedRunner prodRunner =
+        new DomainPackSeedRunner(
             domainPackRepository,
             domainPackVersionRepository,
             intentDefinitionRepository,
