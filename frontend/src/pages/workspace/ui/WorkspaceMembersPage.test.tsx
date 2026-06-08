@@ -81,17 +81,35 @@ describe("WorkspaceMembersPage", () => {
     expect(screen.getByTestId("workspace-members-loading")).toBeInTheDocument();
   });
 
-  it("error 상태에서는 ErrorState를 보여준다", () => {
+  it("권한 외 에러 상태에서는 ErrorState를 보여준다", () => {
     mockUseWorkspaceMembers.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: true,
-      error: new ApiRequestError(403, "WORKSPACE_ACCESS_DENIED", "접근 권한이 없습니다."),
+      error: new ApiRequestError(500, "INTERNAL_ERROR", "서버 오류"),
       refetch: vi.fn(),
     });
     renderPage();
     expect(screen.getByTestId("workspace-members-error")).toBeInTheDocument();
-    expect(screen.getByText("접근 권한이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-members-access-denied")).not.toBeInTheDocument();
+  });
+
+  it("권한 부족(403)이면 권한 안내를 보여주고 일반 에러는 숨긴다", () => {
+    mockUseWorkspaceMembers.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new ApiRequestError(
+        403,
+        "WORKSPACE_ACCESS_DENIED",
+        "워크스페이스 멤버 관리 권한이 없습니다.",
+      ),
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByTestId("workspace-members-access-denied")).toBeInTheDocument();
+    expect(screen.getByText("워크스페이스 멤버 관리 권한이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-members-error")).not.toBeInTheDocument();
   });
 
   it("목록이 비어 있으면 empty state를 보여준다", () => {

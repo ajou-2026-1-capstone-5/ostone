@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotCurrentException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import java.util.Optional;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateIntentRevisionDraftUseCase")
@@ -95,9 +95,6 @@ class CreateIntentRevisionDraftUseCaseTest {
   }
 
   private DomainPackVersion version(Long id, Long packId, Integer versionNo, String status) {
-    DomainPackVersion version = DomainPackVersion.ofForTest(id, packId, status);
-    ReflectionTestUtils.setField(version, "versionNo", versionNo);
-    ReflectionTestUtils.setField(version, "summaryJson", "{}");
-    return version;
+    return DomainPackEntityFixtures.version(id, packId, versionNo, status, "{}");
   }
 }

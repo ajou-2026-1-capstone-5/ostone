@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workspace.application.exception.FreeOnboardingUnavailableException;
 import com.init.workspace.application.exception.WorkspaceNotFoundException;
 import com.init.workspace.domain.model.FreeOnboardingStatus;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WorkspaceFreeOnboardingService")
@@ -239,7 +239,7 @@ class WorkspaceFreeOnboardingServiceTest {
 
   private Workspace workspace() {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), "CS Team", "desc");
-    ReflectionTestUtils.setField(workspace, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(workspace, 1L);
     return workspace;
   }
 

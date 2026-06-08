@@ -69,4 +69,8 @@ public class ReviewDecision {
   public Long getId() {
     return id;
   }
+
+  public String getDecisionPayloadJson() {
+    return decisionPayloadJson;
+  }
 }

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.DomainPackDraftInUseException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionReferencePort;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DiscardDraftVersionUseCase")
@@ -84,9 +84,6 @@ class DiscardDraftVersionUseCaseTest {
   }
 
   private DomainPackVersion version(Long id, Long packId, String status) {
-    DomainPackVersion version = DomainPackVersion.ofForTest(id, packId, status);
-    ReflectionTestUtils.setField(version, "versionNo", 3);
-    ReflectionTestUtils.setField(version, "summaryJson", "{}");
-    return version;
+    return DomainPackEntityFixtures.version(id, packId, 3, status, "{}");
   }
 }

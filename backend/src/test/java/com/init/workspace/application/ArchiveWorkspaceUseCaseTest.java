@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.testsupport.PersistenceTestFixtures;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.Workspace;
 import com.init.workspace.domain.model.WorkspaceKey;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ArchiveWorkspaceUseCase")
@@ -39,7 +39,7 @@ class ArchiveWorkspaceUseCaseTest {
   @DisplayName("OWNER 삭제 → save 호출")
   void should_save호출_when_owner삭제() {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), "CS Team", "desc");
-    ReflectionTestUtils.setField(workspace, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(workspace, 1L);
     given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OWNER)));
@@ -54,7 +54,7 @@ class ArchiveWorkspaceUseCaseTest {
   void should_save미호출_when_이미Archived() {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), "CS Team", "desc");
     workspace.archive();
-    ReflectionTestUtils.setField(workspace, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(workspace, 1L);
     given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OWNER)));
@@ -68,7 +68,7 @@ class ArchiveWorkspaceUseCaseTest {
   @DisplayName("ADMIN 삭제 시도 → WorkspaceAccessDeniedException")
   void should_WorkspaceAccessDeniedException_when_admin삭제시도() {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), "CS Team", "desc");
-    ReflectionTestUtils.setField(workspace, "id", 1L);
+    PersistenceTestFixtures.assignGeneratedId(workspace, 1L);
     given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.ADMIN)));

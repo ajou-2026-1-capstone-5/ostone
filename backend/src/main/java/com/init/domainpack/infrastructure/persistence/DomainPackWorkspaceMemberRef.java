@@ -37,6 +37,15 @@ public class DomainPackWorkspaceMemberRef {
 
   protected DomainPackWorkspaceMemberRef() {}
 
+  public static DomainPackWorkspaceMemberRef createForTest(
+      Long workspaceId, Long userId, String memberRole) {
+    DomainPackWorkspaceMemberRef member = new DomainPackWorkspaceMemberRef();
+    member.workspaceId = workspaceId;
+    member.userId = userId;
+    member.memberRole = memberRole;
+    return member;
+  }
+
   public Long getWorkspaceId() {
     return workspaceId;
   }

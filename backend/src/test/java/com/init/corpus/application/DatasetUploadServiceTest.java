@@ -23,6 +23,7 @@ import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.testsupport.PersistenceTestFixtures;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DatasetUploadService")
@@ -126,12 +126,12 @@ class DatasetUploadServiceTest {
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-key")).willReturn(false);
 
     Dataset savedDataset = Dataset.create(1L, "test-key", "Test", "csv", 1L);
-    ReflectionTestUtils.setField(savedDataset, "id", 100L);
+    PersistenceTestFixtures.assignGeneratedId(savedDataset, 100L);
     given(datasetRepository.save(any())).willReturn(savedDataset);
 
     Conversation savedConv =
         Conversation.create(100L, "case-001", "CRM", null, null, null, null, "안녕하세요", 1);
-    ReflectionTestUtils.setField(savedConv, "id", 200L);
+    PersistenceTestFixtures.assignGeneratedId(savedConv, 200L);
     given(conversationRepository.save(any())).willReturn(savedConv);
 
     // when
@@ -152,7 +152,7 @@ class DatasetUploadServiceTest {
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-key")).willReturn(false);
 
     Dataset savedDataset = Dataset.create(1L, "test-key", "Test", "csv", 1L);
-    ReflectionTestUtils.setField(savedDataset, "id", 100L);
+    PersistenceTestFixtures.assignGeneratedId(savedDataset, 100L);
     given(datasetRepository.save(any())).willReturn(savedDataset);
 
     List<TurnData> duplicateTurns =

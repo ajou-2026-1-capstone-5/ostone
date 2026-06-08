@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithIdAndCreatedAt;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,7 +13,6 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("ChatSessionMetadataService")
 class ChatSessionMetadataServiceTest {
@@ -243,22 +245,18 @@ class ChatSessionMetadataServiceTest {
 
   private ChatSession createSession(String metaJson, String channel) {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, channel, metaJson, 1L);
-    ReflectionTestUtils.setField(session, "id", 1L);
-    return session;
+    return chatSessionWithId(session, 1L);
   }
 
   private ChatMessage createMessage(
       Long sessionId, int seqNo, String role, String content, String createdAt) {
     ChatMessage message = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
-    ReflectionTestUtils.setField(message, "id", (long) seqNo);
-    ReflectionTestUtils.setField(message, "createdAt", OffsetDateTime.parse(createdAt));
-    return message;
+    return chatMessageWithIdAndCreatedAt(message, (long) seqNo, OffsetDateTime.parse(createdAt));
   }
 
   private ChatMessage createMessageWithoutCreatedAt(
       Long sessionId, int seqNo, String role, String content) {
     ChatMessage message = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
-    ReflectionTestUtils.setField(message, "id", (long) seqNo);
-    return message;
+    return chatMessageWithId(message, (long) seqNo);
   }
 }

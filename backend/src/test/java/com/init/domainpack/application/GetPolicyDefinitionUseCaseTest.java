@@ -10,6 +10,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.PolicyDefinitionNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetPolicyDefinitionUseCase")
@@ -209,9 +209,7 @@ class GetPolicyDefinitionUseCaseTest {
     PolicyDefinition policy =
         PolicyDefinition.create(
             VERSION_ID, policyCode, name, "7일 이내 반품 허용", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
-    ReflectionTestUtils.setField(policy, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
-    ReflectionTestUtils.setField(policy, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    DomainPackEntityFixtures.persisted(policy, id);
     return policy;
   }
 }

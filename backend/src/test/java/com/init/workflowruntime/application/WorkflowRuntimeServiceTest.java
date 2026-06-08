@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowExecutionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
@@ -30,7 +33,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WorkflowRuntimeService")
@@ -246,17 +248,15 @@ class WorkflowRuntimeServiceTest {
   private ChatSession createSession(Long id, Long workspaceId, Long versionId) {
     ChatSession session =
         ChatSession.create(workspaceId, versionId, ChatSessionStatus.OPEN, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private WorkflowExecution createExecution(
       Long id, Long sessionId, Long workflowId, String currentState, String slotValuesJson) {
     WorkflowExecution execution = WorkflowExecution.create(sessionId);
-    ReflectionTestUtils.setField(execution, "id", id);
     execution.assignIntentWorkflow(70L, workflowId, currentState);
     execution.replaceSlotValuesJson(slotValuesJson);
-    return execution;
+    return workflowExecutionWithId(execution, id);
   }
 
   private WorkflowDefinition createWorkflow(Long id, Long versionId, String graphJson) {
@@ -274,8 +274,7 @@ class WorkflowRuntimeServiceTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", id);
-    return workflow;
+    return workflowDefinitionWithId(workflow, id);
   }
 
   private String reservationCancelGraphJson() {

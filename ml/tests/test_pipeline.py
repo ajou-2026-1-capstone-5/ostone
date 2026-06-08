@@ -1,7 +1,11 @@
 import pytest
 
+AIRFLOW_OPTIONAL_REASON = (
+    "Airflow SDK is optional in lightweight ML test environments; CI DAG behavior is covered by mocked DAG tests."
+)
 
-def test_should_import_all_stages():
+
+def test_ci_path_imports_all_stage_entrypoints_without_airflow_dependency():
     from pipeline.stages.draft_generation.main import run as draft_generation_run
     from pipeline.stages.evaluation.main import run as evaluation_run
     from pipeline.stages.ingestion.main import run as ingestion_run
@@ -17,16 +21,22 @@ def test_should_import_all_stages():
     assert callable(publish_candidate_run)
 
 
-def test_should_import_runtime_dags():
-    pytest.importorskip("airflow.sdk")
+def test_optional_airflow_runtime_dag_import_smoke_when_airflow_sdk_is_installed():
+    pytest.importorskip(
+        "airflow.sdk",
+        reason=AIRFLOW_OPTIONAL_REASON,
+    )
 
     from dags.domain_pack_generation import domain_pack_generation
 
     assert callable(domain_pack_generation)
 
 
-def test_should_import_test_only_dags():
-    pytest.importorskip("airflow.sdk")
+def test_optional_airflow_dev_dag_import_smoke_when_airflow_sdk_is_installed():
+    pytest.importorskip(
+        "airflow.sdk",
+        reason=AIRFLOW_OPTIONAL_REASON,
+    )
 
     from tests.dags.dev_bootstrap import dev_bootstrap
     from tests.dags.dev_replay import dev_replay

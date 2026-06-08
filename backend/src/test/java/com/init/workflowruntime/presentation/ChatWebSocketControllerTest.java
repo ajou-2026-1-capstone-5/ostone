@@ -25,6 +25,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 @DisplayName("ChatWebSocketController")
 class ChatWebSocketControllerTest {
 
+  private static final OffsetDateTime SENT_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+
   @Mock private ChatWebSocketService chatWebSocketService;
 
   private ChatWebSocketController controller;
@@ -44,7 +46,7 @@ class ChatWebSocketControllerTest {
     Principal principal = () -> "42";
 
     ChatMessageResponse expected =
-        new ChatMessageResponse(10L, 1, "USER", "TEXT", "Hello", OffsetDateTime.now());
+        new ChatMessageResponse(10L, 1, "USER", "TEXT", "Hello", SENT_AT);
 
     given(chatWebSocketService.saveAndBroadcast(any(SendChatMessageCommand.class)))
         .willReturn(expected);

@@ -148,6 +148,18 @@ public class ReviewSession {
     return description;
   }
 
+  public Long getCreatedBy() {
+    return createdBy;
+  }
+
+  public OffsetDateTime getOpenedAt() {
+    return openedAt;
+  }
+
+  public OffsetDateTime getClosedAt() {
+    return closedAt;
+  }
+
   public String getMetaJson() {
     return metaJson;
   }

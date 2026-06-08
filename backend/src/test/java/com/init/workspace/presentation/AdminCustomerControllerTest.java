@@ -1,5 +1,6 @@
 package com.init.workspace.presentation;
 
+import static com.init.fixtures.JwtClaimsFixtures.accessClaims;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,9 +27,7 @@ import com.init.workspace.application.GetAdminCustomerListUseCase;
 import com.init.workspace.application.WorkspaceFreeOnboardingResult;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import java.time.OffsetDateTime;
-import java.util.Date;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -175,13 +174,7 @@ class AdminCustomerControllerTest {
   }
 
   private void givenBearerToken(String token, String role) {
-    Claims claims =
-        Jwts.claims()
-            .subject("1")
-            .add("type", "access")
-            .add("role", role)
-            .expiration(new Date(System.currentTimeMillis() + 60_000))
-            .build();
+    Claims claims = accessClaims("1", role);
     given(jwtService.parseClaims(token)).willReturn(claims);
     given(jwtService.isTokenValid(claims)).willReturn(true);
     given(jwtService.isAccessToken(claims)).willReturn(true);

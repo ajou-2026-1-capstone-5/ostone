@@ -31,6 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class WorkspaceConsultationQueueControllerTest {
 
+  private static final OffsetDateTime STARTED_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
+
   @Autowired private MockMvc mockMvc;
 
   @SuppressWarnings("removal")
@@ -44,7 +46,7 @@ class WorkspaceConsultationQueueControllerTest {
     response.setId(1L);
     response.setStatus("OPEN");
     response.setChannel("카카오톡");
-    response.setStartedAt(OffsetDateTime.now());
+    response.setStartedAt(STARTED_AT);
 
     given(consultationService.getActiveQueue(2L, 7L)).willReturn(List.of(response));
 

@@ -15,10 +15,12 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.review.domain.model.ReviewSession;
 import com.init.review.domain.model.ReviewTask;
 import com.init.review.domain.repository.ReviewSessionRepository;
 import com.init.review.domain.repository.ReviewTaskRepository;
+import com.init.review.testfixture.ReviewFixtures;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PipelineReviewCheckpointCallbackProcessor")
@@ -130,8 +131,7 @@ class PipelineReviewCheckpointCallbackProcessorTest {
         .willAnswer(
             invocation -> {
               ReviewSession session = invocation.getArgument(0);
-              ReflectionTestUtils.setField(session, "id", 56L);
-              return session;
+              return ReviewFixtures.persisted(session, 56L);
             });
     given(
             callbackSupportService.executeInTransactionOrMarkFailure(
@@ -171,10 +171,13 @@ class PipelineReviewCheckpointCallbackProcessorTest {
   }
 
   private PipelineJob job(String status) {
-    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 3L, 9L, "{}", NOW.minusHours(1));
-    ReflectionTestUtils.setField(job, "id", 7L);
-    ReflectionTestUtils.setField(job, "status", status);
-    return job;
+    return PipelineJobFixtures.domainPackGeneration(7L)
+        .workspaceId(1L)
+        .datasetId(3L)
+        .triggeredBy(9L)
+        .status(status)
+        .requestedAt(NOW.minusHours(1))
+        .build();
   }
 
   private List<ReviewTask> toList(Iterable<ReviewTask> tasks) {

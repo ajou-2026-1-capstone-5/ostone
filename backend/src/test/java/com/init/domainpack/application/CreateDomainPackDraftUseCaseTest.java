@@ -21,6 +21,7 @@ import com.init.domainpack.application.exception.WorkflowInvalidStartNodeExcepti
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
 import com.init.domainpack.application.exception.WorkflowUnreachableNodeException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.SlotDefinition;
@@ -36,7 +37,6 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
-import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateDomainPackDraftUseCase")
@@ -663,38 +662,30 @@ class CreateDomainPackDraftUseCaseTest {
   }
 
   private DomainPackVersion createSavedVersion(Long id, Long packId, Integer versionNo) {
-    DomainPackVersion version = newVersion();
-    ReflectionTestUtils.setField(version, "id", id);
-    ReflectionTestUtils.setField(version, "domainPackId", packId);
-    ReflectionTestUtils.setField(version, "versionNo", versionNo);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_DRAFT);
-    ReflectionTestUtils.setField(version, "sourcePipelineJobId", 55L);
-    ReflectionTestUtils.setField(
-        version, "createdAt", OffsetDateTime.parse("2026-04-10T09:00:00Z"));
-    return version;
-  }
-
-  private DomainPackVersion newVersion() {
-    try {
-      Constructor<DomainPackVersion> constructor = DomainPackVersion.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return DomainPackEntityFixtures.version(
+        id,
+        packId,
+        versionNo,
+        DomainPackVersion.STATUS_DRAFT,
+        55L,
+        "{}",
+        null,
+        null,
+        OffsetDateTime.parse("2026-04-10T09:00:00Z"),
+        DomainPackEntityFixtures.DEFAULT_UPDATED_AT);
   }
 
   @SuppressWarnings("unchecked")
   private List<IntentDefinition> assignIntentIds(List<IntentDefinition> intents, List<Long> ids) {
     for (int i = 0; i < intents.size(); i++) {
-      ReflectionTestUtils.setField(intents.get(i), "id", ids.get(i));
+      DomainPackEntityFixtures.persisted(intents.get(i), ids.get(i));
     }
     return intents;
   }
 
   private List<SlotDefinition> assignSlotIds(List<SlotDefinition> slots, List<Long> ids) {
     for (int i = 0; i < slots.size(); i++) {
-      ReflectionTestUtils.setField(slots.get(i), "id", ids.get(i));
+      DomainPackEntityFixtures.persisted(slots.get(i), ids.get(i));
     }
     return slots;
   }
@@ -702,7 +693,7 @@ class CreateDomainPackDraftUseCaseTest {
   private List<WorkflowDefinition> assignWorkflowIds(
       List<WorkflowDefinition> workflows, List<Long> ids) {
     for (int i = 0; i < workflows.size(); i++) {
-      ReflectionTestUtils.setField(workflows.get(i), "id", ids.get(i));
+      DomainPackEntityFixtures.persisted(workflows.get(i), ids.get(i));
     }
     return workflows;
   }

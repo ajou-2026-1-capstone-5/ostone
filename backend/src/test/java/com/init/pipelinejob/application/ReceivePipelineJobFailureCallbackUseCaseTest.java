@@ -15,8 +15,8 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.pipelinejob.testfixture.PipelineJobFixtures;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -246,17 +245,15 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
   }
 
   private PipelineJob pipelineJob(String status) {
-    PipelineJob job = newPipelineJob();
-    ReflectionTestUtils.setField(job, "id", 123L);
-    ReflectionTestUtils.setField(job, "workspaceId", 1L);
-    ReflectionTestUtils.setField(job, "datasetId", 7L);
-    ReflectionTestUtils.setField(job, "jobType", PipelineJob.JOB_TYPE_DOMAIN_PACK_GENERATION);
-    ReflectionTestUtils.setField(job, "status", status);
-    ReflectionTestUtils.setField(job, "airflowDagId", "domain_pack_generation");
-    ReflectionTestUtils.setField(job, "airflowRunId", "pipeline_job_123");
-    ReflectionTestUtils.setField(job, "requestPayloadJson", "{}");
-    ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
-    return job;
+    if (PipelineJob.STATUS_CANCELLED.equals(status)) {
+      return PipelineJobFixtures.cancelledDomainPackGeneration(123L, 1L, 7L);
+    }
+    return PipelineJobFixtures.domainPackGeneration(123L)
+        .workspaceId(1L)
+        .datasetId(7L)
+        .status(status)
+        .airflowRun("domain_pack_generation", "pipeline_job_123")
+        .build();
   }
 
   private WebhookReceipt receipt(String externalEventId) {
@@ -267,15 +264,5 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
         "{}",
         "{}",
         OffsetDateTime.now(fixedClock));
-  }
-
-  private PipelineJob newPipelineJob() {
-    try {
-      Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return constructor.newInstance();
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
-    }
   }
 }

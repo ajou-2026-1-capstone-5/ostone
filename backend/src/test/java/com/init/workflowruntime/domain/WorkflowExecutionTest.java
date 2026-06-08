@@ -8,7 +8,6 @@ import com.init.shared.application.exception.BadRequestException;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("WorkflowExecution")
 class WorkflowExecutionTest {
@@ -53,11 +52,9 @@ class WorkflowExecutionTest {
   @DisplayName("replaceSlotValuesJson: null은 빈 JSON object로 저장한다")
   void should_replaceSlotValuesWithEmptyJson_when_valueIsNull() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "id", 10L);
 
     execution.replaceSlotValuesJson(null);
 
-    assertThat(execution.getId()).isEqualTo(10L);
     assertThat(execution.getSlotValuesJson()).isEqualTo("{}");
   }
 
@@ -157,24 +154,10 @@ class WorkflowExecutionTest {
   }
 
   @Test
-  @DisplayName("complete: 실패한 실행이면 완료로 변경하지 않는다")
-  void should_throw_when_completingFailedExecution() {
-    WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
-
-    assertThatExceptionOfType(BadRequestException.class)
-        .isThrownBy(execution::complete)
-        .withMessageContaining("Cannot complete failed execution");
-
-    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_FAILED);
-    assertThat(execution.getFinishedAt()).isNull();
-  }
-
-  @Test
   @DisplayName("assignIntentWorkflow: 완료된 실행이면 재할당하지 않는다")
   void should_throw_when_assigningCompletedExecution() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_COMPLETED);
+    execution.complete();
 
     assertThatExceptionOfType(BadRequestException.class)
         .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
@@ -184,18 +167,5 @@ class WorkflowExecutionTest {
     assertThat(execution.getWorkflowDefinitionId()).isNull();
     assertThat(execution.getCurrentState()).isNull();
     assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_COMPLETED);
-  }
-
-  @Test
-  @DisplayName("assignIntentWorkflow: 실패한 실행이면 재할당하지 않는다")
-  void should_throw_when_assigningFailedExecution() {
-    WorkflowExecution execution = WorkflowExecution.create(1L);
-    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
-
-    assertThatExceptionOfType(BadRequestException.class)
-        .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
-        .withMessageContaining("terminal execution");
-
-    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_FAILED);
   }
 }

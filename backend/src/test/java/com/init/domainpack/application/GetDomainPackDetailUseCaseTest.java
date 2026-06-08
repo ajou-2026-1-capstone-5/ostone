@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetDomainPackDetailUseCase")
@@ -65,7 +65,7 @@ class GetDomainPackDetailUseCaseTest {
     StubDomainPack pack = new StubDomainPack(PACK_ID, WORKSPACE_ID, "my-key", "My Pack", null);
     DomainPackVersion version =
         DomainPackVersion.ofForTest(2L, PACK_ID, DomainPackVersion.STATUS_DRAFT);
-    ReflectionTestUtils.setField(version, "description", "사이드바 설명");
+    DomainPackEntityFixtures.withVersionMetadata(version, null, null, null, "사이드바 설명", null, null);
     given(domainPackRepository.findByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID))
         .willReturn(Optional.of(pack));
     given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))
@@ -227,10 +227,16 @@ class GetDomainPackDetailUseCaseTest {
 
   private static DomainPackVersion createPublishedVersion(
       Long id, Long domainPackId, Integer versionNo, String publishedAt) {
-    DomainPackVersion version =
-        DomainPackVersion.ofForTest(id, domainPackId, DomainPackVersion.STATUS_PUBLISHED);
-    ReflectionTestUtils.setField(version, "versionNo", versionNo);
-    ReflectionTestUtils.setField(version, "publishedAt", OffsetDateTime.parse(publishedAt));
-    return version;
+    return DomainPackEntityFixtures.version(
+        id,
+        domainPackId,
+        versionNo,
+        DomainPackVersion.STATUS_PUBLISHED,
+        null,
+        "{}",
+        null,
+        OffsetDateTime.parse(publishedAt),
+        null,
+        DomainPackEntityFixtures.DEFAULT_UPDATED_AT);
   }
 }

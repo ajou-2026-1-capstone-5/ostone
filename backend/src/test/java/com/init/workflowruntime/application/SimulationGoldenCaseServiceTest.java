@@ -1,5 +1,10 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.intentDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationGoldenCaseWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationReplayResultWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,7 +56,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SimulationGoldenCaseService")
@@ -375,7 +379,12 @@ class SimulationGoldenCaseServiceTest {
       String currentState,
       String actionType,
       ObjectNode slotValues) {
-    givenWorkflowLookup(replaySession.getDomainPackVersionId());
+    Long versionId = replaySession.getDomainPackVersionId();
+    givenWorkflowLookup(versionId);
+    LlmToolWorkflowResponse workflowResponse =
+        workflowResponse(replaySessionId, versionId, currentState);
+    LlmToolContextResponse contextResponse =
+        contextResponse(replaySessionId, versionId, currentState, slotValues);
     given(
             workflowAssistantStateService.inspect(
                 new InspectAssistantConversationCommand(replaySessionId)))
@@ -389,21 +398,19 @@ class SimulationGoldenCaseServiceTest {
     given(
             llmToolService.getCurrentWorkflowForOperator(
                 new GetCurrentWorkflowCommand(replaySessionId), USER_ID))
-        .willReturn(
-            workflowResponse(
-                replaySessionId, replaySession.getDomainPackVersionId(), currentState));
+        .willReturn(workflowResponse);
     given(chatSessionRepository.findById(replaySessionId)).willReturn(Optional.of(replaySession));
     given(llmToolService.getContext(new GetLlmToolContextCommand(replaySessionId)))
-        .willReturn(
-            contextResponse(
-                replaySessionId, replaySession.getDomainPackVersionId(), currentState, slotValues));
+        .willReturn(contextResponse);
   }
 
   private void givenWorkflowLookup(Long versionId) {
+    WorkflowDefinition workflow = workflow(versionId);
+    IntentDefinition intent = intent(versionId);
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, versionId))
-        .willReturn(Optional.of(workflow(versionId)));
+        .willReturn(Optional.of(workflow));
     given(intentDefinitionRepository.findByIdAndDomainPackVersionId(INTENT_ID, versionId))
-        .willReturn(Optional.of(intent(versionId)));
+        .willReturn(Optional.of(intent));
   }
 
   private LlmToolWorkflowResponse workflowResponse(
@@ -503,17 +510,15 @@ class SimulationGoldenCaseServiceTest {
             INTENT_ID,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
-    return workflow;
+    return workflowDefinitionWithId(workflow, WORKFLOW_ID);
   }
 
   private IntentDefinition intent(Long versionId) {
     IntentDefinition intent =
         IntentDefinition.create(
             versionId, "refund_request", "환불 문의", null, 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", INTENT_ID);
     intent.changeStatus(IntentDefinition.STATUS_PUBLISHED);
-    return intent;
+    return intentDefinitionWithId(intent, INTENT_ID);
   }
 
   private ChatMessage message(Long sessionId, int seqNo, String role, String content) {
@@ -521,18 +526,15 @@ class SimulationGoldenCaseServiceTest {
   }
 
   private ChatSession withId(ChatSession session, Long id) {
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private SimulationGoldenCase withGoldenCaseId(SimulationGoldenCase goldenCase, Long id) {
-    ReflectionTestUtils.setField(goldenCase, "id", id);
-    return goldenCase;
+    return simulationGoldenCaseWithId(goldenCase, id);
   }
 
   private SimulationGoldenCaseReplayResult withReplayResultId(
       SimulationGoldenCaseReplayResult result, Long id) {
-    ReflectionTestUtils.setField(result, "id", id);
-    return result;
+    return simulationReplayResultWithId(result, id);
   }
 }

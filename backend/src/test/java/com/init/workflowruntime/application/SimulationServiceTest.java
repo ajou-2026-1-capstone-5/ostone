@@ -1,5 +1,10 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.intentDefinitionWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.simulationFeedbackWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.workflowDefinitionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,7 +60,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SimulationService")
@@ -651,17 +655,15 @@ class SimulationServiceTest {
             INTENT_ID,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
-    return workflow;
+    return workflowDefinitionWithId(workflow, WORKFLOW_ID);
   }
 
   private IntentDefinition intent() {
     IntentDefinition intent =
         IntentDefinition.create(
             VERSION_ID, "refund_request", "환불 문의", null, 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", INTENT_ID);
     intent.changeStatus(IntentDefinition.STATUS_PUBLISHED);
-    return intent;
+    return intentDefinitionWithId(intent, INTENT_ID);
   }
 
   private ChatMessage message(Long sessionId, int seqNo, String role, String content) {
@@ -669,17 +671,14 @@ class SimulationServiceTest {
   }
 
   private ChatSession withId(ChatSession session, Long id) {
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private ChatMessage withMessageId(ChatMessage message, Long id) {
-    ReflectionTestUtils.setField(message, "id", id);
-    return message;
+    return chatMessageWithId(message, id);
   }
 
   private SimulationFeedback withFeedbackId(SimulationFeedback feedback, Long id) {
-    ReflectionTestUtils.setField(feedback, "id", id);
-    return feedback;
+    return simulationFeedbackWithId(feedback, id);
   }
 }

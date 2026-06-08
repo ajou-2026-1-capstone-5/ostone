@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -34,7 +35,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -103,7 +103,7 @@ class LlmResponseHandlerTest {
         .willReturn(new SimpleTransactionStatus());
 
     ChatMessage savedMsg = ChatMessage.create(1L, 1, "ASSISTANT", "TEXT", "안녕하세요! 무엇을 도와드릴까요?");
-    ReflectionTestUtils.setField(savedMsg, "id", 1L);
+    savedMsg = chatMessageWithId(savedMsg, 1L);
     given(chatMessageRepository.save(any(ChatMessage.class))).willReturn(savedMsg);
 
     handler.handleChatMessageReceived(event);

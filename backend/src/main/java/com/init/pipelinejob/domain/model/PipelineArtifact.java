@@ -66,7 +66,27 @@ public class PipelineArtifact {
     return artifactUri;
   }
 
+  public Long getPipelineJobId() {
+    return pipelineJobId;
+  }
+
+  public String getStageName() {
+    return stageName;
+  }
+
+  public String getArtifactType() {
+    return artifactType;
+  }
+
+  public String getContentHash() {
+    return contentHash;
+  }
+
   public String getPayloadJson() {
     return payloadJson;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
   }
 }

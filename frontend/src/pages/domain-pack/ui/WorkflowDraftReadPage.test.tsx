@@ -1,167 +1,23 @@
-import { useState } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/shared/api";
-import { WorkflowDraftReadPage } from "./WorkflowDraftReadPage";
-
-const mockUseGetWorkflowDefinition = vi.fn();
-const mockUsePackDetail = vi.fn();
-const mockCreateRevisionDraft = vi.fn();
-const mockListWorkflows = vi.fn();
-const mockGetWorkflowBottleneckAnalysis = vi.fn();
-const mockToastSuccess = vi.fn();
-const mockToastError = vi.fn();
-vi.mock("@/entities/workflow", () => ({
-  useGetWorkflowDefinition: (...args: unknown[]) => mockUseGetWorkflowDefinition(...args),
-}));
-
-vi.mock("@/features/domain-pack-summary-read", () => ({
-  usePackDetail: (...args: unknown[]) => mockUsePackDetail(...args),
-  formatLifecycleStatus: (status?: string | null) =>
-    status === "PUBLISHED" ? "운영 가능" : status === "DRAFT" ? "검토 중" : "상태 없음",
-  VersionSafetyBanner: () => null,
-}));
-
-vi.mock("@/features/consultation/api/consultationApi", () => ({
-  consultationApi: {
-    getWorkflowBottleneckAnalysis: (...args: unknown[]) =>
-      mockGetWorkflowBottleneckAnalysis(...args),
-  },
-}));
-
-vi.mock("@/features/update-workflow", () => ({
-  InlineWorkflowEditor: vi.fn(({ workflow, onClose, onDirtyChange }) => (
-    <div data-testid="inline-editor">
-      editing {workflow.workflowCode}
-      <button type="button" data-testid="editor-dirty" onClick={() => onDirtyChange(true)}>
-        dirty
-      </button>
-      <button type="button" data-testid="editor-close" onClick={onClose}>
-        close
-      </button>
-    </div>
-  )),
-}));
-
-vi.mock("@/features/workflow-viewer/ui/GraphViewer", () => ({
-  GraphViewer: vi.fn(({ graph }) => (
-    <div data-testid="graph-viewer">graph nodes: {graph.nodes.length}</div>
-  )),
-}));
-
-vi.mock("@/features/intent-revision-draft", () => ({
-  intentRevisionDraftApi: {
-    createRevisionDraft: (...args: unknown[]) => mockCreateRevisionDraft(...args),
-  },
-}));
-vi.mock(
-  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
-  () => ({
-    listWorkflows: (...args: unknown[]) => mockListWorkflows(...args),
-  }),
-);
-vi.mock("sonner", () => ({
-  toast: {
-    success: (...args: unknown[]) => mockToastSuccess(...args),
-    error: (...args: unknown[]) => mockToastError(...args),
-  },
-}));
-
-function LocationProbe() {
-  const location = useLocation();
-  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
-}
-
-function ShellHost() {
-  const [crumbs, setCrumbs] = useState<Array<string | { label: string }>>([]);
-  const [topbarRight, setTopbarRight] = useState<React.ReactNode>();
-
-  return (
-    <>
-      <div data-testid="crumbs">
-        {crumbs.map((crumb) => (typeof crumb === "string" ? crumb : crumb.label)).join(" / ")}
-      </div>
-      <div data-testid="shell-topbar">{topbarRight}</div>
-      <Outlet context={{ setCrumbs, setTopbarRight, workspace: null }} />
-    </>
-  );
-}
-
-function renderPage(path: string, state?: unknown) {
-  render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: path.split("?")[0],
-          search: path.includes("?") ? `?${path.split("?")[1]}` : "",
-          state,
-        },
-      ]}
-    >
-      <Routes>
-        <Route path="/workspaces/:workspaceId/domain-packs/:packId" element={<ShellHost />}>
-          <Route
-            path="workflows/:workflowId?"
-            element={
-              <>
-                <WorkflowDraftReadPage />
-                <LocationProbe />
-              </>
-            }
-          />
-        </Route>
-        <Route path="*" element={<LocationProbe />} />
-      </Routes>
-    </MemoryRouter>,
-  );
-}
-
-beforeEach(() => {
-  mockUseGetWorkflowDefinition.mockReset();
-  mockUsePackDetail.mockReset();
-  mockCreateRevisionDraft.mockReset();
-  mockListWorkflows.mockReset();
-  mockGetWorkflowBottleneckAnalysis.mockReset();
-  mockToastSuccess.mockReset();
-  mockToastError.mockReset();
-  mockGetWorkflowBottleneckAnalysis.mockResolvedValue({
-    workspaceId: 1,
-    workflowDefinitionId: 10,
-    periodStart: "2026-05-29T00:00:00+09:00",
-    periodEnd: "2026-06-05T00:00:00+09:00",
-    totalExecutionCount: 0,
-    completedCount: 0,
-    failedCount: 0,
-    runningCount: 0,
-    transitions: [],
-    longestDwellState: null,
-    mostStoppedState: null,
-    stateMetrics: [],
-    missingSlotTop: [],
-    policyHitTop: [],
-    riskHitTop: [],
-    humanInterventionPoints: [],
-    improvementHints: ["선택 기간에 개선 우선순위를 판단할 병목 신호가 아직 충분하지 않습니다."],
-  });
-  mockUsePackDetail.mockReturnValue({
-    data: {
-      name: "CS Pack",
-      versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "DRAFT" }],
-    },
-    refetch: vi.fn().mockResolvedValue({
-      data: {
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "DRAFT" }],
-      },
-    }),
-  });
-});
+import {
+  mockCreateRevisionDraft,
+  mockGetWorkflowBottleneckAnalysis,
+  mockListWorkflows,
+  mockToastError,
+  mockUseGetWorkflowDefinition,
+  mockUsePackDetail,
+  renderPage,
+} from "./WorkflowDraftReadPage.test-helper";
 
 describe("WorkflowDraftReadPage", () => {
   it("유효하지 않은 URL 파라미터는 에러 메시지를 보여준다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: false });
     renderPage("/workspaces/abc/domain-packs/2/workflows?versionId=3");
-    expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "잘못된 URL 파라미터입니다.",
+    );
   });
 
   it("workflowId가 없으면 좌측 사이드바에서 선택하라는 안내를 표시한다", () => {
@@ -205,10 +61,14 @@ describe("WorkflowDraftReadPage", () => {
       },
     });
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
-    expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent("환불 처리");
+    expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent(
+      "환불 처리",
+    );
     expect(screen.queryByText("refund.standard")).not.toBeInTheDocument();
     expect(screen.getByText("노드 2개")).toBeInTheDocument();
-    expect(screen.getByTestId("graph-viewer")).toHaveTextContent("graph nodes: 2");
+    expect(screen.getByTestId("graph-viewer")).toHaveTextContent(
+      "graph nodes: 2",
+    );
     expect(screen.getByTestId("workflow-simulation-link")).toHaveAttribute(
       "href",
       "/workspaces/1/simulation?packId=2&versionId=3&workflowId=10",
@@ -225,7 +85,9 @@ describe("WorkflowDraftReadPage", () => {
       completedCount: 1,
       failedCount: 1,
       runningCount: 1,
-      transitions: [{ stateFrom: "collect_slots", stateTo: "verify_policy", passCount: 2 }],
+      transitions: [
+        { stateFrom: "collect_slots", stateTo: "verify_policy", passCount: 2 },
+      ],
       longestDwellState: {
         stateName: "collect_slots",
         metricValue: 420,
@@ -256,7 +118,9 @@ describe("WorkflowDraftReadPage", () => {
           description: "상담사 개입 action이 자주 발생한 state",
         },
       ],
-      improvementHints: ["order_id slot 수집 문구와 검증 규칙을 우선 점검하세요."],
+      improvementHints: [
+        "order_id slot 수집 문구와 검증 규칙을 우선 점검하세요.",
+      ],
     });
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
@@ -271,9 +135,9 @@ describe("WorkflowDraftReadPage", () => {
 
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
 
-    expect(await screen.findByTestId("workflow-analysis-panel")).toHaveTextContent(
-      "운영 실행 병목 분석",
-    );
+    expect(
+      await screen.findByTestId("workflow-analysis-panel"),
+    ).toHaveTextContent("운영 실행 병목 분석");
     expect(screen.getByText("전체 실행")).toBeInTheDocument();
     expect(screen.getAllByText("collect_slots").length).toBeGreaterThan(0);
     expect(screen.getAllByText("verify_policy").length).toBeGreaterThan(0);
@@ -284,7 +148,9 @@ describe("WorkflowDraftReadPage", () => {
   });
 
   it("운영 실행 병목 분석 로딩 상태를 표시한다", async () => {
-    mockGetWorkflowBottleneckAnalysis.mockReturnValueOnce(new Promise(() => undefined));
+    mockGetWorkflowBottleneckAnalysis.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -298,9 +164,9 @@ describe("WorkflowDraftReadPage", () => {
 
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
 
-    expect(await screen.findByTestId("workflow-analysis-loading")).toHaveTextContent(
-      "워크플로우 병목 분석을 불러오는 중입니다.",
-    );
+    expect(
+      await screen.findByTestId("workflow-analysis-loading"),
+    ).toHaveTextContent("워크플로우 병목 분석을 불러오는 중입니다.");
   });
 
   it("운영 실행 병목 분석 데이터가 없으면 빈 상태를 표시한다", async () => {
@@ -317,9 +183,9 @@ describe("WorkflowDraftReadPage", () => {
 
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
 
-    expect(await screen.findByTestId("workflow-analysis-empty")).toHaveTextContent(
-      "선택 기간에 분석할 운영 실행 로그가 없습니다.",
-    );
+    expect(
+      await screen.findByTestId("workflow-analysis-empty"),
+    ).toHaveTextContent("선택 기간에 분석할 운영 실행 로그가 없습니다.");
   });
 
   it("운영 실행 병목 분석 실패 상태에서 다시 시도할 수 있다", async () => {
@@ -364,17 +230,21 @@ describe("WorkflowDraftReadPage", () => {
 
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
 
-    expect(await screen.findByTestId("workflow-analysis-error")).toHaveTextContent(
+    expect(
+      await screen.findByTestId("workflow-analysis-error"),
+    ).toHaveTextContent("워크플로우 병목 분석을 불러오지 못했습니다.");
+    expect(mockToastError).toHaveBeenCalledWith(
       "워크플로우 병목 분석을 불러오지 못했습니다.",
     );
-    expect(mockToastError).toHaveBeenCalledWith("워크플로우 병목 분석을 불러오지 못했습니다.");
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
-    expect(await screen.findByTestId("workflow-analysis-panel")).toHaveTextContent(
-      "1분 15초 평균 체류",
-    );
-    expect(screen.getByText("멈춘 실행이 관측되지 않았습니다.")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("workflow-analysis-panel"),
+    ).toHaveTextContent("1분 15초 평균 체류");
+    expect(
+      screen.getByText("멈춘 실행이 관측되지 않았습니다."),
+    ).toBeInTheDocument();
     expect(mockGetWorkflowBottleneckAnalysis).toHaveBeenCalledTimes(2);
   });
 
@@ -417,7 +287,9 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("edit-toggle"));
-    expect(screen.getByTestId("inline-editor")).toHaveTextContent("editing refund.standard");
+    expect(screen.getByTestId("inline-editor")).toHaveTextContent(
+      "editing refund.standard",
+    );
     expect(mockCreateRevisionDraft).not.toHaveBeenCalled();
   });
 
@@ -425,7 +297,9 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn().mockResolvedValue({
         data: {
@@ -466,7 +340,9 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn(),
     });
@@ -497,7 +373,9 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn().mockResolvedValue({
         data: {
@@ -540,7 +418,9 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn().mockResolvedValue({
         data: {
@@ -571,8 +451,12 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
 
-    expect(await screen.findByText("진행 중인 검토본이 있습니다")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "기존 검토본으로 이동" }));
+    expect(
+      await screen.findByText("진행 중인 검토본이 있습니다"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "기존 검토본으로 이동" }),
+    );
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent(
         "/workspaces/1/domain-packs/2/workflows/55?versionId=5",
@@ -584,11 +468,15 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn().mockResolvedValue({
         data: {
-          versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+          ],
         },
       }),
     });
@@ -614,14 +502,18 @@ describe("WorkflowDraftReadPage", () => {
         "진행 중인 검토본을 확인할 수 없습니다. 도메인팩 화면에서 상태를 확인해 주세요.",
       ),
     );
-    expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("진행 중인 검토본이 있습니다"),
+    ).not.toBeInTheDocument();
   });
 
   it("기존 DRAFT 충돌 후 같은 workflow를 찾지 못하면 이동 dialog를 열지 않는다", async () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn().mockResolvedValue({
         data: {
@@ -657,16 +549,22 @@ describe("WorkflowDraftReadPage", () => {
         "기존 검토본에서 같은 워크플로우를 찾지 못했습니다.",
       ),
     );
-    expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("진행 중인 검토본이 있습니다"),
+    ).not.toBeInTheDocument();
   });
 
   it("기존 DRAFT 충돌 후 pack refetch가 실패하면 에러를 안내하고 dialog를 열지 않는다", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     try {
       mockUsePackDetail.mockReturnValue({
         data: {
           name: "CS Pack",
-          versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+          ],
         },
         refetch: vi.fn().mockRejectedValue(new Error("refetch failed")),
       });
@@ -687,24 +585,32 @@ describe("WorkflowDraftReadPage", () => {
       renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
       fireEvent.click(screen.getByTestId("edit-toggle"));
 
-      await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("refetch failed"));
+      await waitFor(() =>
+        expect(mockToastError).toHaveBeenCalledWith("refetch failed"),
+      );
       expect(consoleError).toHaveBeenCalledWith(
         "Failed to resolve existing workflow draft",
         expect.any(Error),
       );
-      expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("진행 중인 검토본이 있습니다"),
+      ).not.toBeInTheDocument();
     } finally {
       consoleError.mockRestore();
     }
   });
 
   it("기존 DRAFT 충돌 후 workflow 목록 조회가 실패하면 에러를 안내한다", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     try {
       mockUsePackDetail.mockReturnValue({
         data: {
           name: "CS Pack",
-          versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+          ],
         },
         refetch: vi.fn().mockResolvedValue({
           data: {
@@ -733,7 +639,9 @@ describe("WorkflowDraftReadPage", () => {
       renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
       fireEvent.click(screen.getByTestId("edit-toggle"));
 
-      await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("workflow list failed"));
+      await waitFor(() =>
+        expect(mockToastError).toHaveBeenCalledWith("workflow list failed"),
+      );
       expect(consoleError).toHaveBeenCalled();
     } finally {
       consoleError.mockRestore();
@@ -756,7 +664,9 @@ describe("WorkflowDraftReadPage", () => {
     fireEvent.click(screen.getByTestId("editor-dirty"));
     fireEvent.click(screen.getByTestId("editor-close"));
 
-    expect(await screen.findByText("변경 내역을 버릴까요?")).toBeInTheDocument();
+    expect(
+      await screen.findByText("변경 내역을 버릴까요?"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "계속 편집" }));
@@ -784,7 +694,9 @@ describe("WorkflowDraftReadPage", () => {
     fireEvent.click(screen.getByTestId("editor-dirty"));
     fireEvent.click(screen.getByRole("button", { name: "목록" }));
 
-    expect(await screen.findByText("변경 내역을 버릴까요?")).toBeInTheDocument();
+    expect(
+      await screen.findByText("변경 내역을 버릴까요?"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "변경 내역 버리기" }));
 
     await waitFor(() =>
@@ -822,12 +734,18 @@ describe("WorkflowDraftReadPage", () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
-        versions: [{ versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
       },
       refetch: vi.fn(),
     });
     mockCreateRevisionDraft.mockRejectedValue(
-      new ApiRequestError(400, "DOMAIN_PACK_VERSION_NOT_CURRENT", "현재 운영 버전이 아닙니다."),
+      new ApiRequestError(
+        400,
+        "DOMAIN_PACK_VERSION_NOT_CURRENT",
+        "현재 운영 버전이 아닙니다.",
+      ),
     );
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
@@ -843,7 +761,9 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
 
-    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("현재 운영 버전이 아닙니다."));
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("현재 운영 버전이 아닙니다."),
+    );
   });
 
   it("편집 모드에서는 상단 보기 버튼을 렌더하지 않는다", () => {
@@ -902,7 +822,9 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     // legacy panels gone
     expect(screen.queryByText(/검토 중 · v0\.4/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Card payment refund flow")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Card payment refund flow"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Selected node")).not.toBeInTheDocument();
     expect(screen.queryByText(/Edit graph/)).not.toBeInTheDocument();
     // tab list gone

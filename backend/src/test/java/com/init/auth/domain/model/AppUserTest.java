@@ -10,6 +10,11 @@ import org.junit.jupiter.api.Test;
 @DisplayName("AppUser 도메인 모델")
 class AppUserTest {
 
+  private static final OffsetDateTime FUTURE_EXPIRES_AT =
+      OffsetDateTime.parse("2099-01-01T00:00:00Z");
+  private static final OffsetDateTime PAST_EXPIRES_AT =
+      OffsetDateTime.parse("2000-01-01T00:00:00Z");
+
   // ── 팩토리 ──────────────────────────────────────────────────────────────────
 
   @Test
@@ -124,7 +129,7 @@ class AppUserTest {
     // given
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
     String tokenHash = "sha256hashvalue";
-    OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
+    OffsetDateTime expiresAt = FUTURE_EXPIRES_AT;
 
     // when
     user.initiatePasswordReset(tokenHash, expiresAt);
@@ -140,7 +145,7 @@ class AppUserTest {
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
 
     // when & then
-    assertThatThrownBy(() -> user.initiatePasswordReset(null, OffsetDateTime.now().plusMinutes(30)))
+    assertThatThrownBy(() -> user.initiatePasswordReset(null, FUTURE_EXPIRES_AT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash must not be null or blank");
   }
@@ -152,7 +157,7 @@ class AppUserTest {
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
 
     // when & then
-    assertThatThrownBy(() -> user.initiatePasswordReset("", OffsetDateTime.now().plusMinutes(30)))
+    assertThatThrownBy(() -> user.initiatePasswordReset("", FUTURE_EXPIRES_AT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash must not be null or blank");
   }
@@ -164,8 +169,7 @@ class AppUserTest {
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
 
     // when & then
-    assertThatThrownBy(
-            () -> user.initiatePasswordReset("   ", OffsetDateTime.now().plusMinutes(30)))
+    assertThatThrownBy(() -> user.initiatePasswordReset("   ", FUTURE_EXPIRES_AT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash must not be null or blank");
   }
@@ -199,7 +203,7 @@ class AppUserTest {
   void should_false반환_when_만료된토큰() {
     // given
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
-    user.initiatePasswordReset("sha256hash", OffsetDateTime.now().minusMinutes(1));
+    user.initiatePasswordReset("sha256hash", PAST_EXPIRES_AT);
 
     // when & then
     assertThat(user.isPasswordResetTokenValid()).isFalse();
@@ -210,7 +214,7 @@ class AppUserTest {
   void should_true반환_when_유효한토큰() {
     // given
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
-    user.initiatePasswordReset("sha256hash", OffsetDateTime.now().plusMinutes(30));
+    user.initiatePasswordReset("sha256hash", FUTURE_EXPIRES_AT);
 
     // when & then
     assertThat(user.isPasswordResetTokenValid()).isTrue();
@@ -223,7 +227,7 @@ class AppUserTest {
   void should_비밀번호재설정완료_when_새해시제공() {
     // given
     AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$oldhash");
-    user.initiatePasswordReset("sha256hash", OffsetDateTime.now().plusMinutes(30));
+    user.initiatePasswordReset("sha256hash", FUTURE_EXPIRES_AT);
 
     // when
     user.completePasswordReset("$2a$10$newhash");

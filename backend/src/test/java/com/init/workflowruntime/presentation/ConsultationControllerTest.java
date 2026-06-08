@@ -61,6 +61,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ConsultationControllerTest {
 
   private static final String DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 가능 여부를 안내드리겠습니다.";
+  private static final OffsetDateTime SENT_AT = OffsetDateTime.parse("2026-06-01T09:00:00Z");
 
   @Autowired private MockMvc mockMvc;
 
@@ -86,8 +87,7 @@ class ConsultationControllerTest {
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
   void should_메시지목록반환_when_정상조회() throws Exception {
     // given
-    ChatMessageResponse msg =
-        new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
+    ChatMessageResponse msg = new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", SENT_AT);
 
     given(consultationService.getMessages(1L, 7L, 0, 50))
         .willReturn(new ChatMessagePageResponse(List.of(msg), 0, 50, 1, 1));
@@ -107,8 +107,7 @@ class ConsultationControllerTest {
   @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - page/size 파라미터 전달")
   void should_페이지파라미터전달_when_메시지조회() throws Exception {
-    ChatMessageResponse msg =
-        new ChatMessageResponse(2L, 45, "CUSTOMER", "TEXT", "Old", OffsetDateTime.now());
+    ChatMessageResponse msg = new ChatMessageResponse(2L, 45, "CUSTOMER", "TEXT", "Old", SENT_AT);
     given(consultationService.getMessages(1L, 7L, 1, 25))
         .willReturn(new ChatMessagePageResponse(List.of(msg), 1, 25, 80, 4));
 
@@ -136,7 +135,7 @@ class ConsultationControllerTest {
     request.setNote(false);
 
     ChatMessageResponse response =
-        new ChatMessageResponse(10L, 1, "AGENT", "TEXT", "Hello Operator", OffsetDateTime.now());
+        new ChatMessageResponse(10L, 1, "AGENT", "TEXT", "Hello Operator", SENT_AT);
 
     given(consultationService.sendMessage(eq(1L), any(SendMessageRequest.class), eq(7L)))
         .willReturn(response);

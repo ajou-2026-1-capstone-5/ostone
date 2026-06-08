@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,7 +32,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserChatSessionService")
@@ -164,8 +164,7 @@ class UserChatSessionServiceTest {
         .willAnswer(
             invocation -> {
               ChatSession saved = invocation.getArgument(0);
-              ReflectionTestUtils.setField(saved, "id", 99L);
-              return saved;
+              return chatSessionWithId(saved, 99L);
             });
 
     ChatSessionResponse result = service.getOrCreateCurrentSession(command());
@@ -207,8 +206,7 @@ class UserChatSessionServiceTest {
         .willAnswer(
             invocation -> {
               ChatSession saved = invocation.getArgument(0);
-              ReflectionTestUtils.setField(saved, "id", 100L);
-              return saved;
+              return chatSessionWithId(saved, 100L);
             });
 
     ChatSessionResponse result = service.createSession(command());
@@ -280,8 +278,7 @@ class UserChatSessionServiceTest {
   private ChatSession createSession(Long id, ChatSessionStatus status, String metaJson) {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, status, "WEB", metaJson, USER_ID);
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
   }
 
   private GetOrCreateCurrentSessionCommand command() {

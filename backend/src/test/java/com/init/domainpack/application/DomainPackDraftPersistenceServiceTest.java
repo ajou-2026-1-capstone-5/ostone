@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import com.init.domainpack.application.exception.DomainPackVersionNotDraftException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -35,7 +36,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DomainPackDraftPersistenceService")
@@ -83,12 +83,12 @@ class DomainPackDraftPersistenceServiceTest {
         DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition existingParent =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(existingParent, "id", 55L);
+    DomainPackEntityFixtures.persisted(existingParent, 55L);
 
     IntentDefinition savedChild =
         IntentDefinition.create(
             101L, "refund_request_cancel", "환불 요청 취소", null, 2, null, null, null, null);
-    ReflectionTestUtils.setField(savedChild, "id", 77L);
+    DomainPackEntityFixtures.persisted(savedChild, 77L);
 
     given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
     given(
@@ -135,11 +135,11 @@ class DomainPackDraftPersistenceServiceTest {
         DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition savedParent =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(savedParent, "id", 55L);
+    DomainPackEntityFixtures.persisted(savedParent, 55L);
     IntentDefinition savedChild =
         IntentDefinition.create(
             101L, "refund_request_cancel", "환불 요청 취소", null, 2, null, null, null, null);
-    ReflectionTestUtils.setField(savedChild, "id", 77L);
+    DomainPackEntityFixtures.persisted(savedChild, 77L);
 
     given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
     given(
@@ -203,7 +203,7 @@ class DomainPackDraftPersistenceServiceTest {
         DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition existingIntent =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(existingIntent, "id", 55L);
+    DomainPackEntityFixtures.persisted(existingIntent, 55L);
 
     given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
     given(
@@ -252,7 +252,7 @@ class DomainPackDraftPersistenceServiceTest {
         DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition existingIntent =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(existingIntent, "id", 55L);
+    DomainPackEntityFixtures.persisted(existingIntent, 55L);
 
     given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
     given(
@@ -339,7 +339,7 @@ class DomainPackDraftPersistenceServiceTest {
         .willReturn(Set.of("existing_policy"));
     IntentDefinition existingIntent2 =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(existingIntent2, "id", 55L);
+    DomainPackEntityFixtures.persisted(existingIntent2, 55L);
     given(intentDefinitionRepository.findByDomainPackVersionId(101L))
         .willReturn(List.of(existingIntent2));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
@@ -397,7 +397,7 @@ class DomainPackDraftPersistenceServiceTest {
         .willReturn(Set.of());
     IntentDefinition existingIntentForWorkflow =
         IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
-    ReflectionTestUtils.setField(existingIntentForWorkflow, "id", 55L);
+    DomainPackEntityFixtures.persisted(existingIntentForWorkflow, 55L);
     given(intentDefinitionRepository.findByDomainPackVersionId(101L))
         .willReturn(List.of(existingIntentForWorkflow));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
@@ -454,7 +454,7 @@ class DomainPackDraftPersistenceServiceTest {
     long id = 1L;
     for (T entity : entities) {
       if (hasIdField(entity)) {
-        ReflectionTestUtils.setField(entity, "id", id++);
+        DomainPackEntityFixtures.persisted(entity, id++);
       }
       saved.add(entity);
     }

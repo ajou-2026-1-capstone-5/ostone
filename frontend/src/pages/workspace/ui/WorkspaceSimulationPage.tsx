@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { useListAllWorkspaceWorkflows, type WorkspaceWorkflowEntry } from "@/entities/workflow";
+import { safeParseGraph } from "@/entities/workflow/ui/lib/parseGraph";
 import {
   simulationApi,
   type SimulationFeedback,
@@ -35,6 +36,7 @@ import {
 } from "@/features/simulation";
 import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { ApiRequestError } from "@/shared/api";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
@@ -805,6 +807,25 @@ export function WorkspaceSimulationPage() {
     return null;
   }, [detail?.matchedWorkflow, selectedWorkflow, simulationTarget, targetWorkflow]);
   const matched = detail?.matchedWorkflow ?? null;
+  const expectedWorkflowOptions = useMemo(() => {
+    const codes = new Set<string>();
+    workflows.entries.forEach((entry) => {
+      if (entry.workflowCode) codes.add(entry.workflowCode);
+    });
+    if (matched?.workflowCode) codes.add(matched.workflowCode);
+    return Array.from(codes);
+  }, [workflows.entries, matched?.workflowCode]);
+  const expectedStateOptions = useMemo(() => {
+    const states = new Set<string>();
+    safeParseGraph(matched?.graphJson).nodes.forEach((node) => states.add(node.id));
+    if (matched?.currentState) states.add(matched.currentState);
+    return Array.from(states);
+  }, [matched?.graphJson, matched?.currentState]);
+  const expectedIntentOptions = useMemo(() => {
+    const codes = new Set<string>();
+    if (matched?.intentCode) codes.add(matched.intentCode);
+    return Array.from(codes);
+  }, [matched?.intentCode]);
   const isTargetContextConfirmed = matchesTargetContext(targetWorkflow, simulationTarget);
   const targetPackLabel =
     (isTargetContextConfirmed ? targetWorkflow?.packName : null) ??
@@ -1092,9 +1113,16 @@ export function WorkspaceSimulationPage() {
       });
       setDetail(created);
       setSelectedSessionId(created.session.id ?? null);
-      await reloadSessions();
-    } catch {
-      toast.error("시뮬레이션 세션을 만들지 못했습니다.");
+      toast.success("새 시뮬레이션 세션을 만들었습니다.");
+      await reloadSessions().catch(() => {
+        toast.error("세션 목록을 새로고침하지 못했습니다.");
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof ApiRequestError
+          ? `시뮬레이션 세션을 만들지 못했습니다: ${err.message}`
+          : "시뮬레이션 세션을 만들지 못했습니다.",
+      );
     } finally {
       setIsCreating(false);
     }
@@ -1302,11 +1330,15 @@ export function WorkspaceSimulationPage() {
       const result = await simulationApi.replayGoldenCase(parsedWorkspaceId, goldenCase.id, {
         domainPackVersionId: versionId,
       });
-      toast.success(
-        result.status === "PASS"
-          ? "검증 케이스 replay가 통과했습니다."
-          : "검증 케이스 replay가 실패했습니다.",
-      );
+      if (result.status === "PASS") {
+        toast.success("검증 케이스 replay가 통과했습니다.");
+      } else {
+        toast.error(
+          result.failureSummary
+            ? `검증 케이스 replay가 실패했습니다: ${result.failureSummary}`
+            : "검증 케이스 replay가 실패했습니다.",
+        );
+      }
       await reloadGoldenCases().catch(() => undefined);
     } catch {
       toast.error("검증 케이스 replay를 실행하지 못했습니다.");
@@ -1634,7 +1666,13 @@ export function WorkspaceSimulationPage() {
                       onChange={(event) => setExpectedIntentCode(event.target.value)}
                       maxLength={255}
                       aria-label="기대 intent"
+                      list="expected-intent-options"
                     />
+                    <datalist id="expected-intent-options">
+                      {expectedIntentOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
                   </label>
                   <label className={styles.feedbackField}>
                     <span>기대 workflow</span>
@@ -1643,7 +1681,13 @@ export function WorkspaceSimulationPage() {
                       onChange={(event) => setExpectedWorkflowCode(event.target.value)}
                       maxLength={255}
                       aria-label="기대 workflow"
+                      list="expected-workflow-options"
                     />
+                    <datalist id="expected-workflow-options">
+                      {expectedWorkflowOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
                   </label>
                   <label className={styles.feedbackField}>
                     <span>기대 state</span>
@@ -1652,7 +1696,13 @@ export function WorkspaceSimulationPage() {
                       onChange={(event) => setExpectedCurrentState(event.target.value)}
                       maxLength={255}
                       aria-label="기대 state"
+                      list="expected-state-options"
                     />
+                    <datalist id="expected-state-options">
+                      {expectedStateOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
                   </label>
                   <label className={styles.feedbackField}>
                     <span>기대 action</span>
@@ -2101,14 +2151,13 @@ export function WorkspaceSimulationPage() {
                                 }))
                               }
                               maxLength={500}
-                              placeholder="반려 사유"
-                              aria-label="개선 후보 반려 사유"
+                              placeholder="검토 의견 — 반려 시 필수 입력"
+                              aria-label="개선 후보 검토 의견"
                             />
                             <div className={styles.candidateActions}>
                               <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 disabled={updatingCandidateId === candidate.id}
                                 onClick={() => void handleRejectCandidate(candidate)}
                               >
@@ -2116,7 +2165,6 @@ export function WorkspaceSimulationPage() {
                               </Button>
                               <Button
                                 type="button"
-                                size="sm"
                                 disabled={
                                   updatingCandidateId === candidate.id ||
                                   !canApproveCandidate(

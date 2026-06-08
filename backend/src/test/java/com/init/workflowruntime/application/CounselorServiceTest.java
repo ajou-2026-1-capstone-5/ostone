@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatMessageWithId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithAssignedCounselorId;
+import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,7 +47,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,8 +83,8 @@ class CounselorServiceTest {
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
-    given(chatMessageRepository.save(any()))
-        .willReturn(createMessage(1L, 1, "SYSTEM", "상담사가 배정되었습니다."));
+    ChatMessage savedMessage = createMessage(1L, 1, "SYSTEM", "상담사가 배정되었습니다.");
+    given(chatMessageRepository.save(any())).willReturn(savedMessage);
     givenWorkspaceMember(1L, 42L);
 
     TransactionSynchronizationManager.initSynchronization();
@@ -105,8 +107,9 @@ class CounselorServiceTest {
   void should_persistAndBroadcastSystemMessage_when_assigned() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    ChatMessage latestMessage = createMessage(1L, 3, "USER", "기존 메시지");
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
-        .willReturn(Optional.of(createMessage(1L, 3, "USER", "기존 메시지")));
+        .willReturn(Optional.of(latestMessage));
     ChatMessage savedSystemMessage = createMessage(1L, 4, "SYSTEM", "상담사가 배정되었습니다.");
     given(chatMessageRepository.save(any())).willReturn(savedSystemMessage);
     givenWorkspaceMember(1L, 42L);
@@ -157,8 +160,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("assignSession: 이미 배정된 세션 → SESSION_ALREADY_ASSIGNED")
   void should_throwInvalidState_when_alreadyAssigned() {
-    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
+    ChatSession session = createAssignedSession(1L, 10L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
 
@@ -206,8 +208,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("releaseSession: 정상 해제 → 상태 OPEN, assignedCounselorId null")
   void should_releaseSession_when_assignedToCounselor() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
 
@@ -223,8 +224,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("releaseSession: 다른 상담사가 해제 시도 → BadRequestException")
   void should_throwBadRequest_when_notAssignedToThisCounselor() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 99L);
 
@@ -236,8 +236,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("releaseSession: 세션 workspace 멤버가 아니면 거부")
   void should_throwAccessDenied_when_releaseRequesterIsNotWorkspaceMember() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 42L))
         .willReturn(Optional.empty());
@@ -265,8 +264,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("isSessionAssigned: 배정됨 → true")
   void should_returnTrue_when_assigned() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     assertThat(service.isSessionAssigned(1L)).isTrue();
@@ -332,8 +330,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("sendCounselorMessage: 정상 → 메시지 저장 및 afterCommit broadcast")
   void should_sendAndBroadcast_when_valid() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
@@ -368,8 +365,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("sendCounselorMessage: isNote=true → senderRole NOTE")
   void should_saveNoteRole_when_isNoteTrue() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedAiActiveSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
@@ -394,8 +390,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("sendCounselorMessage: 배정되지 않은 상담사 → BadRequestException")
   void should_throwBadRequest_when_counselorNotAssignedToSend() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
+    ChatSession session = createAssignedSession(1L, 10L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
@@ -406,8 +401,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("sendCounselorMessage: 세션이 ACTIVE가 아님 → BadRequestException")
   void should_throwBadRequest_when_sessionNotActive() {
-    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createResolvedAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
@@ -418,8 +412,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("sendCounselorMessage: SIMULATION 세션에는 상담사 메시지를 저장하지 않는다")
   void should_rejectSimulationSession_when_sendCounselorMessageCalled() {
-    ChatSession session = createSimulationSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSimulationSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
@@ -612,8 +605,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("updateResponseMode: 배정 상담사가 AI 보조 모드로 전환한다")
   void should_updateResponseMode_when_assignedCounselorRequests() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
 
@@ -629,8 +621,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("updateResponseMode: 배정 상담사가 아니면 실패한다")
   void should_throwBadRequest_when_responseModeRequestedByOtherCounselor() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 99L);
+    ChatSession session = createAssignedSession(1L, 99L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
     UpdateResponseModeRequest request = updateResponseModeRequest(42L, "AI_ACTIVE");
@@ -643,8 +634,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("updateResponseMode: 요청 상담사 ID가 인증 사용자와 다르면 실패한다")
   void should_throwBadRequest_when_responseModeCounselorIdDoesNotMatchRequester() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
     UpdateResponseModeRequest request = updateResponseModeRequest(99L, "AI_ACTIVE");
@@ -657,8 +647,7 @@ class CounselorServiceTest {
   @Test
   @DisplayName("updateResponseMode: 지원하지 않는 모드는 실패한다")
   void should_throwBadRequest_when_responseModeUnsupported() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ChatSession session = createAssignedSession(1L, 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
     UpdateResponseModeRequest request = updateResponseModeRequest(42L, "UNKNOWN");
@@ -679,20 +668,43 @@ class CounselorServiceTest {
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
+  }
+
+  private ChatSession createAssignedSession(Long id, Long counselorId) {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(counselorId);
+    return chatSessionWithId(session, id);
+  }
+
+  private ChatSession createAssignedAiActiveSession(Long id, Long counselorId) {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.ACTIVE, "WEB", "{}");
+    ChatSession assignedSession = chatSessionWithAssignedCounselorId(session, counselorId);
+    return chatSessionWithId(assignedSession, id);
+  }
+
+  private ChatSession createResolvedAssignedSession(Long id, Long counselorId) {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(counselorId);
+    session.resolve();
+    return chatSessionWithId(session, id);
   }
 
   private ChatSession createSimulationSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
-    ReflectionTestUtils.setField(session, "id", id);
-    return session;
+    return chatSessionWithId(session, id);
+  }
+
+  private ChatSession createAssignedSimulationSession(Long id, Long counselorId) {
+    ChatSession session =
+        ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "SIMULATION", "{\"simulation\":true}");
+    session.assignTo(counselorId);
+    return chatSessionWithId(session, id);
   }
 
   private ChatMessage createMessage(Long sessionId, int seqNo, String role, String content) {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
-    ReflectionTestUtils.setField(msg, "id", 1L);
-    return msg;
+    return chatMessageWithId(msg, 1L);
   }
 
   private void verifyQueueEventPublished(
