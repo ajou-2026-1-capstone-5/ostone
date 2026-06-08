@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Profile("demo")
+@Profile("prod")
 @Order(Ordered.LOWEST_PRECEDENCE - 100)
 public class DemoRefundRequestSeedRunner implements ApplicationRunner {
 
