@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -39,24 +38,15 @@ import org.springframework.test.context.ActiveProfiles;
       "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true",
       "spring.liquibase.enabled=false"
     })
-@ActiveProfiles({"demo", "test"})
+@ActiveProfiles("test")
 class DemoRefundSeedRunnerIntegrationTest {
 
   @Autowired private DemoRefundRequestSeedRunner runner;
 
   @Test
-  @DisplayName("demo profile이 활성화되면 bean이 로드된다")
-  void shouldLoadRunnerBeanWhenDemoProfileActive() {
+  @DisplayName("bean이 로드된다")
+  void shouldLoadRunnerBean() {
     assertThat(runner).isNotNull();
-  }
-
-  @Test
-  @DisplayName("demo profile이 없으면 bean이 생성되지 않는다")
-  void shouldNotLoadRunnerBeanWhenDemoProfileInactive() {
-    new ApplicationContextRunner()
-        .withUserConfiguration(DemoRefundRequestSeedRunner.class, RunnerDependencies.class)
-        .withPropertyValues("spring.profiles.active=test")
-        .run(context -> assertThat(context).doesNotHaveBean(DemoRefundRequestSeedRunner.class));
   }
 
   @TestConfiguration
