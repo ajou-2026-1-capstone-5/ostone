@@ -57,11 +57,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Profile({"local", "dev", "prod"})
 @Order(Ordered.LOWEST_PRECEDENCE - 90)
-public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
+public class DomainPackSeedRunner implements ApplicationRunner {
 
-  private static final Logger log =
-      LoggerFactory.getLogger(ActiveVentureDomainPackSeedRunner.class);
+  private static final Logger log = LoggerFactory.getLogger(DomainPackSeedRunner.class);
   private static final String DESCRIPTION_FIELD = "description";
+  private static final String INTENT_SLOT_BINDINGS_FIELD = "intentSlotBindings";
   private static final List<SeedConfig> SEED_CONFIGS =
       List.of(
           new SeedConfig(
@@ -70,16 +70,20 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               "액티벤처 여행 상담 워크스페이스",
               "액티벤처 여행 상담 도메인팩 로컬 시연용 워크스페이스",
               "seed/activeventure-workflow-candidate.json",
-              "activeventure_100 상담 로그에서 생성한 여행 상담 도메인팩",
+              "activeventure_900 상담 로그에서 생성한 여행 상담 도메인팩",
               "ACTIVEVENTURE_SEED",
-              Set.of("cancellation_refund_change_policy_flow")),
+              Set.of(
+                  "cancellation_refund_change_policy_flow",
+                  "refund_status_and_penalty_flow",
+                  "refund_penalty_by_cancel_date_check_flow",
+                  "cancellation_process_document_guidance_flow")),
           new SeedConfig(
               2L,
               "WS-HANACARD-DEMO",
               "하나카드 카드 상담 워크스페이스",
               "하나카드 상담 로그에서 추출한 카드 상담 도메인팩 로컬 시연용 워크스페이스",
               "seed/hanacard-workflow-candidate.json",
-              "hanacard_100 상담 로그에서 생성한 카드 상담 도메인팩",
+              "hanacard_1000 상담 로그에서 생성한 카드 상담 도메인팩",
               "HANACARD_SEED",
               Set.of(
                   "lost_card_report_and_status_flow",
@@ -103,7 +107,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   // prod 가 아닐 때만 임베딩 matching profile build 를 enqueue 한다(prod ML 런타임 트리거 회피).
   private final boolean profileBuildEnqueueEnabled;
 
-  public ActiveVentureDomainPackSeedRunner(
+  public DomainPackSeedRunner(
       DomainPackCommandRepository domainPackRepository,
       DomainPackVersionRepository domainPackVersionRepository,
       IntentDefinitionRepository intentDefinitionRepository,
@@ -148,23 +152,44 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     DomainPack pack = findOrCreatePack(seed.path("domainPackDraft"), packKey, seedConfig);
     Optional<DomainPackVersion> currentPublishedVersion =
         domainPackVersionRepository.findCurrentPublishedByDomainPackId(pack.getId());
-    if (currentPublishedVersion.isPresent()) {
-      Long versionId = currentPublishedVersion.get().getId();
-      JsonNode workflowDraft = seed.path("workflowDraft");
-      int updatedCount =
-          backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
-      int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
-      int bindingUpdatedCount =
-          backfillIntentSlotBindingPrompts(versionId, workflowDraft.path("intentSlotBindings"));
-      log.info(
-          "Seed domain pack '{}' already has a published version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
-          packKey,
-          updatedCount,
-          slotUpdatedCount,
-          bindingUpdatedCount);
+    if (currentPublishedVersion.isPresent()
+        && hasSameSeedSummary(currentPublishedVersion.get(), seed)) {
+      backfillExistingPublishedVersion(packKey, currentPublishedVersion.get().getId(), seed);
       return;
     }
+    if (currentPublishedVersion.isPresent()) {
+      log.info(
+          "Seed domain pack '{}' changed since current published version {}, creating a new published seed version",
+          packKey,
+          currentPublishedVersion.get().getId());
+    }
 
+    persistNewPublishedVersion(pack, seed, seedConfig, packKey);
+  }
+
+  private void backfillExistingPublishedVersion(String packKey, Long versionId, JsonNode seed) {
+    JsonNode workflowDraft = seed.path("workflowDraft");
+    int updatedCount =
+        backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
+    int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
+    int bindingUpdatedCount =
+        backfillIntentSlotBindingPrompts(versionId, workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD));
+    log.info(
+        "Seed domain pack '{}' already has the current published seed version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
+        packKey,
+        updatedCount,
+        slotUpdatedCount,
+        bindingUpdatedCount);
+  }
+
+  private boolean hasSameSeedSummary(DomainPackVersion currentPublishedVersion, JsonNode seed) {
+    JsonNode currentSummary = readJson(currentPublishedVersion.getSummaryJson());
+    JsonNode seedSummary = readJson(jsonValue(seed.path("domainPackDraft"), "summaryJson", "{}"));
+    return currentSummary.equals(seedSummary);
+  }
+
+  private void persistNewPublishedVersion(
+      DomainPack pack, JsonNode seed, SeedConfig seedConfig, String packKey) {
     DomainPackVersion version = createPublishedVersion(pack, seed);
     JsonNode workflowDraft = seed.path("workflowDraft");
     Map<String, IntentDefinition> intentsByCode =
@@ -173,12 +198,13 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         persistSlots(version.getId(), workflowDraft.path("slots"));
     persistPolicies(version.getId(), workflowDraft.path("policies"));
     persistRisks(version.getId(), workflowDraft.path("risks"));
-    persistIntentSlotBindings(workflowDraft.path("intentSlotBindings"), intentsByCode, slotsByCode);
+    persistIntentSlotBindings(
+        workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD), intentsByCode, slotsByCode);
     persistWorkflows(
         version.getId(),
         workflowDraft.path("workflows"),
         intentsByCode,
-        requiredSlotsByIntentCode(workflowDraft.path("intentSlotBindings")),
+        requiredSlotsByIntentCode(workflowDraft.path(INTENT_SLOT_BINDINGS_FIELD)),
         seedConfig);
 
     version.activate(OffsetDateTime.now());
