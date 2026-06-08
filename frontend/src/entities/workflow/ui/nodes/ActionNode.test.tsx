@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { NodeProps } from "@xyflow/react";
 import { ActionNode } from "./ActionNode";
 
 vi.mock("@xyflow/react", () => ({
@@ -27,39 +28,45 @@ const baseProps: Record<string, unknown> = {
   type: "action",
 };
 
+function makeNodeProps(data: NodeProps["data"] | undefined): NodeProps {
+  return { ...baseProps, data } as NodeProps;
+}
+
 describe("ActionNode", () => {
   it("renders label from data", () => {
-    render(<ActionNode {...(baseProps as any)} data={{ label: "Test State" }} />);
+    render(<ActionNode {...makeNodeProps({ label: "Test State" })} />);
     expect(screen.getByText("Test State")).toBeInTheDocument();
   });
 
   it("applies selected style when data.selected is true", () => {
-    const { container } = render(
-      <ActionNode {...(baseProps as any)} data={{ label: "Test", selected: true }} />,
+    render(<ActionNode {...makeNodeProps({ label: "Test", selected: true })} />);
+    expect(screen.getByText("Test").parentElement).toHaveAttribute(
+      "class",
+      expect.stringContaining("selected"),
     );
-    const nodeDiv = container.querySelector('[class*="action"]');
-    expect(nodeDiv?.className).toContain("selected");
   });
 
   it("does not apply selected style when data.selected is falsy", () => {
-    const { container } = render(<ActionNode {...(baseProps as any)} data={{ label: "Test" }} />);
-    const nodeDiv = container.firstElementChild;
-    expect(nodeDiv?.className).not.toContain("selected");
+    render(<ActionNode {...makeNodeProps({ label: "Test" })} />);
+    expect(screen.getByText("Test").parentElement).toHaveAttribute(
+      "class",
+      expect.not.stringContaining("selected"),
+    );
   });
 
   it("applies current style when data.current is true", () => {
-    const { container } = render(
-      <ActionNode {...(baseProps as any)} data={{ label: "Test", current: true }} />,
+    render(<ActionNode {...makeNodeProps({ label: "Test", current: true })} />);
+    expect(screen.getByText("Test").parentElement).toHaveAttribute(
+      "class",
+      expect.stringContaining("current"),
     );
-    const nodeDiv = container.firstElementChild;
-    expect(nodeDiv?.className).toContain("current");
   });
 
   it("does not apply current style when data.current is false", () => {
-    const { container } = render(
-      <ActionNode {...(baseProps as any)} data={{ label: "Test", current: false }} />,
+    render(<ActionNode {...makeNodeProps({ label: "Test", current: false })} />);
+    expect(screen.getByText("Test").parentElement).toHaveAttribute(
+      "class",
+      expect.not.stringContaining("current"),
     );
-    const nodeDiv = container.firstElementChild;
-    expect(nodeDiv?.className).not.toContain("current");
   });
 });

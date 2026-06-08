@@ -183,7 +183,7 @@ describe("ChatHistoryPage", () => {
   it("세션을 선택하지 않으면 안내 문구를 표시한다", () => {
     renderPage();
 
-    expect(screen.getByText("좌측 목록에서 세션을 선택해주세요")).toBeTruthy();
+    expect(screen.getByText("좌측 목록에서 세션을 선택해주세요")).toBeInTheDocument();
   });
 
   it("세션을 선택하면 해당 세션의 메시지 내역을 표시한다", async () => {
@@ -193,12 +193,12 @@ describe("ChatHistoryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
     expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("7");
-    expect(await screen.findByText("고객")).toBeTruthy();
-    expect(screen.getByText("환불 문의 드립니다")).toBeTruthy();
-    expect(screen.getByText("TEXT")).toBeTruthy();
+    expect(await screen.findByText("고객")).toBeInTheDocument();
+    expect(screen.getByText("환불 문의 드립니다")).toBeInTheDocument();
+    expect(screen.getByText("TEXT")).toBeInTheDocument();
     expect(
       screen.getByText(new Date("2026-05-22T09:10:00+09:00").toLocaleString("ko-KR")),
-    ).toBeTruthy();
+    ).toBeInTheDocument();
     expect(currentPathname).toBe("/workspaces/1/consultation/history/7");
   });
 
@@ -254,8 +254,8 @@ describe("ChatHistoryPage", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
-    expect(await screen.findByText("상담사")).toBeTruthy();
-    expect(screen.getByText("처리해드리겠습니다")).toBeTruthy();
+    expect(await screen.findByText("상담사")).toBeInTheDocument();
+    expect(screen.getByText("처리해드리겠습니다")).toBeInTheDocument();
   });
 
   it("AI와 내부 메모 역할을 한국어 라벨로 표시한다", async () => {
@@ -272,10 +272,10 @@ describe("ChatHistoryPage", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
-    expect(await screen.findByText("AI")).toBeTruthy();
-    expect(screen.getByText("내부 메모")).toBeTruthy();
-    expect(screen.getByText("AI 안내입니다")).toBeTruthy();
-    expect(screen.getByText("내부 공유 메모")).toBeTruthy();
+    expect(await screen.findByText("AI")).toBeInTheDocument();
+    expect(screen.getByText("내부 메모")).toBeInTheDocument();
+    expect(screen.getByText("AI 안내입니다")).toBeInTheDocument();
+    expect(screen.getByText("내부 공유 메모")).toBeInTheDocument();
   });
 
   it("선택한 세션에 메시지가 없으면 빈 상태를 표시한다", () => {
@@ -284,7 +284,7 @@ describe("ChatHistoryPage", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
-    expect(screen.getByText("아직 메시지가 없습니다")).toBeTruthy();
+    expect(screen.getByText("아직 메시지가 없습니다")).toBeInTheDocument();
   });
 
   it("메시지 로딩 상태를 표시한다", () => {
@@ -293,7 +293,7 @@ describe("ChatHistoryPage", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
-    expect(screen.getByText("불러오는 중")).toBeTruthy();
+    expect(screen.getByText("불러오는 중")).toBeInTheDocument();
   });
 
   it("메시지 오류 상태에서 다시 시도할 수 있다", () => {
@@ -307,7 +307,7 @@ describe("ChatHistoryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
-    expect(screen.getByText("메시지 오류")).toBeTruthy();
+    expect(screen.getByText("메시지 오류")).toBeInTheDocument();
     expect(refetch).toHaveBeenCalled();
   });
 
@@ -327,7 +327,7 @@ describe("ChatHistoryPage", () => {
     renderPage("/workspaces/1/consultation/history/999");
 
     expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("999");
-    expect(await screen.findByText("직접 진입 상세입니다")).toBeTruthy();
+    expect(await screen.findByText("직접 진입 상세입니다")).toBeInTheDocument();
   });
 
   it("현재 목록 로딩 중에도 URL sessionId로 메시지 조회를 시도한다", () => {
@@ -347,7 +347,7 @@ describe("ChatHistoryPage", () => {
 
     renderPage("/workspaces/1/consultation/history/999");
 
-    expect(screen.getByText("세션을 찾을 수 없습니다")).toBeTruthy();
+    expect(screen.getByText("세션을 찾을 수 없습니다")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(refetch).toHaveBeenCalled();
   });

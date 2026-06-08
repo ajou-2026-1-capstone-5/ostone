@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vite-plus/test";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Pill } from "./Pill";
 
 describe("Pill", () => {
   it("renders children text", () => {
-    render(<Pill tone="signal">Active</Pill>);
-    expect(document.querySelector("span")).toHaveTextContent("Active");
+    const { getByText } = render(<Pill tone="signal">Active</Pill>);
+    expect(getByText("Active")).toBeInTheDocument();
   });
 
   it("applies correct styles for each tone", () => {
@@ -19,18 +19,17 @@ describe("Pill", () => {
     ];
 
     for (const { tone, bg, color } of tones) {
-      const { container } = render(<Pill tone={tone}>{tone}</Pill>);
-      const el = container.querySelector("span");
-      expect(el!.style.background).toBe(bg);
-      expect(el!.style.color).toBe(color);
+      const { getByText } = render(<Pill tone={tone}>{tone}</Pill>);
+      expect(getByText(tone)).toHaveStyle({ background: bg, color });
     }
   });
 
   it("falls back to mute for invalid tone", () => {
-    const { container } = render(<Pill tone={"invalid" as never}>X</Pill>);
-    const el = container.querySelector("span");
-    expect(el!.style.background).toBe("var(--paper-2)");
-    expect(el!.style.color).toBe("var(--ink-3)");
+    const { getByText } = render(<Pill tone={"invalid" as never}>X</Pill>);
+    expect(getByText("X")).toHaveStyle({
+      background: "var(--paper-2)",
+      color: "var(--ink-3)",
+    });
   });
 
   it("accepts optional className", () => {
@@ -39,7 +38,6 @@ describe("Pill", () => {
         X
       </Pill>,
     );
-    const el = document.querySelector("span");
-    expect(el!.classList.contains("extra")).toBe(true);
+    expect(screen.getByText("X")).toHaveClass("extra");
   });
 });
