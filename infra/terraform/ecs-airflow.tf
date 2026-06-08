@@ -255,7 +255,7 @@ locals {
     },
     {
       name  = "PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS"
-      value = "90"
+      value = "240"
     },
     {
       name  = "S3_EXPECTED_BUCKET_OWNER"
