@@ -9,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -17,7 +18,6 @@ import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetRiskDefinitionListUseCase")
@@ -191,9 +190,7 @@ class GetRiskDefinitionListUseCaseTest {
   private RiskDefinition createRisk(Long id, String riskCode, String name) {
     RiskDefinition risk =
         RiskDefinition.create(VERSION_ID, riskCode, name, "설명", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(risk, "id", id);
-    ReflectionTestUtils.setField(risk, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
-    ReflectionTestUtils.setField(risk, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    DomainPackEntityFixtures.persisted(risk, id);
     return risk;
   }
 }

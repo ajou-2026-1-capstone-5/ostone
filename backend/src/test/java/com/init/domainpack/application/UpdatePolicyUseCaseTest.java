@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdatePolicyUseCase")
@@ -208,7 +208,7 @@ class UpdatePolicyUseCaseTest {
     PolicyDefinition policy =
         PolicyDefinition.create(
             versionId, "refund_check", "환불 검증", "설명", "MEDIUM", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
+    DomainPackEntityFixtures.persisted(policy, id);
     return policy;
   }
 }

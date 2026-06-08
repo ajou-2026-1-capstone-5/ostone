@@ -30,7 +30,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ActiveVentureDomainPackSeedRunner")
@@ -76,10 +75,8 @@ class ActiveVentureDomainPackSeedRunnerTest {
   void shouldBuildIntentInternalResourceJsonFromSeedDraft() throws Exception {
     JsonNode draft = sampleIntentDraft();
 
-    String sourceJson =
-        ReflectionTestUtils.invokeMethod(runner, "buildIntentSourceClusterRef", draft);
-    String evidenceJson =
-        ReflectionTestUtils.invokeMethod(runner, "buildIntentEvidenceJson", draft);
+    String sourceJson = runner.buildIntentSourceClusterRef(draft);
+    String evidenceJson = runner.buildIntentEvidenceJson(draft);
 
     JsonNode source = objectMapper.readTree(sourceJson);
     assertThat(source.path("clusterId").asText()).isEqualTo("C10");
@@ -112,8 +109,7 @@ class ActiveVentureDomainPackSeedRunnerTest {
     given(query.executeUpdate()).willReturn(1);
     ArgumentCaptor<Object> evidenceCaptor = ArgumentCaptor.forClass(Object.class);
 
-    Integer updatedCount =
-        ReflectionTestUtils.invokeMethod(runner, "backfillIntentInternalResources", 18L, drafts);
+    int updatedCount = runner.backfillIntentInternalResources(18L, drafts);
 
     assertThat(updatedCount).isEqualTo(1);
     verify(query).setParameter(eq("versionId"), eq(18L));
@@ -132,8 +128,7 @@ class ActiveVentureDomainPackSeedRunnerTest {
     given(query.setParameter(anyString(), any())).willReturn(query);
     given(query.executeUpdate()).willReturn(1);
 
-    Integer updatedCount =
-        ReflectionTestUtils.invokeMethod(runner, "backfillSlotNames", 18L, drafts);
+    int updatedCount = runner.backfillSlotNames(18L, drafts);
 
     assertThat(updatedCount).isEqualTo(1);
     verify(query).setParameter(eq("versionId"), eq(18L));
@@ -149,8 +144,7 @@ class ActiveVentureDomainPackSeedRunnerTest {
     given(query.setParameter(anyString(), any())).willReturn(query);
     given(query.executeUpdate()).willReturn(1);
 
-    Integer updatedCount =
-        ReflectionTestUtils.invokeMethod(runner, "backfillIntentSlotBindingPrompts", 18L, drafts);
+    int updatedCount = runner.backfillIntentSlotBindingPrompts(18L, drafts);
 
     assertThat(updatedCount).isEqualTo(1);
     verify(query).setParameter(eq("versionId"), eq(18L));
@@ -179,15 +173,13 @@ class ActiveVentureDomainPackSeedRunnerTest {
             objectMapper,
             environment);
 
-    assertThat((Boolean) ReflectionTestUtils.getField(prodRunner, "profileBuildEnqueueEnabled"))
-        .isFalse();
+    assertThat(prodRunner.isProfileBuildEnqueueEnabled()).isFalse();
   }
 
   @Test
   @DisplayName("prod 가 아니면 profile build enqueue를 활성화한다")
   void shouldEnableProfileBuildEnqueueWhenNotProd() {
-    assertThat((Boolean) ReflectionTestUtils.getField(runner, "profileBuildEnqueueEnabled"))
-        .isTrue();
+    assertThat(runner.isProfileBuildEnqueueEnabled()).isTrue();
   }
 
   private JsonNode sampleIntentDraft() throws Exception {

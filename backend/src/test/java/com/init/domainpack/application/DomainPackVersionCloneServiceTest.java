@@ -12,6 +12,7 @@ import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidEx
 import com.init.domainpack.application.exception.DomainPackVersionCloneFailedException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.domain.model.DomainPack;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
@@ -37,7 +38,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DomainPackVersionCloneService")
@@ -94,7 +94,7 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(
             invocation -> {
               DomainPackVersion draft = invocation.getArgument(0);
-              ReflectionTestUtils.setField(draft, "id", 200L);
+              DomainPackEntityFixtures.persisted(draft, 200L);
               return draft;
             });
     given(
@@ -174,7 +174,7 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(
             invocation -> {
               DomainPackVersion draft = invocation.getArgument(0);
-              ReflectionTestUtils.setField(draft, "id", 200L);
+              DomainPackEntityFixtures.persisted(draft, 200L);
               return draft;
             });
     given(
@@ -231,7 +231,7 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(
             invocation -> {
               DomainPackVersion draft = invocation.getArgument(0);
-              ReflectionTestUtils.setField(draft, "id", 200L);
+              DomainPackEntityFixtures.persisted(draft, 200L);
               return draft;
             });
 
@@ -287,61 +287,57 @@ class DomainPackVersionCloneServiceTest {
     values.forEach(intents::add);
     for (IntentDefinition intent : intents) {
       if ("refund".equals(intent.getIntentCode())) {
-        ReflectionTestUtils.setField(intent, "id", 111L);
+        DomainPackEntityFixtures.persisted(intent, 111L);
       }
       if ("refund_cancel".equals(intent.getIntentCode())) {
-        ReflectionTestUtils.setField(intent, "id", 112L);
+        DomainPackEntityFixtures.persisted(intent, 112L);
       }
     }
     return intents;
   }
 
   private List<SlotDefinition> assignSlotIds(List<SlotDefinition> slots) {
-    ReflectionTestUtils.setField(slots.getFirst(), "id", 121L);
+    DomainPackEntityFixtures.persisted(slots.getFirst(), 121L);
     return slots;
   }
 
   private List<WorkflowDefinition> assignWorkflowIds(List<WorkflowDefinition> workflows) {
-    ReflectionTestUtils.setField(workflows.getFirst(), "id", 151L);
+    DomainPackEntityFixtures.persisted(workflows.getFirst(), 151L);
     return workflows;
   }
 
   private DomainPackVersion version(
       Long id, Long packId, Integer versionNo, String status, String summaryJson) {
-    DomainPackVersion version = DomainPackVersion.ofForTest(id, packId, status);
-    ReflectionTestUtils.setField(version, "versionNo", versionNo);
-    ReflectionTestUtils.setField(version, "summaryJson", summaryJson);
-    return version;
+    return DomainPackEntityFixtures.version(id, packId, versionNo, status, summaryJson);
   }
 
   private IntentDefinition intent(
       Long id, Long versionId, String code, String name, Long parentIntentId) {
     IntentDefinition intent =
         IntentDefinition.create(versionId, code, name, null, 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", id);
-    ReflectionTestUtils.setField(intent, "status", IntentDefinition.STATUS_PUBLISHED);
-    ReflectionTestUtils.setField(intent, "parentIntentId", parentIntentId);
+    DomainPackEntityFixtures.persisted(
+        intent, id, IntentDefinition.STATUS_PUBLISHED, parentIntentId);
     return intent;
   }
 
   private SlotDefinition slot(Long id, Long versionId, String code) {
     SlotDefinition slot =
         SlotDefinition.create(versionId, code, "주문번호", null, "STRING", false, "{}", null, "{}");
-    ReflectionTestUtils.setField(slot, "id", id);
+    DomainPackEntityFixtures.persisted(slot, id);
     return slot;
   }
 
   private PolicyDefinition policy(Long id, Long versionId, String code) {
     PolicyDefinition policy =
         PolicyDefinition.create(versionId, code, "정책", null, "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(policy, "id", id);
+    DomainPackEntityFixtures.persisted(policy, id);
     return policy;
   }
 
   private RiskDefinition risk(Long id, Long versionId, String code) {
     RiskDefinition risk =
         RiskDefinition.create(versionId, code, "위험", null, "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(risk, "id", id);
+    DomainPackEntityFixtures.persisted(risk, id);
     return risk;
   }
 
@@ -349,7 +345,7 @@ class DomainPackVersionCloneServiceTest {
     WorkflowDefinition workflow =
         WorkflowDefinition.create(
             versionId, code, "워크플로우", null, "{}", "start", "[]", "[]", "{}", 12L, true, "{}");
-    ReflectionTestUtils.setField(workflow, "id", id);
+    DomainPackEntityFixtures.persisted(workflow, id);
     return workflow;
   }
 }

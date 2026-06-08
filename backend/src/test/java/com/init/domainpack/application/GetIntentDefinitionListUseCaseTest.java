@@ -9,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -17,7 +18,6 @@ import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetIntentDefinitionListUseCase")
@@ -207,9 +206,7 @@ class GetIntentDefinitionListUseCaseTest {
   private IntentDefinition createIntent(Long id, String code, String name) {
     IntentDefinition intent =
         IntentDefinition.create(VERSION_ID, code, name, null, 1, "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(intent, "id", id);
-    ReflectionTestUtils.setField(intent, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
-    ReflectionTestUtils.setField(intent, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    DomainPackEntityFixtures.persisted(intent, id);
     return intent;
   }
 }

@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetDomainPackVersionDetailUseCase")
@@ -107,7 +107,8 @@ class GetDomainPackVersionDetailUseCaseTest {
 
     DomainPackVersion version =
         DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
-    ReflectionTestUtils.setField(version, "description", "복원: v3 기준");
+    DomainPackEntityFixtures.withVersionMetadata(
+        version, null, null, null, "복원: v3 기준", null, null);
     given(domainPackVersionRepository.findById(VERSION_ID)).willReturn(Optional.of(version));
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(version));

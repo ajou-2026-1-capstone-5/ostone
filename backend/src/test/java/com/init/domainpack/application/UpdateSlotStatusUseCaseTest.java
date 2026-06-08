@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateSlotStatusUseCase")
@@ -70,7 +70,7 @@ class UpdateSlotStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     SlotDefinition slot = slot(99L, 10L);
-    ReflectionTestUtils.setField(slot, "status", SlotDefinition.STATUS_INACTIVE);
+    slot.changeStatus(SlotDefinition.STATUS_INACTIVE);
     given(slotRepository.findByIdOrThrow(99L)).willReturn(slot);
     given(slotRepository.save(any())).willReturn(slot);
 
@@ -221,7 +221,7 @@ class UpdateSlotStatusUseCaseTest {
   private SlotDefinition slot(Long id, Long versionId) {
     SlotDefinition s =
         SlotDefinition.create(versionId, "code", "이름", "설명", "STRING", false, "{}", null, "{}");
-    ReflectionTestUtils.setField(s, "id", id);
+    DomainPackEntityFixtures.persisted(s, id);
     return s;
   }
 }

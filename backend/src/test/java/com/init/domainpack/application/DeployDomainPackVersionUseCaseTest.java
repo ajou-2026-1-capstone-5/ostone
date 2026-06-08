@@ -13,6 +13,7 @@ import com.init.domainpack.application.exception.DomainPackVersionInvalidStateEx
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPack;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -22,7 +23,6 @@ import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -35,7 +35,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DeployDomainPackVersionUseCase")
@@ -195,37 +194,31 @@ class DeployDomainPackVersionUseCaseTest {
   }
 
   private DomainPackVersion createDraftVersion(Long id, Long domainPackId) {
-    DomainPackVersion version = newVersion();
-    ReflectionTestUtils.setField(version, "id", id);
-    ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_DRAFT);
-    ReflectionTestUtils.setField(version, "updatedAt", OffsetDateTime.now(FIXED_CLOCK));
-    return version;
+    return DomainPackEntityFixtures.version(
+        id,
+        domainPackId,
+        1,
+        DomainPackVersion.STATUS_DRAFT,
+        null,
+        "{}",
+        null,
+        null,
+        null,
+        OffsetDateTime.now(FIXED_CLOCK));
   }
 
   private DomainPackVersion createPublishedVersion(Long id, Long domainPackId) {
-    DomainPackVersion version = newVersion();
-    ReflectionTestUtils.setField(version, "id", id);
-    ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_PUBLISHED);
-    ReflectionTestUtils.setField(
-        version, "publishedAt", OffsetDateTime.parse("2026-04-08T12:00:00Z"));
-    ReflectionTestUtils.setField(
-        version, "updatedAt", OffsetDateTime.parse("2026-04-08T12:00:00Z"));
-    return version;
-  }
-
-  private DomainPackVersion newVersion() {
-    try {
-      Constructor<DomainPackVersion> ctor = DomainPackVersion.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      return ctor.newInstance();
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    } catch (SecurityException e) {
-      throw new RuntimeException(e);
-    }
+    OffsetDateTime deployedAt = OffsetDateTime.parse("2026-04-08T12:00:00Z");
+    return DomainPackEntityFixtures.version(
+        id,
+        domainPackId,
+        1,
+        DomainPackVersion.STATUS_PUBLISHED,
+        null,
+        "{}",
+        null,
+        deployedAt,
+        null,
+        deployedAt);
   }
 }

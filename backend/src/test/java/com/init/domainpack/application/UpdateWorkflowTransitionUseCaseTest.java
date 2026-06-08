@@ -21,6 +21,7 @@ import com.init.domainpack.application.exception.WorkflowTransitionOutcomeEmptyE
 import com.init.domainpack.application.exception.WorkflowTransitionOutcomeNotEditableException;
 import com.init.domainpack.application.exception.WorkflowTransitionOutcomeStateInvalidCharsException;
 import com.init.domainpack.application.exception.WorkflowTransitionPatchEmptyException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateWorkflowTransitionUseCase")
@@ -579,7 +579,7 @@ class UpdateWorkflowTransitionUseCaseTest {
             1L,
             true,
             "{}");
-    ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
+    DomainPackEntityFixtures.persisted(workflow, WORKFLOW_ID);
     given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(workflow));
     return workflow;

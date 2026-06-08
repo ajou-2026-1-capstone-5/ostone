@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPackEntityFixtures;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateRiskStatusUseCase")
@@ -64,7 +64,7 @@ class UpdateRiskStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     RiskDefinition risk = risk(55L, 10L);
-    ReflectionTestUtils.setField(risk, "status", RiskDefinition.STATUS_INACTIVE);
+    risk.changeStatus(RiskDefinition.STATUS_INACTIVE);
     given(riskRepository.findByIdOrThrow(55L)).willReturn(risk);
     given(riskRepository.save(any())).willReturn(risk);
 
@@ -230,7 +230,7 @@ class UpdateRiskStatusUseCaseTest {
     RiskDefinition risk =
         RiskDefinition.create(
             versionId, "payment_dispute_risk", "결제 분쟁 위험", "설명", "HIGH", "{}", "{}", "[]", "{}");
-    ReflectionTestUtils.setField(risk, "id", id);
+    DomainPackEntityFixtures.persisted(risk, id);
     return risk;
   }
 }
