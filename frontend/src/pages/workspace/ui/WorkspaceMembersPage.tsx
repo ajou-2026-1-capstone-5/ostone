@@ -12,6 +12,7 @@ import {
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { WorkspaceSettingsNav } from "@/widgets/workspace-settings-nav";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { accessDeniedMessage } from "@/shared/api";
 import { Input } from "@/shared/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
@@ -73,6 +74,10 @@ export function WorkspaceMembersPage() {
     role,
   });
   const members = data ?? [];
+  const accessDenied = useMemo(
+    () => (isError ? accessDeniedMessage(error) : null),
+    [error, isError],
+  );
   const errorMessage = useMemo(
     () => (isError ? mapWorkspaceActionError(error) : ""),
     [error, isError],
@@ -127,7 +132,13 @@ export function WorkspaceMembersPage() {
         </div>
       )}
 
-      {!isLoading && isError && (
+      {!isLoading && isError && accessDenied && (
+        <div className={styles.statePanel} data-testid="workspace-members-access-denied">
+          <EmptyState message={accessDenied} />
+        </div>
+      )}
+
+      {!isLoading && isError && !accessDenied && (
         <div className={styles.statePanel} data-testid="workspace-members-error">
           <ErrorState message={errorMessage} onRetry={() => void refetch()} />
         </div>

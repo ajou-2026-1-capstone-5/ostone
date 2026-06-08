@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach, afterAll } from "vite-plus/test";
-import { resolveApiBase, ApiRequestError, apiClient } from "./index";
+import { resolveApiBase, ApiRequestError, apiClient, accessDeniedMessage } from "./index";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -35,6 +35,29 @@ function textResponse(body: string, init: ResponseInit = {}): Response {
 
 afterAll(() => {
   vi.unstubAllGlobals();
+});
+
+describe("accessDeniedMessage", () => {
+  it("403 ApiRequestError면 백엔드 메시지를 반환한다", () => {
+    expect(
+      accessDeniedMessage(new ApiRequestError(403, "WORKSPACE_ACCESS_DENIED", "권한이 없습니다.")),
+    ).toBe("권한이 없습니다.");
+  });
+
+  it("403이지만 메시지가 비어 있으면 기본 안내 문구를 반환한다", () => {
+    expect(accessDeniedMessage(new ApiRequestError(403, "WORKSPACE_ACCESS_DENIED", "   "))).toBe(
+      "이 작업을 수행할 권한이 없습니다.",
+    );
+  });
+
+  it("403이 아닌 ApiRequestError면 null을 반환한다", () => {
+    expect(accessDeniedMessage(new ApiRequestError(500, "INTERNAL_ERROR", "서버 오류"))).toBeNull();
+  });
+
+  it("ApiRequestError가 아니면 null을 반환한다", () => {
+    expect(accessDeniedMessage(new Error("network"))).toBeNull();
+    expect(accessDeniedMessage(null)).toBeNull();
+  });
 });
 
 describe("resolveApiBase", () => {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useParams, useOutletContext, useLocation, Navigate } from "react-router-dom";
 import { useBillingOverview, usePlanCatalog } from "@/entities/billing";
 import { CancelSubscriptionButton, RefundButton } from "@/features/cancel-subscription";
+import { ApiRequestError } from "@/shared/api";
 import { BillingPage } from "./BillingPage";
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -193,6 +194,22 @@ describe("BillingPage", () => {
     setupDefaults({ isError: true, data: undefined });
     render(<BillingPage />);
     expect(screen.getByTestId("billing-error")).toBeTruthy();
+  });
+
+  it("권한 부족(403)이면 권한 안내를 보여주고 일반 에러는 숨긴다", () => {
+    setupDefaults({
+      isError: true,
+      data: undefined,
+      error: new ApiRequestError(
+        403,
+        "WORKSPACE_ACCESS_DENIED",
+        "해당 워크스페이스의 결제를 관리할 권한이 없습니다.",
+      ),
+    });
+    render(<BillingPage />);
+    expect(screen.getByTestId("billing-access-denied")).toBeTruthy();
+    expect(screen.getByText("해당 워크스페이스의 결제를 관리할 권한이 없습니다.")).toBeTruthy();
+    expect(screen.queryByTestId("billing-error")).toBeNull();
   });
 
   it("구독 없을 때 렌더링 (등록 CTA)", () => {
