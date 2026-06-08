@@ -1,0 +1,8 @@
+# OpenAI-compatible local LLM service for ECS.
+FROM ghcr.io/ggml-org/llama.cpp:server-cuda
+
+COPY ml/docker/llm-entrypoint.sh /usr/local/bin/ostone-llm-entrypoint
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/local/bin/ostone-llm-entrypoint"]

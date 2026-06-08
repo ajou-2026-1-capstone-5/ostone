@@ -90,7 +90,7 @@ GitHub repository 또는 `prod` environment에 다음 secrets를 설정한다.
 | `PROD_EMBEDDING_MODEL_NAME` | `BAAI/bge-m3` |
 | `PROD_ML_RUNTIME_PROFILE` | `balanced` |
 | `PROD_LLM_MODEL_NAME` | `Qwen/Qwen3-14B` |
-| `PROD_LLM_MODEL_PATH` | `/models/model.gguf` |
+| `PROD_LLM_MODEL_PATH` | `/models/model.gguf`; 내부 LLM service의 `/models`는 GPU task와 공유하는 EFS model cache에 mount되므로, 이 경로에 GGUF 모델 파일을 미리 배치해야 한다. |
 | `PROD_LLM_SERVICE_DESIRED_COUNT` | `0` |
 | `PROD_TOSS_CLIENT_KEY` | Toss Payments client key; frontend build에 `VITE_TOSS_CLIENT_KEY`로 주입 |
 
@@ -134,7 +134,7 @@ terraform output ecs_airflow_security_group_id
 
 - Backend 변경: Gradle `bootJar` 후 `ostone/backend` 이미지를 ECR에 push하고 ECS service를 새 task definition으로 갱신한다.
 - Frontend 변경: `pnpm build` 후 S3에 `frontend/dist/`를 sync하고 CloudFront invalidation을 생성한다.
-- ML 변경: CPU/GPU ML stage 이미지를 ECR에 push하고 Airflow 이미지를 갱신한다.
+- ML 변경: CPU/GPU ML stage 이미지와 내부 LLM runtime 이미지를 ECR에 push하고 Airflow 이미지를 갱신한다.
 - Terraform 변경: apply 후 필요한 배포 job이 Terraform output을 사용한다.
 
 인프라만 수동으로 검토/적용하려면 [`.github/workflows/terraform-cd.yml`](../../.github/workflows/terraform-cd.yml)을 수동 실행한다.
