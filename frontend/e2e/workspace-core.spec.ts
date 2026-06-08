@@ -732,7 +732,7 @@ test.describe("Workspace core operator screens", () => {
         await expect(page.getByText("반려 사유를 입력하세요.")).toBeVisible();
         expect(seen.filter((entry) => entry === rejectPath)).toHaveLength(rejectCountBefore);
 
-        await rejectionCard.getByLabel("개선 후보 반려 사유").fill("근거가 부족합니다.");
+        await rejectionCard.getByLabel("개선 후보 검토 의견").fill("근거가 부족합니다.");
         const rejectButton = rejectionCard.getByRole("button", { name: "반려" });
         await rejectButton.click();
         await expect(rejectButton).toBeDisabled();

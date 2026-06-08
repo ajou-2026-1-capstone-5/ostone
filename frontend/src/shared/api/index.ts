@@ -313,6 +313,21 @@ export class ApiRequestError extends Error {
   }
 }
 
+/**
+ * 권한 부족(403) 에러면 사용자에게 보여줄 안내 문구를 반환한다. 그 외에는 null.
+ * 빌링·멤버 등 OWNER/ADMIN 전용 조회에서 일반 에러와 권한 안내를 구분하는 데 사용한다.
+ */
+export function accessDeniedMessage(error: unknown): string | null {
+  if (
+    error instanceof ApiRequestError &&
+    error.status === 403 &&
+    error.code === "WORKSPACE_ACCESS_DENIED"
+  ) {
+    return error.message?.trim() ? error.message.trim() : "이 작업을 수행할 권한이 없습니다.";
+  }
+  return null;
+}
+
 export const apiClient = new ApiClient(API_BASE);
 export function refreshAuthSession(): Promise<boolean> {
   return apiClient.refreshAuthSession();

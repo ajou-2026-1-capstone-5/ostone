@@ -24,6 +24,7 @@ import { CancelSubscriptionButton, RefundButton } from "@/features/cancel-subscr
 import { WorkspaceSettingsNav } from "@/widgets/workspace-settings-nav";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { accessDeniedMessage } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -82,6 +83,9 @@ export function BillingPage() {
   const overviewQuery = useBillingOverview(parsedWorkspaceId);
   const planCatalogQuery = usePlanCatalog();
   const overview = overviewQuery.data ?? null;
+  const billingAccessDenied = overviewQuery.isError
+    ? accessDeniedMessage(overviewQuery.error)
+    : null;
   const activeSubscriptionOverride =
     subscriptionOverride?.workspaceId === parsedWorkspaceId
       ? subscriptionOverride.subscription
@@ -245,7 +249,13 @@ export function BillingPage() {
         </div>
       )}
 
-      {!overviewQuery.isLoading && overviewQuery.isError && (
+      {!overviewQuery.isLoading && overviewQuery.isError && billingAccessDenied && (
+        <div className={styles.statePanel} data-testid="billing-access-denied">
+          <EmptyState message={billingAccessDenied} />
+        </div>
+      )}
+
+      {!overviewQuery.isLoading && overviewQuery.isError && !billingAccessDenied && (
         <div className={styles.statePanel} data-testid="billing-error">
           <ErrorState
             message="빌링 정보를 불러오지 못했습니다."

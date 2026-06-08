@@ -443,7 +443,7 @@ describe("WorkspaceSimulationPage improvement candidates", () => {
     renderPage();
 
     await openCandidateTab();
-    fireEvent.change(await screen.findByLabelText("개선 후보 반려 사유"), {
+    fireEvent.change(await screen.findByLabelText("개선 후보 검토 의견"), {
       target: { value: "근거가 부족합니다." },
     });
     fireEvent.click(screen.getByRole("button", { name: "반려" }));
