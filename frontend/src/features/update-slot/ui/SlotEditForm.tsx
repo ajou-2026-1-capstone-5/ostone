@@ -39,6 +39,7 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
 
   const onSubmit = (values: SlotEditFormValues) => {
     mutate(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- form values carry nullable fields the generated request type omits; sent as-is intentionally
       { workspaceId, packId, versionId, slotId: slot.id!, body: values as any },
       { onSuccess: onClose },
     );

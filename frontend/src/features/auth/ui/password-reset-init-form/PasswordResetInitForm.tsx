@@ -20,6 +20,7 @@ export const PasswordResetInitForm: React.FC = () => {
 
       const response = await passwordResetInitApi(email ?? "");
       setSuccessMessage(response.message ?? "");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- error shape narrowed inline
     } catch (err: any) {
       setError(err.message || "요청 처리 중 오류가 발생했습니다.");
     } finally {

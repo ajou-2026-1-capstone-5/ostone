@@ -44,6 +44,7 @@ export function EditWorkspaceDialog({
 
   useEffect(() => {
     if (workspace && open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initialize form fields when the dialog opens
       setName(workspace.name ?? "");
       setFieldErrors({});
       setIsSubmitting(false);

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { WorkflowCanvas, DEFAULT_NODES, DEFAULT_EDGES } from "./WorkflowCanvas";
+import { WorkflowCanvas } from "./WorkflowCanvas";
+import { DEFAULT_NODES, DEFAULT_EDGES } from "./workflowCanvasData";
 
 describe("WorkflowCanvas", () => {
   it("renders 8 data-node-kind elements given DEFAULT_NODES", () => {
