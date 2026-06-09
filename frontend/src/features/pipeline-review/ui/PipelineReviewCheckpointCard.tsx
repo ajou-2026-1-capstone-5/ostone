@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  type DomainEvidenceSnippet,
   type FeedbackAnswerOption,
   type ReviewCaseContext,
+  type ReviewTaskPayload,
   type ReviewTaskView,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
@@ -358,11 +360,12 @@ export function PipelineReviewCheckpointCard({
         <div className={styles.domainGrid}>
           {openTasks.map((task) => {
             const isSelected = selectedDomainTask?.id === task.id;
+            const fallback = isFallbackCandidate(task.payload);
             return (
               <button
                 key={task.id}
                 type="button"
-                className={`${styles.domainOption} ${isSelected ? styles.domainOptionSelected : ""}`}
+                className={`${styles.domainOption} ${isSelected ? styles.domainOptionSelected : ""} ${fallback ? styles.domainOptionFallback : ""}`}
                 aria-pressed={isSelected}
                 disabled={confirmDomain.isPending}
                 onClick={() =>
@@ -374,15 +377,26 @@ export function PipelineReviewCheckpointCard({
               >
                 <span className={styles.optionHeader}>
                   <strong>{task.payload.displayName ?? task.title}</strong>
-                  {task.payload.confidence !== undefined && (
-                    <span className={styles.confidence}>
-                      {formatDomainConfidence(task.payload.confidence)}
+                  {fallback ? (
+                    <span className={styles.fallbackBadge}>
+                      {fallbackReasonLabel(task.payload.fallbackReason)}
                     </span>
+                  ) : (
+                    task.payload.confidence !== undefined && (
+                      <span className={styles.confidence}>
+                        {formatDomainConfidence(task.payload.confidence)}
+                      </span>
+                    )
                   )}
                 </span>
                 <span className={styles.optionDescription}>
                   {task.payload.description}
                 </span>
+                {task.payload.rationale && (
+                  <span className={styles.optionRationale}>
+                    {task.payload.rationale}
+                  </span>
+                )}
                 <span className={styles.termRow}>
                   {(task.payload.evidenceTerms ?? [])
                     .slice(0, 6)
@@ -392,6 +406,7 @@ export function PipelineReviewCheckpointCard({
                       </span>
                     ))}
                 </span>
+                <DomainEvidenceList snippets={task.payload.evidenceSnippets} />
               </button>
             );
           })}
@@ -406,6 +421,11 @@ export function PipelineReviewCheckpointCard({
                 replay를 거쳐 다음 review 단계 또는 Domain Pack 초안 생성으로
                 이어집니다.
               </p>
+              {lowConfidenceGuidance(selectedDomainTask.payload) && (
+                <p className={styles.domainReviewWarning} role="status">
+                  {lowConfidenceGuidance(selectedDomainTask.payload)}
+                </p>
+              )}
               <div className={styles.profileForm}>
                 <ProfileTextField
                   id="domain-edit-confirmed-domain"
@@ -726,6 +746,68 @@ function questionScopeLabel(
 
 function formatDomainConfidence(confidence: number): string {
   return `${Math.round(confidence * 100)}%`;
+}
+
+const LOW_CONFIDENCE_THRESHOLD = 0.5;
+
+function isFallbackCandidate(payload: ReviewTaskPayload): boolean {
+  return payload.isFallback === true || payload.kind === "fallback";
+}
+
+function fallbackReasonLabel(reason?: string): string {
+  switch (reason) {
+    case "llm_request_failure":
+      return "도메인 분류 호출 실패";
+    case "schema_validation_failure":
+      return "도메인 분류 응답 오류";
+    case "insufficient_evidence":
+      return "근거 부족";
+    case "genuinely_mixed":
+      return "도메인 혼합";
+    default:
+      return "확정 필요";
+  }
+}
+
+// 선택한 후보가 fallback이거나 confidence가 낮으면 profile 편집/재검토를 유도한다.
+function lowConfidenceGuidance(payload: ReviewTaskPayload): string | null {
+  if (isFallbackCandidate(payload)) {
+    return `자동 분류가 어려운 후보입니다(${fallbackReasonLabel(payload.fallbackReason)}). profile을 직접 작성하거나 업로드부터 재검토하세요.`;
+  }
+  if (
+    payload.confidence !== undefined &&
+    payload.confidence < LOW_CONFIDENCE_THRESHOLD
+  ) {
+    return "후보 신뢰도가 낮습니다. profile 필드를 직접 다듬거나 다른 후보를 검토하세요.";
+  }
+  return null;
+}
+
+function DomainEvidenceList({
+  snippets,
+}: {
+  snippets?: DomainEvidenceSnippet[];
+}) {
+  const items =
+    snippets?.filter((item) => item.snippet?.trim()).slice(0, 2) ?? [];
+  if (items.length === 0) {
+    return null;
+  }
+  return (
+    <span className={styles.evidenceList}>
+      {items.map((item, index) => (
+        <span
+          key={item.conversationId ?? index}
+          className={styles.evidenceSnippet}
+        >
+          {item.conversationId && (
+            <span className={styles.evidenceId}>{item.conversationId}</span>
+          )}
+          {item.snippet}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 function emptyDomainEdits(): DomainProfileEdits {

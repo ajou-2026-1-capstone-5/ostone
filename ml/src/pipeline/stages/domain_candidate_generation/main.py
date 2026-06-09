@@ -22,14 +22,32 @@ from pipeline.stages.preprocessing.types import ProcessedConversation
 ARTIFACT_NAME = "domain_candidates.json"
 PROMPT_VERSION = "domain-candidates.v1"
 MIXED_UNKNOWN_ID = "mixed_or_unknown"
+CANDIDATE_KIND_DOMAIN = "domain"
+CANDIDATE_KIND_FALLBACK = "fallback"
 MAX_SAMPLE_SIZE = 24
 MAX_CANDIDATES = 5
 MIN_CANDIDATES = 3
 MAX_SNIPPET_CHARS = 360
+MAX_EVIDENCE_SNIPPETS = 5
+MIN_LEXICON_TERM_CHARS = 2
 DEFAULT_LLM_TIMEOUT_SECONDS = 240.0
 MAX_LLM_TIMEOUT_SECONDS = 300.0
 DEFAULT_LLM_MAX_TOKENS: int | None = None
 MAX_LLM_MAX_TOKENS = 4096
+
+# fallback 원인 분류. artifact `fallbackReason`과 `혼합 또는 미확정` 후보 metadata 양쪽에 노출한다.
+FALLBACK_LLM_REQUEST_FAILURE = "llm_request_failure"
+FALLBACK_SCHEMA_VALIDATION_FAILURE = "schema_validation_failure"
+FALLBACK_INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+FALLBACK_GENUINELY_MIXED = "genuinely_mixed"
+_FALLBACK_RATIONALE: dict[str, str] = {
+    FALLBACK_LLM_REQUEST_FAILURE: "도메인 분류 모델 호출에 실패해 자동 후보를 생성하지 못했습니다.",
+    FALLBACK_SCHEMA_VALIDATION_FAILURE: "도메인 분류 응답 형식이 올바르지 않아 후보를 확정하지 못했습니다.",
+    FALLBACK_INSUFFICIENT_EVIDENCE: "도메인을 분리할 만한 상담 근거가 충분하지 않습니다.",
+    FALLBACK_GENUINELY_MIXED: "여러 도메인이 섞여 있어 단일 도메인으로 확정하기 어렵습니다.",
+}
+_MIXED_ALTERNATIVE_RATIONALE = "여러 도메인이 섞여 있거나 확정이 어려울 때 선택하세요."
+
 LOGGER = logging.getLogger(__name__)
 STOPWORDS = frozenset(
     {
@@ -64,21 +82,40 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     conversations, _flow_signatures = read_preprocessed_artifact(runtime_config, stage_context)
     sampled = _deterministic_sample(conversations, _sample_size())
     sample_hash = _sample_hash(sampled)
+    snippet_index = _snippet_index(sampled)
     fallback_terms = _top_terms(sampled)
     generation_error: dict[str, object] | None = None
-    candidates: list[dict[str, object]]
+    failure_reason: str | None = None
+    raw_candidates: list[dict[str, object]]
 
     try:
-        candidates = _generate_llm_candidates(runtime_config, sampled, fallback_terms, sample_hash)
-    except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+        raw_candidates = _generate_llm_candidates(runtime_config, sampled, fallback_terms, sample_hash)
+    except httpx.HTTPError as exc:
         if not _allow_generation_fallback(runtime_config):
             raise PipelineStageError("Domain candidate LLM generation failed.") from exc
         generation_error = {"type": type(exc).__name__, "message": str(exc)}
-        candidates = []
+        failure_reason = FALLBACK_LLM_REQUEST_FAILURE
+        raw_candidates = []
+    except (ValueError, KeyError, TypeError) as exc:
+        if not _allow_generation_fallback(runtime_config):
+            raise PipelineStageError("Domain candidate LLM generation failed.") from exc
+        generation_error = {"type": type(exc).__name__, "message": str(exc)}
+        # LLM 미설정으로 인한 fallback은 실패가 아니라 근거 기반 분류로 넘긴다.
+        failure_reason = None if str(exc) == "missing_llm_runtime_base_url" else FALLBACK_SCHEMA_VALIDATION_FAILURE
+        raw_candidates = []
 
-    candidates = _normalize_candidates(candidates, fallback_terms, sampled)
-    if not candidates:
-        candidates = [_mixed_unknown_candidate(fallback_terms, sampled)]
+    domain_candidates = _normalize_candidates(raw_candidates, fallback_terms, sampled, snippet_index)
+    fallback_reason = _resolve_fallback_reason(failure_reason, len(domain_candidates), len(sampled))
+    candidates = list(domain_candidates)
+    if len(candidates) < MAX_CANDIDATES:
+        candidates.append(
+            _mixed_unknown_candidate(
+                fallback_terms,
+                sampled,
+                snippet_index,
+                fallback_reason if not domain_candidates else None,
+            )
+        )
 
     payload: dict[str, object] = {
         "schemaVersion": "domain-candidates.v1",
@@ -92,6 +129,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         "candidateCount": len(candidates),
         "candidates": candidates,
         "fallbackCandidateId": MIXED_UNKNOWN_ID,
+        "fallbackReason": fallback_reason,
         "generationError": generation_error,
         "durationSeconds": round(time.monotonic() - started_at, 4),
     }
@@ -106,8 +144,9 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             "recordCount": len(candidates),
             "metrics": {
                 "domainCandidateCount": len(candidates),
-                "domainCandidateFallback": generation_error is not None
-                or candidates[0].get("candidateId") == MIXED_UNKNOWN_ID,
+                "realDomainCandidateCount": len(domain_candidates),
+                "domainCandidateFallback": fallback_reason is not None,
+                "domainCandidateFallbackReason": fallback_reason,
             },
         },
     )
@@ -195,9 +234,11 @@ def _prompt(sampled: list[ProcessedConversation], fallback_terms: list[str], sam
             "task": "Return 3 to 5 candidate domains for these Korean CS consultation logs.",
             "rules": [
                 "Do not use a fixed taxonomy; infer natural business-domain labels from evidence.",
-                "Each candidate must include displayName, confidence, description, "
+                "Each candidate must include displayName, confidence, description, rationale, "
                 "evidenceTerms, evidenceConversationIds, suggestedDomainLexicon.",
                 "Keep displayName short and operator-facing.",
+                "rationale: one short Korean sentence an operator can read explaining why these logs fit this domain.",
+                "evidenceConversationIds must reference the provided sample conversationIds.",
                 "Return JSON only. Do not include reasoning, explanations, or markdown.",
             ],
             "thinking": "disabled",
@@ -210,6 +251,7 @@ def _prompt(sampled: list[ProcessedConversation], fallback_terms: list[str], sam
                         "displayName": "string",
                         "confidence": 0.0,
                         "description": "string",
+                        "rationale": "string",
                         "evidenceTerms": ["string"],
                         "evidenceConversationIds": ["string"],
                         "suggestedDomainLexicon": ["string"],
@@ -225,7 +267,9 @@ def _normalize_candidates(
     candidates: list[dict[str, object]],
     fallback_terms: list[str],
     sampled: list[ProcessedConversation],
+    snippet_index: dict[str, str],
 ) -> list[dict[str, object]]:
+    """LLM 후보를 정규화한 실질 domain 후보 목록을 돌려준다. `혼합 또는 미확정` 후보는 붙이지 않는다."""
     normalized: list[dict[str, object]] = []
     seen: set[str] = set()
     sampled_ids = {conversation.id for conversation in sampled}
@@ -234,37 +278,86 @@ def _normalize_candidates(
         if not display_name:
             continue
         candidate_id = _candidate_id(display_name, index)
-        if candidate_id in seen:
+        if candidate_id in seen or candidate_id == MIXED_UNKNOWN_ID:
             continue
         seen.add(candidate_id)
         evidence_ids = [
             str(value) for value in _object_list(candidate.get("evidenceConversationIds")) if str(value) in sampled_ids
-        ][:5]
+        ][:MAX_EVIDENCE_SNIPPETS]
+        if not evidence_ids:
+            evidence_ids = [conversation.id for conversation in sampled[:3]]
+        evidence_terms = _clean_lexicon(candidate.get("evidenceTerms")) or fallback_terms[:8]
         normalized.append(
             {
                 "candidateId": candidate_id,
                 "displayName": display_name,
                 "confidence": _bounded_float(candidate.get("confidence"), default=0.5),
                 "description": _clean_text(candidate.get("description")) or f"{display_name} 상담 도메인",
-                "evidenceTerms": _string_list(candidate.get("evidenceTerms"))[:12] or fallback_terms[:8],
-                "evidenceConversationIds": evidence_ids or [conversation.id for conversation in sampled[:3]],
-                "suggestedDomainLexicon": _string_list(candidate.get("suggestedDomainLexicon"))[:24]
+                "rationale": _clean_text(candidate.get("rationale")) or _synth_rationale(display_name, evidence_terms),
+                "kind": CANDIDATE_KIND_DOMAIN,
+                "evidenceTerms": evidence_terms[:12],
+                "evidenceConversationIds": evidence_ids,
+                "evidenceSnippets": _evidence_snippets(evidence_ids, snippet_index),
+                "suggestedDomainLexicon": _clean_lexicon(candidate.get("suggestedDomainLexicon"))[:24]
                 or fallback_terms[:12],
             }
         )
-    if normalized and all(item["candidateId"] != MIXED_UNKNOWN_ID for item in normalized):
-        normalized.append(_mixed_unknown_candidate(fallback_terms, sampled))
-    return normalized[:MAX_CANDIDATES] if len(normalized) >= MIN_CANDIDATES else normalized
+    return _prune_generic_terms(normalized)
 
 
-def _mixed_unknown_candidate(fallback_terms: list[str], sampled: list[ProcessedConversation]) -> dict[str, object]:
+def _prune_generic_terms(candidates: list[dict[str, object]]) -> list[dict[str, object]]:
+    """후보 간 절반을 초과해 등장하는 일반어를 각 후보 lexicon에서 제거한다(후보 lexicon은 비우지 않는다)."""
+    if len(candidates) < 2:
+        return candidates
+    for field in ("evidenceTerms", "suggestedDomainLexicon"):
+        counts: Counter[str] = Counter()
+        for candidate in candidates:
+            counts.update(set(cast(list[str], candidate[field])))
+        generic = {term for term, count in counts.items() if count * 2 > len(candidates)}
+        if not generic:
+            continue
+        for candidate in candidates:
+            terms = cast(list[str], candidate[field])
+            pruned = [term for term in terms if term not in generic]
+            if pruned:
+                candidate[field] = pruned
+    return candidates
+
+
+def _resolve_fallback_reason(failure_reason: str | None, domain_candidate_count: int, sample_count: int) -> str | None:
+    if domain_candidate_count > 0:
+        return None
+    if failure_reason is not None:
+        return failure_reason
+    if sample_count < MIN_CANDIDATES:
+        return FALLBACK_INSUFFICIENT_EVIDENCE
+    return FALLBACK_GENUINELY_MIXED
+
+
+def _mixed_unknown_candidate(
+    fallback_terms: list[str],
+    sampled: list[ProcessedConversation],
+    snippet_index: dict[str, str],
+    fallback_reason: str | None,
+) -> dict[str, object]:
+    evidence_ids = [conversation.id for conversation in sampled[:MAX_EVIDENCE_SNIPPETS]]
+    rationale = (
+        _FALLBACK_RATIONALE.get(fallback_reason, _MIXED_ALTERNATIVE_RATIONALE)
+        if fallback_reason
+        else _MIXED_ALTERNATIVE_RATIONALE
+    )
     return {
         "candidateId": MIXED_UNKNOWN_ID,
         "displayName": "혼합 또는 미확정",
         "confidence": 0.0,
         "description": "도메인을 확정하기 어렵거나 여러 도메인이 섞인 상담 로그입니다.",
+        "rationale": rationale,
+        "kind": CANDIDATE_KIND_FALLBACK,
+        "isFallback": True,
+        "fallbackReason": fallback_reason,
         "evidenceTerms": fallback_terms[:12],
-        "evidenceConversationIds": [conversation.id for conversation in sampled[:5]],
+        "evidenceConversationIds": evidence_ids,
+        "evidenceSnippets": _evidence_snippets(evidence_ids, snippet_index),
         "suggestedDomainLexicon": fallback_terms[:12],
     }
 
@@ -330,12 +423,37 @@ def _sample_hash(sampled: list[ProcessedConversation]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _snippet_index(sampled: list[ProcessedConversation]) -> dict[str, str]:
+    index: dict[str, str] = {}
+    for conversation in sampled:
+        snippet = _snippet(conversation.customer_problem_text or conversation.canonical_text)
+        if snippet:
+            index[conversation.id] = snippet
+    return index
+
+
+def _evidence_snippets(evidence_ids: list[str], snippet_index: dict[str, str]) -> list[dict[str, str]]:
+    snippets: list[dict[str, str]] = []
+    for conversation_id in evidence_ids[:MAX_EVIDENCE_SNIPPETS]:
+        snippet = snippet_index.get(conversation_id)
+        if snippet:
+            snippets.append({"conversationId": conversation_id, "snippet": snippet})
+    return snippets
+
+
+def _synth_rationale(display_name: str, evidence_terms: list[str]) -> str:
+    terms = [term for term in evidence_terms[:3] if term]
+    if terms:
+        return f"{display_name} 관련 표현({', '.join(terms)})이 반복적으로 나타납니다."
+    return f"{display_name} 관련 상담이 반복적으로 나타납니다."
+
+
 def _top_terms(sampled: list[ProcessedConversation]) -> list[str]:
     counter: Counter[str] = Counter()
     for conversation in sampled:
         text = f"{conversation.customer_problem_text} {conversation.canonical_text}".casefold()
         for term in re.findall(r"[0-9A-Za-z가-힣_]+", text):
-            if len(term.replace("_", "")) < 2 or term in STOPWORDS:
+            if len(term.replace("_", "")) < MIN_LEXICON_TERM_CHARS or term in STOPWORDS:
                 continue
             counter[term] += 1
     return [term for term, _count in counter.most_common(24)]
@@ -365,6 +483,20 @@ def _string_list(value: object) -> list[str]:
         if text:
             output.append(text)
     return output
+
+
+def _clean_lexicon(value: object) -> list[str]:
+    """lexicon/evidenceTerms에서 stopword와 길이 미달 토큰을 제거하고 순서를 보존해 중복 제거한다."""
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for term in _string_list(value):
+        if term in STOPWORDS or len(term.replace("_", "")) < MIN_LEXICON_TERM_CHARS:
+            continue
+        if term in seen:
+            continue
+        seen.add(term)
+        cleaned.append(term)
+    return cleaned
 
 
 def _bounded_float(value: object, *, default: float) -> float:

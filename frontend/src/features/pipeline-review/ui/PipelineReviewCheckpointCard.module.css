@@ -594,3 +594,65 @@
     width: 100%;
   }
 }
+
+.domainOptionFallback {
+  border-style: dashed;
+  background: var(--paper-2);
+}
+
+.fallbackBadge {
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  white-space: nowrap;
+}
+
+.optionRationale {
+  color: var(--ink-3);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.5;
+}
+
+.evidenceList {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.evidenceSnippet {
+  display: block;
+  padding: var(--s-2) var(--s-3);
+  border-left: 2px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 11px;
+  letter-spacing: -0.1px;
+  line-height: 1.5;
+}
+
+.evidenceId {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+}
+
+.domainReviewWarning {
+  margin: 0;
+  padding: var(--s-3);
+  border: 1px dashed var(--ink);
+  border-radius: var(--r-1);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.55;
+}
