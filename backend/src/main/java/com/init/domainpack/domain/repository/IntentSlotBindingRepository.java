@@ -10,4 +10,6 @@ public interface IntentSlotBindingRepository {
   <S extends IntentSlotBinding> List<S> saveAllAndFlush(Iterable<S> entities);
 
   List<IntentSlotBinding> findAllByIntentDefinitionIdIn(List<Long> intentDefinitionIds);
+
+  List<IntentSlotBinding> findAllBySlotDefinitionId(Long slotDefinitionId);
 }

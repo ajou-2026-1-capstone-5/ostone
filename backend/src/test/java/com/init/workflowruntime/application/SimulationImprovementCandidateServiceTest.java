@@ -140,7 +140,10 @@ class SimulationImprovementCandidateServiceTest {
             slotDefinitionRepository,
             policyDefinitionRepository,
             riskDefinitionRepository,
-            workflowDefinitionRepository);
+            workflowDefinitionRepository,
+            new StructuralDomainPackPatchParser(objectMapper),
+            org.mockito.Mockito.mock(SimulationStructuralPatchApplyService.class),
+            objectMapper);
     decisionService =
         new SimulationImprovementCandidateDecisionService(
             candidateRepository,
