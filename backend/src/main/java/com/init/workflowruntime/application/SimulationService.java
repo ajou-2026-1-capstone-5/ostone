@@ -136,6 +136,7 @@ public class SimulationService {
         sessionPage.totalPages());
   }
 
+  @Transactional
   public SimulationSessionDetailResponse getSession(Long workspaceId, Long sessionId, Long userId) {
     validateWorkspaceMembership(workspaceId, userId);
     ChatSession session = findSimulationSession(workspaceId, sessionId);

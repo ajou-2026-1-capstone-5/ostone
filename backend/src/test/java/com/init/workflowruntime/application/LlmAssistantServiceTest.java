@@ -7,6 +7,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
+import com.init.workflowruntime.application.dto.AssistantConversationResult;
+import com.init.workflowruntime.application.dto.AssistantConversationState;
+import com.init.workflowruntime.application.dto.AssistantNextAction;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,12 +35,15 @@ class LlmAssistantServiceTest {
   @Mock private ChatClientRequestSpec promptSpec;
   @Mock private CallResponseSpec callSpec;
   @Mock private WorkflowAssistantTools workflowAssistantTools;
+  @Mock private WorkflowAssistantStateService workflowAssistantStateService;
 
   private LlmAssistantService service;
 
   @BeforeEach
   void setUp() {
-    service = new LlmAssistantService(chatClient, workflowAssistantTools);
+    service =
+        new LlmAssistantService(
+            chatClient, workflowAssistantTools, workflowAssistantStateService, false);
   }
 
   @Test
@@ -121,5 +128,33 @@ class LlmAssistantServiceTest {
     assertThat(result).isEqualTo(COUNSELOR_DRAFT_RESPONSE);
     verify(promptSpec, org.mockito.Mockito.never()).tools(workflowAssistantTools);
     verify(promptSpec, org.mockito.Mockito.never()).toolContext(anyMap());
+  }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: fallback 활성화 시 LLM 실패를 backend nextAction 질문으로 대체한다")
+  void should_returnFallbackPrompt_when_llmFailsAndFallbackEnabled() {
+    service =
+        new LlmAssistantService(
+            chatClient, workflowAssistantTools, workflowAssistantStateService, true);
+    given(chatClient.prompt()).willReturn(promptSpec);
+    given(promptSpec.tools(workflowAssistantTools)).willReturn(promptSpec);
+    given(promptSpec.toolContext(anyMap())).willReturn(promptSpec);
+    given(promptSpec.user(any(Consumer.class))).willReturn(promptSpec);
+    given(promptSpec.call()).willThrow(new IllegalStateException("llm unavailable"));
+    given(workflowAssistantStateService.inspect(new InspectAssistantConversationCommand(7L)))
+        .willReturn(
+            AssistantConversationResult.of(
+                new AssistantConversationState(
+                    "IN_WORKFLOW",
+                    null,
+                    new AssistantNextAction("ASK_SLOT", "orderNo", "주문번호를 알려주세요.", null, null),
+                    java.util.List.of())));
+
+    String result =
+        service
+            .generateWorkflowAwareResponse(new GenerateWorkflowAwareResponseCommand(7L, null, null))
+            .content();
+
+    assertThat(result).isEqualTo("주문번호를 알려주세요.");
   }
 }

@@ -26,6 +26,7 @@ import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.ReplaySimulationGoldenCaseCommand;
+import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.dto.AssistantConversationResult;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.AssistantNextAction;
@@ -202,6 +203,7 @@ class SimulationGoldenCaseServiceTest {
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
     given(chatSessionRepository.save(any(ChatSession.class))).willReturn(replaySession);
+    givenExpectedReplaySelection(VERSION_ID);
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(901L))
         .willReturn(Optional.empty(), Optional.of(customerMessage));
     given(chatMessageRepository.save(any(ChatMessage.class)))
@@ -230,6 +232,8 @@ class SimulationGoldenCaseServiceTest {
     verify(replayResultRepository).save(resultCaptor.capture());
     assertThat(result.status()).isEqualTo(SimulationGoldenCaseReplayStatus.PASS);
     assertThat(resultCaptor.getValue().getFailureSummary()).isNull();
+    verify(llmToolService)
+        .selectIntent(new SelectLlmToolIntentCommand(901L, "refund_request", WORKFLOW_ID));
     verify(chatSessionMetadataService).updateAfterMessage(replaySession, customerMessage);
     verify(chatSessionMetadataService).updateAfterMessage(replaySession, assistantMessage);
   }
@@ -257,6 +261,7 @@ class SimulationGoldenCaseServiceTest {
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
     given(chatSessionRepository.save(any(ChatSession.class))).willReturn(replaySession);
+    givenExpectedReplaySelection(VERSION_ID);
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(901L))
         .willReturn(Optional.empty(), Optional.of(customerMessage));
     given(chatMessageRepository.save(any(ChatMessage.class)))
@@ -309,6 +314,7 @@ class SimulationGoldenCaseServiceTest {
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
     given(chatSessionRepository.save(any(ChatSession.class))).willReturn(replaySession);
+    givenExpectedReplaySelection(VERSION_ID);
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(901L))
         .willReturn(Optional.empty(), Optional.of(customerMessage));
     given(chatMessageRepository.save(any(ChatMessage.class)))
@@ -410,6 +416,19 @@ class SimulationGoldenCaseServiceTest {
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, versionId))
         .willReturn(Optional.of(workflow));
     given(intentDefinitionRepository.findByIdAndDomainPackVersionId(INTENT_ID, versionId))
+        .willReturn(Optional.of(intent));
+  }
+
+  private void givenExpectedReplaySelection(Long versionId) {
+    WorkflowDefinition workflow = workflow(versionId);
+    IntentDefinition intent = intent(versionId);
+    given(
+            workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
+                versionId, "refund_workflow"))
+        .willReturn(Optional.of(workflow));
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                versionId, "refund_request"))
         .willReturn(Optional.of(intent));
   }
 

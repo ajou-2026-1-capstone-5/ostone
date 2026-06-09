@@ -1,14 +1,22 @@
 package com.init.workflowruntime.application;
 
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
+import com.init.workflowruntime.application.dto.AssistantConversationState;
+import com.init.workflowruntime.application.dto.AssistantNextAction;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class LlmAssistantService {
+
+  private static final Logger log = LoggerFactory.getLogger(LlmAssistantService.class);
 
   private static final String SESSION_ID = "sessionId";
   private static final String LATEST_USER_MESSAGE = "latestUserMessage";
@@ -43,10 +51,18 @@ public class LlmAssistantService {
 
   private final ChatClient chatClient;
   private final WorkflowAssistantTools workflowAssistantTools;
+  private final WorkflowAssistantStateService workflowAssistantStateService;
+  private final boolean fallbackEnabled;
 
-  public LlmAssistantService(ChatClient chatClient, WorkflowAssistantTools workflowAssistantTools) {
+  public LlmAssistantService(
+      ChatClient chatClient,
+      WorkflowAssistantTools workflowAssistantTools,
+      WorkflowAssistantStateService workflowAssistantStateService,
+      @Value("${app.ai.chat.fallback.enabled:false}") boolean fallbackEnabled) {
     this.chatClient = chatClient;
     this.workflowAssistantTools = workflowAssistantTools;
+    this.workflowAssistantStateService = workflowAssistantStateService;
+    this.fallbackEnabled = fallbackEnabled;
   }
 
   public String generateResponse(String conversationContext, String userMessage) {
@@ -63,19 +79,28 @@ public class LlmAssistantService {
 
   public GenerateWorkflowAwareResponseResult generateWorkflowAwareResponse(
       GenerateWorkflowAwareResponseCommand command) {
-    String content =
-        chatClient
-            .prompt()
-            .tools(workflowAssistantTools)
-            .toolContext(toolContext(command))
-            .user(
-                u ->
-                    u.text(WORKFLOW_AWARE_USER_PROMPT)
-                        .param("context", nullToEmpty(command.conversationContext()))
-                        .param("message", nullToEmpty(command.userMessage())))
-            .call()
-            .content();
-    return new GenerateWorkflowAwareResponseResult(content);
+    try {
+      String content =
+          chatClient
+              .prompt()
+              .tools(workflowAssistantTools)
+              .toolContext(toolContext(command))
+              .user(
+                  u ->
+                      u.text(WORKFLOW_AWARE_USER_PROMPT)
+                          .param("context", nullToEmpty(command.conversationContext()))
+                          .param("message", nullToEmpty(command.userMessage())))
+              .call()
+              .content();
+      return new GenerateWorkflowAwareResponseResult(content);
+    } catch (RuntimeException e) {
+      if (!fallbackEnabled) {
+        throw e;
+      }
+      log.warn("LLM workflow response failed; using deterministic fallback: {}", e.toString());
+      log.debug("LLM workflow response failure detail", e);
+      return new GenerateWorkflowAwareResponseResult(fallbackWorkflowResponse(command.sessionId()));
+    }
   }
 
   public GenerateWorkflowAwareResponseResult generateCounselorDraftResponse(
@@ -101,6 +126,34 @@ public class LlmAssistantService {
     context.put(LATEST_USER_MESSAGE, nullToEmpty(command.userMessage()));
     context.put(CONVERSATION_CONTEXT, nullToEmpty(command.conversationContext()));
     return context;
+  }
+
+  private String fallbackWorkflowResponse(Long sessionId) {
+    AssistantConversationState state =
+        workflowAssistantStateService
+            .inspect(new InspectAssistantConversationCommand(sessionId))
+            .state();
+    if (state == null) {
+      return "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+    }
+    AssistantNextAction nextAction = state.nextAction();
+    if (nextAction == null) {
+      return "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+    }
+    String prompt = nullToEmpty(nextAction.question()).trim();
+    if (prompt.isEmpty()) {
+      prompt = nullToEmpty(nextAction.message()).trim();
+    }
+    if (!prompt.isEmpty()) {
+      return prompt;
+    }
+    return switch (nullToEmpty(nextAction.type())) {
+      case "ANSWER" -> "확인한 업무 기준에 따라 안내드리겠습니다.";
+      case "COMPLETED" -> "요청 처리가 완료되었습니다.";
+      case "HANDOFF" -> "이 요청은 상담원 추가 확인이 필요합니다.";
+      case "NEED_INTENT" -> "어떤 업무를 도와드리면 될지 조금 더 자세히 알려주세요.";
+      default -> "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+    };
   }
 
   private String nullToEmpty(String value) {
