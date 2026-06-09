@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
@@ -325,6 +325,47 @@ describe("WorkspaceDashboardPage", () => {
         to: "2026-06-03",
       }),
     );
+  });
+
+  it("커버리지 추이 막대는 상담 건수가 아니라 workflow 매칭률을 반영한다", async () => {
+    mockedGetMetrics.mockResolvedValueOnce({
+      ...metricsResponse,
+      coverage: {
+        ...metricsResponse.coverage,
+        trend: [
+          {
+            date: "2026-06-01",
+            totalConsultationCount: 80,
+            workflowMatchedCount: 52,
+            workflowMatchRate: 65,
+          },
+          {
+            date: "2026-06-02",
+            totalConsultationCount: 40,
+            workflowMatchedCount: 0,
+            workflowMatchRate: null,
+          },
+          {
+            date: "2026-06-03",
+            totalConsultationCount: 20,
+            workflowMatchedCount: 10,
+            workflowMatchRate: 50,
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    const firstBar = await screen.findByTestId("coverage-trend-bar-2026-06-01");
+    expect(firstBar).toHaveStyle({ width: "65%" });
+    expect(screen.getByTestId("coverage-trend-bar-2026-06-02")).toHaveStyle({ width: "0%" });
+    expect(screen.getByTestId("coverage-trend-bar-2026-06-03")).toHaveStyle({ width: "50%" });
+
+    const trendPanel = screen.getByLabelText("기간별 커버리지 추이");
+    expect(within(trendPanel).getByText("65.0%")).toBeInTheDocument();
+    expect(within(trendPanel).getByText("--")).toBeInTheDocument();
+    expect(within(trendPanel).getByText("50.0%")).toBeInTheDocument();
   });
 
   it("평균 계산이 불가능한 지표와 전 기간 비교는 --로 표시한다", async () => {

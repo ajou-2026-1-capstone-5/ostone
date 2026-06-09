@@ -156,6 +156,12 @@ function formatPercent(value: MetricValue, state: DashboardDataState): string {
   return `${value.toFixed(1)}%`;
 }
 
+function trendBarWidth(rate: MetricValue): string {
+  if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) return "0%";
+  // 0보다 큰 매칭률은 최소 4% 너비로 시인성을 보장한다
+  return `${Math.min(100, Math.max(4, rate))}%`;
+}
+
 function hasMetricData(metrics: ConsultationMetrics | null): boolean {
   if (!metrics) return false;
   return (
@@ -355,7 +361,6 @@ function AutomationCoveragePanel({
           ? "계측 확인"
           : "--";
   const trend = coverage?.trend ?? [];
-  const maxTrendTotal = Math.max(1, ...trend.map((point) => point.totalConsultationCount));
 
   return (
     <section className={styles.coveragePanel} aria-labelledby="automation-coverage-title">
@@ -420,18 +425,18 @@ function AutomationCoveragePanel({
 
       <div className={styles.trendPanel} aria-label="기간별 커버리지 추이">
         {trend.length > 0 ? (
-          trend.map((point) => {
-            const width = `${Math.max(4, (point.totalConsultationCount / maxTrendTotal) * 100)}%`;
-            return (
-              <div key={point.date} className={styles.trendRow}>
-                <span>{point.date}</span>
-                <div className={styles.trendTrack} aria-hidden="true">
-                  <span style={{ width }} />
-                </div>
-                <strong>{formatPercent(point.workflowMatchRate, state)}</strong>
+          trend.map((point) => (
+            <div key={point.date} className={styles.trendRow}>
+              <span>{point.date}</span>
+              <div className={styles.trendTrack} aria-hidden="true">
+                <span
+                  data-testid={`coverage-trend-bar-${point.date}`}
+                  style={{ width: trendBarWidth(point.workflowMatchRate) }}
+                />
               </div>
-            );
-          })
+              <strong>{formatPercent(point.workflowMatchRate, state)}</strong>
+            </div>
+          ))
         ) : (
           <p className={styles.trendEmpty}>기간별 커버리지 추이가 없습니다.</p>
         )}
