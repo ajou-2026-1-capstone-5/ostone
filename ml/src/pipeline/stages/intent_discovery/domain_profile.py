@@ -112,7 +112,9 @@ def load_confirmed_domain_profile(path: Path) -> RootDomainProfile:
         domain_evidence={
             "candidateId": payload.get("candidateId"),
             "displayName": payload.get("displayName"),
+            "description": _clean_text(payload.get("description")),
             "evidenceConversationIds": _string_list(payload.get("evidenceConversationIds")),
+            "exclusionTerms": _string_list(payload.get("exclusionTerms")),
             "sourceReviewTaskId": payload.get("sourceReviewTaskId"),
         },
     )
@@ -186,6 +188,12 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [text for item in value if (text := str(item).strip())]
+
+
+def _clean_text(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
 
 
 def _bounded_float(value: object, *, default: float) -> float:

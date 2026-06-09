@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import {
   type FeedbackAnswerOption,
   type ReviewCaseContext,
+  type ReviewTaskView,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
   useSubmitPipelineFeedback,
@@ -39,6 +40,15 @@ const WORKFLOW_FEEDBACK_ANSWER_OPTIONS = [
 type FeedbackDecision = string;
 type FeedbackDecisions = Record<number, FeedbackDecision>;
 
+interface DomainProfileEdits {
+  confirmedDomain: string;
+  displayName: string;
+  description: string;
+  domainLexicon: string;
+  evidenceTerms: string;
+  exclusionTerms: string;
+}
+
 export function PipelineReviewCheckpointCard({
   workspaceId,
   pipelineJobId,
@@ -64,6 +74,10 @@ export function PipelineReviewCheckpointCard({
     selectionKey: null,
     taskId: null,
   });
+  const [domainEdits, setDomainEdits] = useState<{
+    taskKey: string | null;
+    values: DomainProfileEdits;
+  }>({ taskKey: null, values: emptyDomainEdits() });
 
   const openTasks = useMemo(
     () => query.data?.tasks.filter((task) => task.status === "OPEN") ?? [],
@@ -89,6 +103,30 @@ export function PipelineReviewCheckpointCard({
       openTasks,
     ],
   );
+  const currentDomainEditKey = selectedDomainTask
+    ? `${domainSelectionKey}:${selectedDomainTask.id}`
+    : null;
+  // 후보를 바꾸면 편집값을 그 후보로 다시 시드한다. 운영자가 입력하기 전까지는 후보 기반 시드를 보여 준다.
+  const activeDomainEdits =
+    selectedDomainTask &&
+    domainEdits.taskKey === currentDomainEditKey
+      ? domainEdits.values
+      : seedDomainEdits(selectedDomainTask);
+  const updateDomainEdit = (field: keyof DomainProfileEdits, value: string) => {
+    if (!selectedDomainTask) {
+      return;
+    }
+    setDomainEdits((current) => {
+      const base =
+        current.taskKey === currentDomainEditKey
+          ? current.values
+          : seedDomainEdits(selectedDomainTask);
+      return {
+        taskKey: currentDomainEditKey,
+        values: { ...base, [field]: value },
+      };
+    });
+  };
   const openTaskDecisionValues = useMemo(
     () =>
       new Map(
@@ -358,62 +396,109 @@ export function PipelineReviewCheckpointCard({
             );
           })}
         </div>
-        <div className={styles.domainReviewPanel} aria-live="polite">
-          <div className={styles.domainReviewCopy}>
-            <span className={styles.eyebrow}>Selected domain</span>
-            {selectedDomainTask ? (
-              <>
-                <strong className={styles.domainReviewTitle}>
-                  {selectedDomainTask.payload.displayName ??
-                    selectedDomainTask.title}
-                </strong>
-                <span className={styles.domainReviewDescription}>
-                  {selectedDomainTask.payload.description ??
-                    "도메인 설명이 제공되지 않았습니다."}
-                </span>
-                <span className={styles.domainReviewImpact}>
-                  이 선택은 intent clustering 입력으로 반영되며, 확정 후
-                  pipeline replay를 거쳐 다음 review 단계 또는 Domain Pack 초안
-                  생성으로 이어집니다.
-                </span>
-                <div className={styles.termRow} aria-label="선택 근거 키워드">
-                  {selectedDomainTask.payload.confidence !== undefined && (
-                    <span className={styles.term}>
-                      신뢰도{" "}
-                      {formatDomainConfidence(
-                        selectedDomainTask.payload.confidence,
-                      )}
-                    </span>
-                  )}
-                  {(selectedDomainTask.payload.evidenceTerms ?? [])
-                    .slice(0, 6)
-                    .map((term) => (
-                      <span key={term} className={styles.term}>
-                        {term}
-                      </span>
-                    ))}
+        <div className={styles.domainConfirmPanel} aria-live="polite">
+          <span className={styles.eyebrow}>Confirmed profile</span>
+          {selectedDomainTask ? (
+            <>
+              <p className={styles.domainReviewImpact}>
+                후보 값을 기본으로 채웠습니다. 필요하면 직접 다듬어 확정하세요. 이
+                profile은 intent clustering 입력으로 반영되며, 확정 후 pipeline
+                replay를 거쳐 다음 review 단계 또는 Domain Pack 초안 생성으로
+                이어집니다.
+              </p>
+              <div className={styles.profileForm}>
+                <ProfileTextField
+                  id="domain-edit-confirmed-domain"
+                  label="도메인명"
+                  value={activeDomainEdits.confirmedDomain}
+                  disabled={confirmDomain.isPending}
+                  invalid={activeDomainEdits.confirmedDomain.trim() === ""}
+                  onChange={(value) => updateDomainEdit("confirmedDomain", value)}
+                />
+                <ProfileTextField
+                  id="domain-edit-display-name"
+                  label="표시 이름"
+                  value={activeDomainEdits.displayName}
+                  disabled={confirmDomain.isPending}
+                  onChange={(value) => updateDomainEdit("displayName", value)}
+                />
+                <ProfileMultilineField
+                  id="domain-edit-description"
+                  label="설명"
+                  value={activeDomainEdits.description}
+                  disabled={confirmDomain.isPending}
+                  onChange={(value) => updateDomainEdit("description", value)}
+                />
+                <ProfileMultilineField
+                  id="domain-edit-lexicon"
+                  label="도메인 lexicon"
+                  hint="쉼표 또는 줄바꿈으로 구분합니다."
+                  value={activeDomainEdits.domainLexicon}
+                  disabled={confirmDomain.isPending}
+                  showChips
+                  onChange={(value) => updateDomainEdit("domainLexicon", value)}
+                />
+                <ProfileMultilineField
+                  id="domain-edit-evidence"
+                  label="근거 키워드"
+                  hint="쉼표 또는 줄바꿈으로 구분합니다."
+                  value={activeDomainEdits.evidenceTerms}
+                  disabled={confirmDomain.isPending}
+                  showChips
+                  onChange={(value) => updateDomainEdit("evidenceTerms", value)}
+                />
+                <ProfileMultilineField
+                  id="domain-edit-exclusion"
+                  label="제외 키워드 (선택)"
+                  hint="이 도메인과 무관한 표현을 쉼표 또는 줄바꿈으로 구분합니다."
+                  value={activeDomainEdits.exclusionTerms}
+                  disabled={confirmDomain.isPending}
+                  showChips
+                  onChange={(value) => updateDomainEdit("exclusionTerms", value)}
+                />
+              </div>
+              {selectedDomainTask.payload.confidence !== undefined && (
+                <div className={styles.termRow} aria-label="후보 신뢰도">
+                  <span className={styles.term}>
+                    후보 신뢰도{" "}
+                    {formatDomainConfidence(
+                      selectedDomainTask.payload.confidence,
+                    )}
+                  </span>
                 </div>
-              </>
-            ) : (
-              <>
-                <strong className={styles.domainReviewTitle}>
-                  확정할 도메인을 선택하세요.
-                </strong>
-                <span className={styles.domainReviewDescription}>
-                  후보를 선택하면 근거와 파이프라인 반영 범위를 확인한 뒤 확정할
-                  수 있습니다.
-                </span>
-              </>
-            )}
-          </div>
+              )}
+            </>
+          ) : (
+            <>
+              <strong className={styles.domainReviewTitle}>
+                확정할 도메인을 선택하세요.
+              </strong>
+              <span className={styles.domainReviewDescription}>
+                후보를 선택하면 profile 필드를 다듬어 확정할 수 있습니다.
+              </span>
+            </>
+          )}
           <button
             type="button"
             className={styles.submitButton}
-            disabled={confirmDomain.isPending || !selectedDomainTask}
+            disabled={
+              confirmDomain.isPending ||
+              !selectedDomainTask ||
+              activeDomainEdits.confirmedDomain.trim() === ""
+            }
             onClick={() => {
-              if (selectedDomainTask) {
-                confirmDomain.mutate(selectedDomainTask.id);
+              if (!selectedDomainTask) {
+                return;
               }
+              confirmDomain.mutate({
+                reviewTaskId: selectedDomainTask.id,
+                confirmedDomain: activeDomainEdits.confirmedDomain.trim(),
+                displayName: activeDomainEdits.displayName.trim(),
+                description: activeDomainEdits.description.trim(),
+                domainLexicon: parseTerms(activeDomainEdits.domainLexicon),
+                evidenceTerms: parseTerms(activeDomainEdits.evidenceTerms),
+                exclusionTerms: parseTerms(activeDomainEdits.exclusionTerms),
+              });
             }}
           >
             {confirmDomain.isPending ? "확정 중입니다" : "선택한 도메인 확정"}
@@ -641,6 +726,136 @@ function questionScopeLabel(
 
 function formatDomainConfidence(confidence: number): string {
   return `${Math.round(confidence * 100)}%`;
+}
+
+function emptyDomainEdits(): DomainProfileEdits {
+  return {
+    confirmedDomain: "",
+    displayName: "",
+    description: "",
+    domainLexicon: "",
+    evidenceTerms: "",
+    exclusionTerms: "",
+  };
+}
+
+function seedDomainEdits(task?: ReviewTaskView): DomainProfileEdits {
+  if (!task) {
+    return emptyDomainEdits();
+  }
+  const name = task.payload.displayName ?? task.title;
+  return {
+    confirmedDomain: name,
+    displayName: name,
+    description: task.payload.description ?? "",
+    domainLexicon: (task.payload.suggestedDomainLexicon ?? []).join(", "),
+    evidenceTerms: (task.payload.evidenceTerms ?? []).join(", "),
+    exclusionTerms: "",
+  };
+}
+
+// 쉼표/줄바꿈으로 구분된 입력을 trim·중복제거해 term 배열로 변환한다.
+function parseTerms(value: string): string[] {
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const raw of value.split(/[,\n]/)) {
+    const term = raw.trim();
+    if (term && !seen.has(term)) {
+      seen.add(term);
+      terms.push(term);
+    }
+  }
+  return terms;
+}
+
+function ProfileTextField({
+  id,
+  label,
+  value,
+  disabled,
+  invalid,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  disabled: boolean;
+  invalid?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.fieldLabel}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type="text"
+        className={styles.textInput}
+        value={value}
+        disabled={disabled}
+        aria-invalid={invalid}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
+  );
+}
+
+function ProfileMultilineField({
+  id,
+  label,
+  hint,
+  value,
+  disabled,
+  showChips,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  value: string;
+  disabled: boolean;
+  showChips?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const hintId = `${id}-hint`;
+  return (
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.fieldLabel}>
+        {label}
+      </label>
+      {hint && (
+        <span id={hintId} className={styles.fieldHint}>
+          {hint}
+        </span>
+      )}
+      <textarea
+        id={id}
+        className={styles.textArea}
+        value={value}
+        disabled={disabled}
+        aria-describedby={hint ? hintId : undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {showChips && <DomainTermChips value={value} />}
+    </div>
+  );
+}
+
+function DomainTermChips({ value }: { value: string }) {
+  const terms = parseTerms(value);
+  if (terms.length === 0) {
+    return null;
+  }
+  return (
+    <div className={styles.termRow} aria-hidden="true">
+      {terms.map((term) => (
+        <span key={term} className={styles.term}>
+          {term}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function feedbackAnswerOptions(payload: {

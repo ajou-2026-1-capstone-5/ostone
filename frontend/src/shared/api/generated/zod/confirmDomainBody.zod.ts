@@ -8,7 +8,13 @@ import { z as zod } from 'zod';
 
 export const ConfirmDomainBody = zod.object({
   "reviewTaskId": zod.number(),
-  "reason": zod.string().optional()
+  "reason": zod.string().optional(),
+  "confirmedDomain": zod.string().optional(),
+  "displayName": zod.string().optional(),
+  "description": zod.string().optional(),
+  "domainLexicon": zod.array(zod.string()).optional(),
+  "evidenceTerms": zod.array(zod.string()).optional(),
+  "exclusionTerms": zod.array(zod.string()).optional()
 })
 
 export type ConfirmDomainBody = zod.input<typeof ConfirmDomainBody>;

@@ -45,7 +45,18 @@ public class PipelineReviewController {
     return ResponseEntity.ok(
         useCase.confirmDomain(
             new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
-                workspaceId, pipelineJobId, request.reviewTaskId(), userId, request.reason())));
+                workspaceId,
+                pipelineJobId,
+                request.reviewTaskId(),
+                userId,
+                request.reason(),
+                new PipelineReviewCheckpointUseCase.DomainProfileOverride(
+                    request.confirmedDomain(),
+                    request.displayName(),
+                    request.description(),
+                    request.domainLexicon(),
+                    request.evidenceTerms(),
+                    request.exclusionTerms()))));
   }
 
   @PostMapping("/human-feedback")
@@ -71,7 +82,15 @@ public class PipelineReviewController {
                     .toList())));
   }
 
-  public record ConfirmDomainRequest(@NotNull Long reviewTaskId, String reason) {}
+  public record ConfirmDomainRequest(
+      @NotNull Long reviewTaskId,
+      String reason,
+      String confirmedDomain,
+      String displayName,
+      String description,
+      List<String> domainLexicon,
+      List<String> evidenceTerms,
+      List<String> exclusionTerms) {}
 
   public record SubmitFeedbackRequest(@NotEmpty List<@Valid FeedbackDecisionRequest> decisions) {}
 

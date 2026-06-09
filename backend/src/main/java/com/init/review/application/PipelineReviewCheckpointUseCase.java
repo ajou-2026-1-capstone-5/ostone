@@ -42,6 +42,7 @@ public class PipelineReviewCheckpointUseCase {
   private static final String ARTIFACT_FEEDBACK_CONSTRAINTS = "FEEDBACK_CONSTRAINTS";
   private static final String FIELD_CONFIDENCE = "confidence";
   private static final String FIELD_DISPLAY_NAME = "displayName";
+  private static final String FIELD_DESCRIPTION = "description";
   private static final Set<String> ALLOWED_REVIEW_ROLES = Set.of("OWNER", "ADMIN", "OPERATOR");
 
   private final PipelineJobRepository pipelineJobRepository;
@@ -108,17 +109,7 @@ public class PipelineReviewCheckpointUseCase {
     ReviewTask selectedTask =
         openTaskForSession(session, command.reviewTaskId(), ReviewTask.TARGET_DOMAIN_CANDIDATE);
     JsonNode candidate = jsonSupport.readJson(selectedTask.getTargetRefJson());
-    ObjectNode profile = jsonSupport.objectNode();
-    profile.put("schemaVersion", "confirmed-domain-profile.v1");
-    profile.put("candidateId", jsonSupport.text(candidate, "candidateId"));
-    profile.put("confirmedDomain", jsonSupport.text(candidate, FIELD_DISPLAY_NAME));
-    profile.put(FIELD_DISPLAY_NAME, jsonSupport.text(candidate, FIELD_DISPLAY_NAME));
-    profile.put(FIELD_CONFIDENCE, jsonSupport.number(candidate, FIELD_CONFIDENCE));
-    profile.set("evidenceTerms", candidate.path("evidenceTerms"));
-    profile.set("evidenceConversationIds", candidate.path("evidenceConversationIds"));
-    profile.set("domainLexicon", candidate.path("suggestedDomainLexicon"));
-    profile.put("sourceReviewTaskId", selectedTask.getId());
-    profile.put("confirmedBy", command.userId());
+    ObjectNode profile = buildConfirmedDomainProfile(candidate, selectedTask, command);
 
     OffsetDateTime now = OffsetDateTime.now(clock);
     selectedTask.resolve(command.userId(), now);
@@ -153,6 +144,75 @@ public class PipelineReviewCheckpointUseCase {
                 now));
     replayOrchestrator.triggerDomainConfirmedReplay(job, artifact.getPayloadJson());
     return ReviewCheckpointResult.of(session.getId(), "DOMAIN_CONFIRMED_REPLAY_TRIGGERED");
+  }
+
+  /**
+   * 선택한 candidate payload를 기본값으로 두고 operator override를 병합해 {@code confirmed-domain-profile.v1}을
+   * 만든다. override 필드가 비어 있으면 candidate 값을 유지하므로 candidate 선택만 보내는 기존 요청도 동일하게 동작한다.
+   */
+  private ObjectNode buildConfirmedDomainProfile(
+      JsonNode candidate, ReviewTask selectedTask, ConfirmDomainCommand command) {
+    DomainProfileOverride override =
+        command.profileOverride() == null
+            ? DomainProfileOverride.empty()
+            : command.profileOverride();
+    String candidateDisplayName = jsonSupport.text(candidate, FIELD_DISPLAY_NAME);
+    ObjectNode profile = jsonSupport.objectNode();
+    profile.put("schemaVersion", "confirmed-domain-profile.v1");
+    profile.put("candidateId", jsonSupport.text(candidate, "candidateId"));
+    profile.put(
+        "confirmedDomain", overrideOrFallback(override.confirmedDomain(), candidateDisplayName));
+    profile.put(
+        FIELD_DISPLAY_NAME, overrideOrFallback(override.displayName(), candidateDisplayName));
+    profile.put(
+        FIELD_DESCRIPTION,
+        overrideOrFallback(override.description(), jsonSupport.text(candidate, FIELD_DESCRIPTION)));
+    profile.put(FIELD_CONFIDENCE, jsonSupport.number(candidate, FIELD_CONFIDENCE));
+    profile.set(
+        "evidenceTerms", mergeTermList(override.evidenceTerms(), candidate.path("evidenceTerms")));
+    profile.set("evidenceConversationIds", candidate.path("evidenceConversationIds"));
+    profile.set(
+        "domainLexicon",
+        mergeTermList(override.domainLexicon(), candidate.path("suggestedDomainLexicon")));
+    profile.set("exclusionTerms", sanitizeTerms(override.exclusionTerms()));
+    profile.put("sourceReviewTaskId", selectedTask.getId());
+    profile.put("confirmedBy", command.userId());
+    return profile;
+  }
+
+  private String overrideOrFallback(String overrideValue, String candidateValue) {
+    return overrideValue != null && !overrideValue.isBlank()
+        ? overrideValue.trim()
+        : candidateValue;
+  }
+
+  /** override list가 주어지면(빈 list 포함, 의도적 비움 허용) 그것을, 아니면 candidate array를 사용한다. */
+  private ArrayNode mergeTermList(List<String> override, JsonNode candidateTerms) {
+    if (override != null) {
+      return sanitizeTerms(override);
+    }
+    ArrayNode array = jsonSupport.arrayNode();
+    if (candidateTerms != null && candidateTerms.isArray()) {
+      for (JsonNode term : candidateTerms) {
+        String value = term.asText("").trim();
+        if (!value.isBlank()) {
+          array.add(value);
+        }
+      }
+    }
+    return array;
+  }
+
+  private ArrayNode sanitizeTerms(List<String> terms) {
+    ArrayNode array = jsonSupport.arrayNode();
+    if (terms != null) {
+      for (String term : terms) {
+        if (term != null && !term.isBlank()) {
+          array.add(term.trim());
+        }
+      }
+    }
+    return array;
   }
 
   @Transactional
@@ -456,7 +516,25 @@ public class PipelineReviewCheckpointUseCase {
   public record CheckpointCallbackResult(String status, String externalEventId) {}
 
   public record ConfirmDomainCommand(
-      Long workspaceId, Long pipelineJobId, Long reviewTaskId, Long userId, String reason) {}
+      Long workspaceId,
+      Long pipelineJobId,
+      Long reviewTaskId,
+      Long userId,
+      String reason,
+      DomainProfileOverride profileOverride) {}
+
+  /** 운영자가 candidate를 다듬은 값. 모든 필드 optional이며 null이면 candidate 값을 유지한다(하위호환). */
+  public record DomainProfileOverride(
+      String confirmedDomain,
+      String displayName,
+      String description,
+      List<String> domainLexicon,
+      List<String> evidenceTerms,
+      List<String> exclusionTerms) {
+    public static DomainProfileOverride empty() {
+      return new DomainProfileOverride(null, null, null, null, null, null);
+    }
+  }
 
   public record SubmitFeedbackCommand(
       Long workspaceId, Long pipelineJobId, Long userId, List<FeedbackDecisionInput> decisions) {}

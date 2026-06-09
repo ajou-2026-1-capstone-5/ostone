@@ -45,7 +45,18 @@ class PipelineReviewControllerTest {
         .willReturn(new PipelineReviewCheckpointUseCase.ReviewCheckpointResult(55L, "TRIGGERED"));
 
     controller.confirmDomain(
-        1L, 7L, new PipelineReviewController.ConfirmDomainRequest(101L, "대표 도메인"), auth());
+        1L,
+        7L,
+        new PipelineReviewController.ConfirmDomainRequest(
+            101L,
+            "대표 도메인",
+            "신용카드 분실/도난",
+            "신용카드 분실/도난",
+            "분실·도난 신고 중심 상담",
+            List.of("재발급", "도난신고"),
+            List.of("분실", "도난"),
+            List.of("배송")),
+        auth());
 
     ArgumentCaptor<PipelineReviewCheckpointUseCase.ConfirmDomainCommand> captor =
         ArgumentCaptor.forClass(PipelineReviewCheckpointUseCase.ConfirmDomainCommand.class);
@@ -55,6 +66,13 @@ class PipelineReviewControllerTest {
     assertThat(captor.getValue().reviewTaskId()).isEqualTo(101L);
     assertThat(captor.getValue().userId()).isEqualTo(9L);
     assertThat(captor.getValue().reason()).isEqualTo("대표 도메인");
+    PipelineReviewCheckpointUseCase.DomainProfileOverride override =
+        captor.getValue().profileOverride();
+    assertThat(override.confirmedDomain()).isEqualTo("신용카드 분실/도난");
+    assertThat(override.description()).isEqualTo("분실·도난 신고 중심 상담");
+    assertThat(override.domainLexicon()).containsExactly("재발급", "도난신고");
+    assertThat(override.evidenceTerms()).containsExactly("분실", "도난");
+    assertThat(override.exclusionTerms()).containsExactly("배송");
   }
 
   @Test
