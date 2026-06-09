@@ -24,7 +24,7 @@ function resolveDefaultWorkspaceDestination(workspaces: readonly WorkspaceRespon
   const workspace = selectDefaultWorkspace(workspaces);
 
   return typeof workspace?.id === "number"
-    ? `/workspaces/${workspace.id}/workflows`
+    ? `/workspaces/${workspace.id}/dashboard`
     : DEFAULT_POST_LOGIN_PATH;
 }
 
