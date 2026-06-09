@@ -319,6 +319,104 @@ class SimulationStructuralPatchApplyServiceTest {
         .hasMessageContaining("찾을 수 없습니다");
   }
 
+  @Test
+  @DisplayName("UPDATE_SLOT_VALIDATION은 JSON object가 아닌 값을 거절한다")
+  void should_rejectNonObjectSlotValidation() {
+    SlotDefinition slot = slot("{}");
+    given(slotRepository.findByDomainPackVersionIdAndSlotCode(DRAFT_VERSION_ID, "pickup"))
+        .willReturn(Optional.of(slot));
+
+    assertThatThrownBy(
+            () ->
+                service.apply(
+                    DRAFT_VERSION_ID,
+                    patch(
+                        element(
+                            StructuralPatchOperationType.UPDATE_SLOT_VALIDATION, "pickup", "[]"))))
+        .isInstanceOf(InvalidStructuralPatchException.class);
+    verify(slotRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("ADD_INTENT_EXAMPLE은 기존 examples 배열 뒤에 덧붙인다")
+  void should_appendExampleToExistingArray() throws Exception {
+    IntentDefinition intent = intent("{\"examples\":[\"기존\"]}", "설명");
+    given(intentRepository.findByDomainPackVersionIdAndIntentCode(DRAFT_VERSION_ID, "greet"))
+        .willReturn(Optional.of(intent));
+
+    service.apply(
+        DRAFT_VERSION_ID,
+        patch(element(StructuralPatchOperationType.ADD_INTENT_EXAMPLE, "greet", "새 예시")));
+
+    JsonNode examples = objectMapper.readTree(intent.getMetaJson()).path("examples");
+    assertThat(examples).hasSize(2);
+    assertThat(examples.get(0).asText()).isEqualTo("기존");
+    assertThat(examples.get(1).asText()).isEqualTo("새 예시");
+  }
+
+  @Test
+  @DisplayName("element operation은 targetCode 없이 targetId로 대상을 resolve한다")
+  void should_resolveElementByTargetId() {
+    IntentDefinition intent = intent("{}", "기존");
+    given(intentRepository.findByIdAndDomainPackVersionId(7L, DRAFT_VERSION_ID))
+        .willReturn(Optional.of(intent));
+    SlotDefinition slot = slot("{}");
+    given(slotRepository.findByIdAndDomainPackVersionId(8L, DRAFT_VERSION_ID))
+        .willReturn(Optional.of(slot));
+    PolicyDefinition policy = policy();
+    given(policyRepository.findByIdAndDomainPackVersionId(9L, DRAFT_VERSION_ID))
+        .willReturn(Optional.of(policy));
+    RiskDefinition risk = risk();
+    given(riskRepository.findByIdAndDomainPackVersionId(11L, DRAFT_VERSION_ID))
+        .willReturn(Optional.of(risk));
+
+    service.apply(
+        DRAFT_VERSION_ID,
+        patch(
+            elementById(StructuralPatchOperationType.UPDATE_INTENT_DESCRIPTION, 7L, "새 설명"),
+            elementById(StructuralPatchOperationType.UPDATE_SLOT_DESCRIPTION, 8L, "슬롯 설명"),
+            elementById(StructuralPatchOperationType.UPDATE_POLICY_CONDITION, 9L, "{\"k\":1}"),
+            elementById(StructuralPatchOperationType.UPDATE_RISK_TRIGGER, 11L, "{\"k\":2}")));
+
+    assertThat(intent.getDescription()).isEqualTo("새 설명");
+    assertThat(slot.getDescription()).isEqualTo("슬롯 설명");
+    assertThat(policy.getConditionJson()).contains("\"k\"");
+    assertThat(risk.getTriggerConditionJson()).contains("\"k\"");
+  }
+
+  @Test
+  @DisplayName("workflow operation은 workflowDefinitionId로 대상을 resolve한다")
+  void should_resolveWorkflowByDefinitionId() throws Exception {
+    WorkflowDefinition workflow = workflow(BASE_GRAPH);
+    given(workflowRepository.findByIdAndDomainPackVersionId(12L, DRAFT_VERSION_ID))
+        .willReturn(Optional.of(workflow));
+
+    service.apply(
+        DRAFT_VERSION_ID,
+        patch(
+            new StructuralPatchOperation.WorkflowNode(
+                StructuralPatchOperationType.ADD_WORKFLOW_NODE,
+                null,
+                12L,
+                "answer_x",
+                "ANSWER",
+                null,
+                "안내드립니다",
+                "reason"),
+            new StructuralPatchOperation.WorkflowTransition(
+                StructuralPatchOperationType.ADD_TRANSITION,
+                null,
+                12L,
+                "start",
+                "answer_x",
+                null,
+                "reason")));
+
+    JsonNode graph = objectMapper.readTree(workflow.getGraphJson());
+    assertThat(nodeExists(graph, "answer_x")).isTrue();
+    verify(workflowRepository).save(workflow);
+  }
+
   // --- helpers ---
 
   private StructuralDomainPackPatch patch(StructuralPatchOperation... ops) {
@@ -333,6 +431,12 @@ class SimulationStructuralPatchApplyServiceTest {
       StructuralPatchOperationType type, String targetCode, String value) {
     return new StructuralPatchOperation.ElementAttribute(
         type, type.getCategory(), targetCode, null, value, "reason");
+  }
+
+  private StructuralPatchOperation elementById(
+      StructuralPatchOperationType type, Long targetId, String value) {
+    return new StructuralPatchOperation.ElementAttribute(
+        type, type.getCategory(), null, targetId, value, "reason");
   }
 
   private IntentDefinition intent(String metaJson, String description) {
