@@ -60,6 +60,35 @@ def test_should_load_confirmed_domain_profile(tmp_path) -> None:
     assert profile.to_dict()["usesOperatorCategoryMetadata"] is True
 
 
+def test_should_preserve_operator_edited_description_and_exclusion_terms(tmp_path) -> None:
+    profile_path = tmp_path / "confirmed.json"
+    profile_path.write_text(
+        """
+        {
+          "candidateId": "card",
+          "displayName": "신용카드 분실/도난",
+          "description": "분실·도난 신고와 재발급 중심 상담",
+          "confidence": 0.9,
+          "domainLexicon": ["재발급", "도난신고"],
+          "evidenceTerms": ["분실", "도난"],
+          "exclusionTerms": ["배송"],
+          "sourceReviewTaskId": 11
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    profile = load_confirmed_domain_profile(profile_path)
+    serialized = profile.to_dict()
+
+    assert profile.domain_lexicon == ("재발급", "도난신고")
+    assert profile.evidence_terms["신용카드 분실/도난"] == ("분실", "도난")
+    assert serialized["domainEvidence"]["description"] == "분실·도난 신고와 재발급 중심 상담"
+    assert serialized["domainEvidence"]["exclusionTerms"] == ["배송"]
+    assert serialized["method"] == CONFIRMED_DOMAIN_METHOD
+    assert serialized["usesOperatorCategoryMetadata"] is True
+
+
 def test_load_confirmed_domain_profile_from_env_returns_none_without_path(monkeypatch) -> None:
     monkeypatch.delenv("PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH", raising=False)
 

@@ -1710,7 +1710,16 @@ async function fulfillUploadAndReview(
     method === "POST" &&
     path === "/workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation"
   ) {
-    expect(route.request().postDataJSON()).toEqual({ reviewTaskId: 9101 });
+    // 후보 선택과 함께 운영자가 다듬은 profile override가 전송된다.
+    expect(route.request().postDataJSON()).toEqual({
+      reviewTaskId: 9101,
+      confirmedDomain: "환불 상담",
+      displayName: "환불/결제 도메인",
+      description: "결제 취소, 환불 조건, 주문번호 확인 상담이 포함됩니다.",
+      domainLexicon: [],
+      evidenceTerms: ["환불", "취소", "결제", "주문번호"],
+      exclusionTerms: ["배송"],
+    });
     await fulfillJson(route, { data: { accepted: true }, status: 200 });
     return true;
   }

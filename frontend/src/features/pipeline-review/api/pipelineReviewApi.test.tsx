@@ -126,7 +126,7 @@ describe("pipelineReviewApi", () => {
     expect(mockedGetCheckpoint).not.toHaveBeenCalled();
   });
 
-  it("posts selected domain candidate via generated confirmDomain", async () => {
+  it("posts selected domain candidate and operator-edited profile via generated confirmDomain", async () => {
     mockedConfirmDomain.mockResolvedValueOnce({
       data: { status: "DOMAIN_CONFIRMED_REPLAY_TRIGGERED" },
       status: 200,
@@ -135,10 +135,20 @@ describe("pipelineReviewApi", () => {
     const { result } = renderHook(() => useConfirmPipelineDomain(1, 7), { wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync(11);
+      await result.current.mutateAsync({
+        reviewTaskId: 11,
+        confirmedDomain: "신용카드 분실/도난",
+        domainLexicon: ["재발급"],
+        exclusionTerms: ["배송"],
+      });
     });
 
-    expect(mockedConfirmDomain).toHaveBeenCalledWith(1, 7, { reviewTaskId: 11 });
+    expect(mockedConfirmDomain).toHaveBeenCalledWith(1, 7, {
+      reviewTaskId: 11,
+      confirmedDomain: "신용카드 분실/도난",
+      domainLexicon: ["재발급"],
+      exclusionTerms: ["배송"],
+    });
   });
 
   it("posts feedback decisions via generated submitFeedback", async () => {

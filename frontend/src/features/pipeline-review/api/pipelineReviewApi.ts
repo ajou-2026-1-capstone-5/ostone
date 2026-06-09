@@ -17,6 +17,7 @@ export interface ReviewTaskPayload {
   confidence?: number;
   description?: string;
   evidenceTerms?: string[];
+  suggestedDomainLexicon?: string[];
   sourceId?: string;
   targetId?: string;
   sourceReviewContext?: ReviewCaseContext;
@@ -119,12 +120,24 @@ export function usePipelineReviewCheckpoint(
   });
 }
 
+// 후보 선택(reviewTaskId)에 더해 운영자가 다듬은 profile override를 함께 보낸다.
+// 모든 override 필드는 optional이며 생략하면 백엔드가 후보 값을 유지한다(하위호환).
+export interface ConfirmDomainInput {
+  reviewTaskId: number;
+  confirmedDomain?: string;
+  displayName?: string;
+  description?: string;
+  domainLexicon?: string[];
+  evidenceTerms?: string[];
+  exclusionTerms?: string[];
+}
+
 export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reviewTaskId: number) => {
+    mutationFn: (input: ConfirmDomainInput) => {
       const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
-      return confirmDomain(ids.workspaceId, ids.pipelineJobId, { reviewTaskId });
+      return confirmDomain(ids.workspaceId, ids.pipelineJobId, input);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({

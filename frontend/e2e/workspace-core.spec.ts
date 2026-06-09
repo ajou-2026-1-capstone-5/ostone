@@ -501,7 +501,12 @@ test.describe("Workspace core operator screens", () => {
         await captureScreen(page, testInfo, "pipeline-domain-review");
 
         await page.getByRole("button", { name: /환불\/결제 도메인/ }).click();
-        await expect(page.getByText(/이 선택은 intent clustering 입력으로 반영되며/)).toBeVisible();
+        await expect(page.getByText(/intent clustering 입력으로 반영되며/)).toBeVisible();
+        // 후보 값으로 시드된 편집 폼을 운영자가 다듬을 수 있다.
+        const domainNameField = page.getByLabel("도메인명");
+        await expect(domainNameField).toHaveValue("환불/결제 도메인");
+        await domainNameField.fill("환불 상담");
+        await page.getByLabel("제외 키워드 (선택)").fill("배송");
         expect(seen).not.toContain(
           "POST /workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation",
         );

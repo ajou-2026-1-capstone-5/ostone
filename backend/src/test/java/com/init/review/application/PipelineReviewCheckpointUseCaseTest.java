@@ -274,7 +274,8 @@ class PipelineReviewCheckpointUseCaseTest {
 
     PipelineReviewCheckpointUseCase.ReviewCheckpointResult result =
         useCase.confirmDomain(
-            new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(1L, 7L, 101L, 9L, "대표 도메인"));
+            new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
+                1L, 7L, 101L, 9L, "대표 도메인", null));
 
     ArgumentCaptor<DomainPackGenerationTriggerCommand> triggerCaptor =
         ArgumentCaptor.forClass(DomainPackGenerationTriggerCommand.class);
@@ -286,8 +287,90 @@ class PipelineReviewCheckpointUseCaseTest {
     assertThat(other.getStatus()).isEqualTo(ReviewTask.STATUS_RESOLVED);
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
     assertThat(triggerCaptor.getValue().runMode()).isEqualTo("DOMAIN_CONFIRMED_REPLAY");
-    assertThat(triggerCaptor.getValue().confirmedDomainProfileJson()).contains("카드 상담");
     assertThat(triggerCaptor.getValue().skipFeedbackCheckpoint()).isFalse();
+
+    JsonNode profile = objectMapper.readTree(triggerCaptor.getValue().confirmedDomainProfileJson());
+    assertThat(profile.path("confirmedDomain").asText()).isEqualTo("카드 상담");
+    assertThat(profile.path("displayName").asText()).isEqualTo("카드 상담");
+    assertThat(termList(profile, "domainLexicon")).containsExactly("카드", "결제");
+    assertThat(termList(profile, "evidenceTerms")).containsExactly("분실", "한도");
+    assertThat(profile.path("exclusionTerms").isArray()).isTrue();
+    assertThat(profile.path("exclusionTerms")).isEmpty();
+  }
+
+  @Test
+  @DisplayName("confirm domain merges operator-edited profile fields over the candidate payload")
+  void confirmDomain_appliesOperatorOverride() throws Exception {
+    PipelineJob job =
+        job(
+            PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION,
+            "{\"upstreamManifestPath\":\"/artifacts/initial/manifest.json\"}");
+    ReviewSession session =
+        session(ReviewSession.KIND_DOMAIN_CONFIRMATION, ReviewSession.STATUS_OPEN, 55L);
+    ReviewTask selected =
+        task(
+            101L,
+            ReviewTask.TARGET_DOMAIN_CANDIDATE,
+            """
+            {
+              "candidateId": "card",
+              "displayName": "카드 상담",
+              "confidence": 0.92,
+              "evidenceTerms": ["분실", "한도"],
+              "evidenceConversationIds": ["c1"],
+              "suggestedDomainLexicon": ["카드", "결제"]
+            }
+            """);
+
+    givenReviewAccess(job);
+    given(
+            reviewSessionRepository.findFirstByPipelineJobIdAndReviewKindOrderByOpenedAtDesc(
+                7L, ReviewSession.KIND_DOMAIN_CONFIRMATION))
+        .willReturn(Optional.of(session));
+    given(reviewTaskRepository.findById(101L)).willReturn(Optional.of(selected));
+    given(reviewTaskRepository.findByReviewSessionIdOrderByIdAsc(55L))
+        .willReturn(List.of(selected));
+    given(reviewDecisionRepository.save(any(ReviewDecision.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(triggerPort.trigger(any(DomainPackGenerationTriggerCommand.class)))
+        .willReturn(new DomainPackGenerationTriggerResult("domain_pack_generation", "run-3"));
+
+    useCase.confirmDomain(
+        new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
+            1L,
+            7L,
+            101L,
+            9L,
+            "운영자 수정",
+            new PipelineReviewCheckpointUseCase.DomainProfileOverride(
+                "신용카드 분실/도난",
+                "신용카드 분실/도난",
+                "분실·도난 신고와 재발급 중심 상담",
+                List.of("재발급", "도난신고"),
+                List.of("분실", "도난", " "),
+                List.of("배송", ""))));
+
+    ArgumentCaptor<DomainPackGenerationTriggerCommand> triggerCaptor =
+        ArgumentCaptor.forClass(DomainPackGenerationTriggerCommand.class);
+    verify(triggerPort).trigger(triggerCaptor.capture());
+
+    JsonNode profile = objectMapper.readTree(triggerCaptor.getValue().confirmedDomainProfileJson());
+    assertThat(profile.path("confirmedDomain").asText()).isEqualTo("신용카드 분실/도난");
+    assertThat(profile.path("displayName").asText()).isEqualTo("신용카드 분실/도난");
+    assertThat(profile.path("description").asText()).isEqualTo("분실·도난 신고와 재발급 중심 상담");
+    assertThat(termList(profile, "domainLexicon")).containsExactly("재발급", "도난신고");
+    assertThat(termList(profile, "evidenceTerms")).containsExactly("분실", "도난");
+    assertThat(termList(profile, "exclusionTerms")).containsExactly("배송");
+    assertThat(profile.path("candidateId").asText()).isEqualTo("card");
+    assertThat(profile.path("confidence").asDouble()).isEqualTo(0.92);
+  }
+
+  private static List<String> termList(JsonNode profile, String fieldName) {
+    List<String> values = new java.util.ArrayList<>();
+    profile.path(fieldName).forEach(term -> values.add(term.asText()));
+    return values;
   }
 
   @Test
@@ -303,7 +386,7 @@ class PipelineReviewCheckpointUseCaseTest {
             () ->
                 useCase.confirmDomain(
                     new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
-                        1L, 7L, 101L, 9L, "대표 도메인")))
+                        1L, 7L, 101L, 9L, "대표 도메인", null)))
         .isInstanceOf(QuotaExceededException.class);
 
     verify(triggerPort, never()).trigger(any(DomainPackGenerationTriggerCommand.class));
@@ -349,7 +432,7 @@ class PipelineReviewCheckpointUseCaseTest {
             () ->
                 useCase.confirmDomain(
                     new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
-                        1L, 7L, 101L, 9L, "대표 도메인")))
+                        1L, 7L, 101L, 9L, "대표 도메인", null)))
         .isInstanceOf(AirflowTriggerFailedException.class);
 
     verify(failurePersistenceService).markFailed(eq(job), eq("airflow offline"), eq(NOW));

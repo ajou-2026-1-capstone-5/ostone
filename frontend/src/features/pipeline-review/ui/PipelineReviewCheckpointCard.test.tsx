@@ -138,13 +138,77 @@ describe("PipelineReviewCheckpointCard", () => {
       "true",
     );
     expect(
-      screen.getByText(/이 선택은 intent clustering 입력으로 반영되며/),
+      screen.getByText(/intent clustering 입력으로 반영되며/),
     ).toBeInTheDocument();
     expect(mutate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "선택한 도메인 확정" }));
 
-    expect(mutate).toHaveBeenCalledWith(101);
+    // 후보 값으로 시드된 profile이 그대로 전송된다(편집하지 않은 경우).
+    expect(mutate).toHaveBeenCalledWith({
+      reviewTaskId: 101,
+      confirmedDomain: "카드 상담",
+      displayName: "카드 상담",
+      description: "카드 분실, 결제, 한도 문의가 섞인 상담",
+      domainLexicon: [],
+      evidenceTerms: ["분실", "결제", "한도"],
+      exclusionTerms: [],
+    });
+  });
+
+  it("sends operator-edited profile fields when confirming a selected domain", () => {
+    const mutate = vi.fn();
+    mockedUseConfirmDomain.mockReturnValue({
+      isPending: false,
+      mutate,
+    } as never);
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 101,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: {
+              displayName: "카드 상담",
+              confidence: 0.92,
+              description: "카드 분실, 결제, 한도 문의가 섞인 상담",
+              evidenceTerms: ["분실", "결제", "한도"],
+              suggestedDomainLexicon: ["카드", "결제"],
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
+
+    fireEvent.change(screen.getByLabelText("도메인명"), {
+      target: { value: "신용카드 분실/도난" },
+    });
+    fireEvent.change(screen.getByLabelText("제외 키워드 (선택)"), {
+      target: { value: "배송, 배송, 환불\n" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "선택한 도메인 확정" }));
+
+    expect(mutate).toHaveBeenCalledWith({
+      reviewTaskId: 101,
+      confirmedDomain: "신용카드 분실/도난",
+      displayName: "카드 상담",
+      description: "카드 분실, 결제, 한도 문의가 섞인 상담",
+      domainLexicon: ["카드", "결제"],
+      evidenceTerms: ["분실", "결제", "한도"],
+      exclusionTerms: ["배송", "환불"],
+    });
   });
 
   it("keeps domain confirmation disabled while confirmation is pending", () => {
