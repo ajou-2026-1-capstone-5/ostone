@@ -25,6 +25,7 @@ import type {
 
 import type {
   ConfirmDomainRequest,
+  ReplayDiffView,
   ReviewCheckpointResult,
   ReviewCheckpointView,
   SubmitFeedbackRequest
@@ -298,6 +299,120 @@ export function useGetCheckpoint<TData = Awaited<ReturnType<typeof getCheckpoint
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetCheckpointQueryOptions(workspaceId,pipelineJobId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type getReplayDiffResponse200 = {
+  data: ReplayDiffView
+  status: 200
+}
+
+export type getReplayDiffResponseSuccess = (getReplayDiffResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getReplayDiffResponse = (getReplayDiffResponseSuccess)
+
+export const getGetReplayDiffUrl = (workspaceId: number,
+    pipelineJobId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/pipeline-jobs/${pipelineJobId}/review-checkpoint/replay-diff`
+}
+
+export const getReplayDiff = async (workspaceId: number,
+    pipelineJobId: number, options?: RequestInit): Promise<getReplayDiffResponse> => {
+
+  return customFetch<getReplayDiffResponse>(getGetReplayDiffUrl(workspaceId,pipelineJobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReplayDiffQueryKey = (workspaceId: number,
+    pipelineJobId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/pipeline-jobs/${pipelineJobId}/review-checkpoint/replay-diff`
+    ] as const;
+    }
+
+
+export const getGetReplayDiffQueryOptions = <TData = Awaited<ReturnType<typeof getReplayDiff>>, TError = unknown>(workspaceId: number,
+    pipelineJobId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReplayDiffQueryKey(workspaceId,pipelineJobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReplayDiff>>> = ({ signal }) => getReplayDiff(workspaceId,pipelineJobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && pipelineJobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReplayDiffQueryResult = NonNullable<Awaited<ReturnType<typeof getReplayDiff>>>
+export type GetReplayDiffQueryError = unknown
+
+
+export function useGetReplayDiff<TData = Awaited<ReturnType<typeof getReplayDiff>>, TError = unknown>(
+ workspaceId: number,
+    pipelineJobId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReplayDiff>>,
+          TError,
+          Awaited<ReturnType<typeof getReplayDiff>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReplayDiff<TData = Awaited<ReturnType<typeof getReplayDiff>>, TError = unknown>(
+ workspaceId: number,
+    pipelineJobId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReplayDiff>>,
+          TError,
+          Awaited<ReturnType<typeof getReplayDiff>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReplayDiff<TData = Awaited<ReturnType<typeof getReplayDiff>>, TError = unknown>(
+ workspaceId: number,
+    pipelineJobId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReplayDiff<TData = Awaited<ReturnType<typeof getReplayDiff>>, TError = unknown>(
+ workspaceId: number,
+    pipelineJobId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReplayDiff>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReplayDiffQueryOptions(workspaceId,pipelineJobId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

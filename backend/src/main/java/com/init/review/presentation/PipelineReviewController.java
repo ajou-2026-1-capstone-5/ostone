@@ -1,6 +1,7 @@
 package com.init.review.presentation;
 
 import com.init.review.application.PipelineReviewCheckpointUseCase;
+import com.init.review.application.PipelineReviewReplayDiffUseCase;
 import com.init.shared.presentation.AuthenticationUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,9 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class PipelineReviewController {
 
   private final PipelineReviewCheckpointUseCase useCase;
+  private final PipelineReviewReplayDiffUseCase replayDiffUseCase;
 
-  public PipelineReviewController(PipelineReviewCheckpointUseCase useCase) {
+  public PipelineReviewController(
+      PipelineReviewCheckpointUseCase useCase, PipelineReviewReplayDiffUseCase replayDiffUseCase) {
     this.useCase = useCase;
+    this.replayDiffUseCase = replayDiffUseCase;
   }
 
   @GetMapping
@@ -33,6 +37,15 @@ public class PipelineReviewController {
       Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(useCase.getCheckpoint(workspaceId, pipelineJobId, userId));
+  }
+
+  @GetMapping("/replay-diff")
+  public ResponseEntity<PipelineReviewReplayDiffUseCase.ReplayDiffView> getReplayDiff(
+      @PathVariable Long workspaceId,
+      @PathVariable Long pipelineJobId,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(replayDiffUseCase.getReplayDiff(workspaceId, pipelineJobId, userId));
   }
 
   @PostMapping("/domain-confirmation")

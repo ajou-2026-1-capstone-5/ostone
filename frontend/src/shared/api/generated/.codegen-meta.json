@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "openapiHash": "sha256:f976d8b758c2dbe2741897be6150db1d8f384ff9fa1273773cd6a029794b4c3a",
-  "openapiPathsCount": 106,
+  "openapiHash": "sha256:bb215d11c32c23fec93d8cda1777951a54d8f0e2292049bb9b33e95959d6fcb9",
+  "openapiPathsCount": 107,
   "orvalVersion": "^8.9.0",
   "openapiSourcePath": "backend/build/openapi.json"
 }

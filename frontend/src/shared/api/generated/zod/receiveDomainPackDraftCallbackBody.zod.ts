@@ -23,7 +23,10 @@ export const ReceiveDomainPackDraftCallbackBody = zod.object({
   "externalEventId": zod.string().min(receiveDomainPackDraftCallbackBodyExternalEventIdMin).max(receiveDomainPackDraftCallbackBodyExternalEventIdMax).optional(),
   "packKey": zod.string().min(receiveDomainPackDraftCallbackBodyPackKeyMin).max(receiveDomainPackDraftCallbackBodyPackKeyMax).optional(),
   "packName": zod.string().min(receiveDomainPackDraftCallbackBodyPackNameMin).max(receiveDomainPackDraftCallbackBodyPackNameMax).optional(),
-  "summaryJson": zod.string().min(receiveDomainPackDraftCallbackBodySummaryJsonMin).max(receiveDomainPackDraftCallbackBodySummaryJsonMax).optional()
+  "summaryJson": zod.string().min(receiveDomainPackDraftCallbackBodySummaryJsonMin).max(receiveDomainPackDraftCallbackBodySummaryJsonMax).optional(),
+  "feedbackReplayDiff": zod.looseObject({
+
+}).optional()
 })
 
 export type ReceiveDomainPackDraftCallbackBody = zod.input<typeof ReceiveDomainPackDraftCallbackBody>;

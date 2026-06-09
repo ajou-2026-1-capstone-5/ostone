@@ -41,7 +41,7 @@ def build_domain_pack_payload(
     scope: str | None = None,
 ) -> dict[str, object]:
     domain_pack_draft = _required_object(candidate, "domainPackDraft")
-    return {
+    payload: dict[str, object] = {
         "externalEventId": build_external_event_id(
             stage_context.dag_id,
             stage_context.run_id,
@@ -52,6 +52,11 @@ def build_domain_pack_payload(
         "packName": domain_pack_draft["packName"],
         "summaryJson": domain_pack_draft.get("summaryJson"),
     }
+    # feedback replay run에서만 존재. review 화면이 전후 구조 diff를 표시하도록 backend로 전달한다.
+    feedback_replay_diff = candidate.get("feedbackReplayDiff")
+    if isinstance(feedback_replay_diff, dict):
+        payload["feedbackReplayDiff"] = copy.deepcopy(feedback_replay_diff)
+    return payload
 
 
 def build_intent_payload(

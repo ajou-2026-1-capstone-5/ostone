@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
+  useReplayDiff,
   useSubmitPipelineFeedback,
 } from "../api/pipelineReviewApi";
 import { PipelineReviewCheckpointCard } from "./PipelineReviewCheckpointCard";
@@ -12,11 +13,13 @@ vi.mock("../api/pipelineReviewApi", () => ({
   usePipelineReviewCheckpoint: vi.fn(),
   useConfirmPipelineDomain: vi.fn(),
   useSubmitPipelineFeedback: vi.fn(),
+  useReplayDiff: vi.fn(),
 }));
 
 const mockedUseCheckpoint = vi.mocked(usePipelineReviewCheckpoint);
 const mockedUseConfirmDomain = vi.mocked(useConfirmPipelineDomain);
 const mockedUseSubmitFeedback = vi.mocked(useSubmitPipelineFeedback);
+const mockedUseReplayDiff = vi.mocked(useReplayDiff);
 const feedbackDraftKey = "ostone:pipeline-review:feedback-draft:1:7";
 
 function renderCard(
@@ -37,6 +40,7 @@ beforeEach(() => {
   mockedUseCheckpoint.mockReset();
   mockedUseConfirmDomain.mockReset();
   mockedUseSubmitFeedback.mockReset();
+  mockedUseReplayDiff.mockReset();
   mockedUseConfirmDomain.mockReturnValue({
     isPending: false,
     mutate: vi.fn(),
@@ -44,6 +48,13 @@ beforeEach(() => {
   mockedUseSubmitFeedback.mockReturnValue({
     isPending: false,
     mutate: vi.fn(),
+  } as never);
+  // 기본은 비-feedback-replay → 섹션이 렌더되지 않는다.
+  mockedUseReplayDiff.mockReturnValue({
+    data: { status: "NOT_APPLICABLE" },
+    isLoading: false,
+    isError: false,
+    isFetching: false,
   } as never);
 });
 
