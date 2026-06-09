@@ -70,7 +70,7 @@ describe("LoginForm", () => {
     });
   });
 
-  it("return-to가 없으면 기본 워크스페이스 workflows 화면으로 바로 이동한다", async () => {
+  it("return-to가 없으면 기본 워크스페이스 dashboard 화면으로 바로 이동한다", async () => {
     mockedListWorkspaces.mockResolvedValueOnce(
       listResponse([
         { id: 1, name: "Archived", status: "ARCHIVED" },
@@ -83,7 +83,7 @@ describe("LoginForm", () => {
     await submitLoginForm();
 
     await waitFor(() => {
-      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/workflows");
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/dashboard");
     });
     expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem("refreshToken")).toBeNull();
@@ -142,7 +142,7 @@ describe("LoginForm", () => {
     await submitLoginForm();
 
     await waitFor(() => {
-      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/workflows");
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/dashboard");
     });
     expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
   });
