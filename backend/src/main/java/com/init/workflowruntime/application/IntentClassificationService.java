@@ -46,6 +46,7 @@ public class IntentClassificationService {
     this.workflowMatchingService = workflowMatchingService;
   }
 
+  @Transactional
   public IntentClassificationResult classify(IntentClassificationCommand command) {
     if (workflowMatchingService.isEnabled()) {
       WorkflowMatchResult matchResult =
