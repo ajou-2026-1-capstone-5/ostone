@@ -318,7 +318,10 @@ public class SimulationGoldenCaseService {
       if (intent == null) {
         return;
       }
-    } else if (workflow != null) {
+      if (workflow != null && !workflow.getIntentDefinitionId().equals(intent.getId())) {
+        return;
+      }
+    } else {
       intent =
           intentDefinitionRepository
               .findByIdAndDomainPackVersionId(workflow.getIntentDefinitionId(), domainPackVersionId)
@@ -327,12 +330,6 @@ public class SimulationGoldenCaseService {
         return;
       }
       intentCode = intent.getIntentCode();
-    }
-
-    if (workflow != null
-        && intent != null
-        && !workflow.getIntentDefinitionId().equals(intent.getId())) {
-      return;
     }
 
     llmToolService.selectIntent(
