@@ -607,7 +607,7 @@ test.describe("Application navigation boundaries", () => {
       await page.getByLabel("비밀번호").fill("password123");
       await page.getByRole("button", { name: "시스템 로그인" }).click();
 
-      await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+      await expect(page).toHaveURL(/\/workspaces\/2\/dashboard$/);
       await expect(page.getByTestId("workspace-marker")).toContainText("Current Account Workspace");
 
       await page.goBack();
@@ -619,7 +619,7 @@ test.describe("Application navigation boundaries", () => {
       expect(seen).toContain("current GET /workspaces/1");
 
       await page.goForward();
-      await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+      await expect(page).toHaveURL(/\/workspaces\/2\/dashboard$/);
       await expect(page.getByTestId("workspace-marker")).toContainText("Current Account Workspace");
 
       await page.goBack();
@@ -658,7 +658,7 @@ test.describe("Application navigation boundaries", () => {
       await page.getByRole("button", { name: "시스템 로그인" }).click();
 
       try {
-        await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+        await expect(page).toHaveURL(/\/workspaces\/2\/dashboard$/);
         await expect(
           page.getByText("워크스페이스 정보를 불러오는 중입니다."),
         ).toBeVisible();
@@ -680,7 +680,7 @@ test.describe("Application navigation boundaries", () => {
         "Current Account Workspace",
       );
       await expect(
-        page.getByRole("heading", { name: "워크플로우", level: 1 }),
+        page.getByRole("heading", { name: "대시보드", exact: true }),
       ).toBeVisible();
       await expect(page.getByText("Previous Account Workspace")).toHaveCount(0);
       await expect(page.getByText("Previous Account Pack")).toHaveCount(0);

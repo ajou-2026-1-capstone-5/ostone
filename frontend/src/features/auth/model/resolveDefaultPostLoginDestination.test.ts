@@ -31,7 +31,7 @@ describe("resolveDefaultPostLoginDestination", () => {
     expect(mockedListWorkspaces).not.toHaveBeenCalled();
   });
 
-  it("ACTIVE 워크스페이스의 workflows 경로를 반환한다", async () => {
+  it("ACTIVE 워크스페이스의 dashboard 경로를 반환한다", async () => {
     mockedListWorkspaces.mockResolvedValueOnce(
       listResponse([
         { id: 1, name: "Archived", status: "ARCHIVED" },
@@ -39,7 +39,7 @@ describe("resolveDefaultPostLoginDestination", () => {
       ]),
     );
 
-    await expect(resolveDefaultPostLoginDestination()).resolves.toBe("/workspaces/2/workflows");
+    await expect(resolveDefaultPostLoginDestination()).resolves.toBe("/workspaces/2/dashboard");
   });
 
   it("워크스페이스가 없으면 /workspaces fallback을 반환한다", async () => {
@@ -93,7 +93,7 @@ describe("resolveDefaultPostLoginDestination", () => {
       resolveAuthenticatedPostLoginDestination({
         from: { pathname: "/workspaces/4/upload" },
       }),
-    ).resolves.toBe("/workspaces/7/workflows");
+    ).resolves.toBe("/workspaces/7/dashboard");
   });
 
   it("이전 계정 domain pack return-to는 현재 계정 기본 workspace로 대체한다", async () => {
@@ -105,7 +105,7 @@ describe("resolveDefaultPostLoginDestination", () => {
       resolveAuthenticatedPostLoginDestination({
         from: { pathname: "/workspaces/99/domain-packs", search: "?versionId=1" },
       }),
-    ).resolves.toBe("/workspaces/7/workflows");
+    ).resolves.toBe("/workspaces/7/dashboard");
   });
 
   it("workspace 루트 return-to는 현재 계정 workspace 목록 확인 뒤 유지한다", async () => {

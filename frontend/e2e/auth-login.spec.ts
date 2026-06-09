@@ -64,6 +64,98 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
+function dashboardConsultationMetrics(workspaceId: number) {
+  return {
+    workspaceId,
+    periodStart: "2026-05-29T00:00:00+09:00",
+    periodEnd: "2026-06-04T09:00:00+09:00",
+    totalConsultationCount: 0,
+    completedConsultationCount: 0,
+    averageFirstResponseSeconds: null,
+    averageLlmFirstResponseSeconds: null,
+    averageHumanFirstResponseSeconds: null,
+    llmHandledCount: 0,
+    humanInterventionCount: 0,
+    unresolvedSessionCount: 0,
+    comparison: null,
+    coverage: {
+      workflowMatchedCount: 0,
+      workflowMatchRate: 0,
+      intentClassificationSuccessCount: 0,
+      intentClassificationSuccessRate: 0,
+      lowConfidenceCount: 0,
+      lowConfidenceRate: 0,
+      unmatchedSessionCount: 0,
+      autoCompletedWorkflowCount: 0,
+      humanHandoffRate: 0,
+      llmOnlyProcessingRate: 0,
+      measurementStatus: "INSUFFICIENT_DATA",
+      measurementMessage: "측정 데이터 없음",
+      trend: [],
+    },
+    handledTodayCount: 0,
+    llmHandledTodayCount: 0,
+    humanHandledTodayCount: 0,
+  };
+}
+
+function dashboardWorkflowRankings(workspaceId: number) {
+  return {
+    workspaceId,
+    periodStart: "2026-05-29T00:00:00+09:00",
+    periodEnd: "2026-06-04T09:00:00+09:00",
+    totalConsultationCount: 0,
+    rankings: [],
+    topRankings: [],
+  };
+}
+
+function dashboardActionRecommendations(workspaceId: number) {
+  return {
+    workspaceId,
+    periodStart: "2026-05-29T00:00:00+09:00",
+    periodEnd: "2026-06-04T09:00:00+09:00",
+    recommendations: [],
+  };
+}
+
+const dashboardKnowledgePackHealth = {
+  activeKnowledgePack: null,
+  lastLogUpload: null,
+  lastKnowledgePackGeneration: null,
+  pendingReviewCount: 0,
+  latestOpenReviewPipelineJobId: null,
+};
+
+async function fulfillDashboardMocks(
+  route: Route,
+  method: string,
+  path: string,
+  workspaceId: number,
+): Promise<boolean> {
+  if (method !== "GET") {
+    return false;
+  }
+  const prefix = `/workspaces/${workspaceId}`;
+  if (path === `${prefix}/consultation/metrics`) {
+    await fulfillJson(route, dashboardConsultationMetrics(workspaceId));
+    return true;
+  }
+  if (path === `${prefix}/dashboard/action-recommendations`) {
+    await fulfillJson(route, dashboardActionRecommendations(workspaceId));
+    return true;
+  }
+  if (path === `${prefix}/dashboard/workflow-rankings`) {
+    await fulfillJson(route, dashboardWorkflowRankings(workspaceId));
+    return true;
+  }
+  if (path === `${prefix}/dashboard/knowledge-pack-health`) {
+    await fulfillJson(route, dashboardKnowledgePackHealth);
+    return true;
+  }
+  return false;
+}
+
 async function installLoginApiMocks(
   page: Page,
   seen: string[],
@@ -114,6 +206,10 @@ async function installLoginApiMocks(
       return;
     }
 
+    if (await fulfillDashboardMocks(route, method, path, 1)) {
+      return;
+    }
+
     if (
       domainPackMode === "active" &&
       method === "GET" &&
@@ -156,9 +252,9 @@ test.describe("Login screen", () => {
         await page.getByLabel("비밀번호").fill("password123");
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
-        await expect(page).toHaveURL(/\/workspaces\/1\/workflows/);
+        await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
         await expect(
-          page.getByRole("heading", { name: "워크플로우", level: 1 }),
+          page.getByRole("heading", { name: "대시보드", exact: true }),
         ).toBeVisible();
         await expect
           .poll(() =>
@@ -171,12 +267,18 @@ test.describe("Login screen", () => {
         );
       });
 
-      test("Then an operator with an active domain pack lands on current workspace operations", async ({
+      test("Then an operator with an active domain pack lands on the workspace dashboard and can open operations", async ({
         page,
       }) => {
         const seen: string[] = [];
 
         await page.addInitScript(() => {
+          if (
+            window.sessionStorage.getItem("e2e-legacy-auth-seeded") === "true"
+          ) {
+            return;
+          }
+          window.sessionStorage.setItem("e2e-legacy-auth-seeded", "true");
           window.localStorage.setItem("accessToken", "legacy-access-token");
           window.localStorage.setItem("refreshToken", "legacy-refresh-token");
           window.localStorage.setItem(
@@ -196,10 +298,17 @@ test.describe("Login screen", () => {
         await page.getByLabel("비밀번호").fill("password123");
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
-        await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
+        await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
         await expect(page.getByTestId("workspace-marker")).toContainText(
           "QA Workspace",
         );
+        await expect(
+          page.getByRole("heading", { name: "대시보드", exact: true }),
+        ).toBeVisible();
+
+        await page.goto("/workspaces/1/workflows");
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
         await expect(
           page.getByRole("heading", { name: "워크플로우", level: 1 }),
         ).toBeVisible();
@@ -331,17 +440,7 @@ test.describe("Login screen", () => {
             return;
           }
 
-          if (
-            method === "GET" &&
-            path === "/workspaces/42/dashboard/knowledge-pack-health"
-          ) {
-            await fulfillJson(route, {
-              activeKnowledgePack: null,
-              lastLogUpload: null,
-              lastKnowledgePackGeneration: null,
-              pendingReviewCount: 0,
-              latestOpenReviewPipelineJobId: null,
-            });
+          if (await fulfillDashboardMocks(route, method, path, 42)) {
             return;
           }
 
@@ -388,6 +487,16 @@ test.describe("Login screen", () => {
         await page.getByLabel("이메일 주소").fill("operator@example.com");
         await page.getByLabel("비밀번호").fill("password123");
         await page.getByRole("button", { name: "시스템 로그인" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/42\/dashboard$/);
+        await expect(page.getByTestId("workspace-marker")).toContainText(
+          "신규 상담팀",
+        );
+        await expect(
+          page.getByRole("heading", { name: "대시보드", exact: true }),
+        ).toBeVisible();
+
+        await page.goto("/workspaces/42/workflows");
 
         await expect(page).toHaveURL(/\/workspaces\/42\/workflows$/);
         await expect(page.getByTestId("workspace-marker")).toContainText(
@@ -627,6 +736,10 @@ test.describe("Login screen", () => {
             return;
           }
 
+          if (await fulfillDashboardMocks(route, method, path, 1)) {
+            return;
+          }
+
           await route.fulfill({
             status: 500,
             contentType: "application/json",
@@ -641,8 +754,8 @@ test.describe("Login screen", () => {
         await page.getByLabel("비밀번호").fill("password123");
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
-        await expect(page).toHaveURL(/\/workspaces\/1\/workflows$/);
-        await expect(page.getByRole("heading", { name: "워크플로우", level: 1 })).toBeVisible();
+        await expect(page).toHaveURL(/\/workspaces\/1\/dashboard$/);
+        await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
         await expect(page.getByTestId("workspace-marker")).toContainText("Current Workspace");
         await expect(page.getByText("이전 상담사")).toHaveCount(0);
         await expect(page.getByText("Legacy Workspace")).toHaveCount(0);
