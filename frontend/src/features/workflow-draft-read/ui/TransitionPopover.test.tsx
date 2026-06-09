@@ -66,7 +66,7 @@ describe("TransitionPopover", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("label=null이면 label 섹션을 표시하지 않는다", () => {
+  it("label이 없으면 label 섹션을 표시하지 않는다", () => {
     const noLabel = { ...stubTransition, label: undefined };
     render(<TransitionPopover transition={noLabel} policy={null} onClose={vi.fn()} />);
     expect(screen.queryByText("조건 이름")).not.toBeInTheDocument();

@@ -123,9 +123,11 @@ describe("CreateDraftModal", () => {
       }
     } as typeof FileReader;
 
-    fireEvent.change(input, { target: { files: [file] } });
-
-    globalThis.FileReader = OriginalFileReader;
+    try {
+      fireEvent.change(input, { target: { files: [file] } });
+    } finally {
+      globalThis.FileReader = OriginalFileReader;
+    }
 
     const capturedReader = capturedReaders[0];
     if (capturedReader) {
