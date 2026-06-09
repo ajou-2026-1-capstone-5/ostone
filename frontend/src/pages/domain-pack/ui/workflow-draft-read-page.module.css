@@ -123,6 +123,14 @@
 .canvasFrame[data-editing="true"] {
   border-color: var(--line);
   background: var(--paper-2);
+  /* In edit mode the form (meta fields + advanced accordion + legend + graph
+     editor + save/cancel footer) is taller than the fixed canvas height. Let
+     the frame grow to fit its content instead of clipping the footer, and rely
+     on the page-level scroll (.detailPage { overflow: auto }) so the
+     저장/취소 buttons are always reachable. */
+  flex: 0 0 auto;
+  height: auto;
+  min-height: min(72vh, 680px);
 }
 
 .centerState {
