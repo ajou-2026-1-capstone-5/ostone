@@ -59,6 +59,11 @@ public class IntentSlotBinding {
     return entity;
   }
 
+  /** 이 binding이 가리키는 slot을 해당 intent에서 필수로 표시한다(idempotent). */
+  public void markRequired() {
+    this.isRequired = true;
+  }
+
   public Long getId() {
     return id;
   }

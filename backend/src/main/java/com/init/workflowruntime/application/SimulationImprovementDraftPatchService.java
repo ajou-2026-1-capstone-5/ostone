@@ -1,5 +1,8 @@
 package com.init.workflowruntime.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.DomainPackDraftSourceType;
 import com.init.domainpack.application.DomainPackVersionCloneCommand;
 import com.init.domainpack.application.DomainPackVersionCloneResult;
@@ -19,6 +22,7 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.domain.SimulationImprovementCandidate;
+import com.init.workflowruntime.domain.StructuralDomainPackPatch;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,9 @@ public class SimulationImprovementDraftPatchService {
   private final PolicyDefinitionRepository policyDefinitionRepository;
   private final RiskDefinitionRepository riskDefinitionRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
+  private final StructuralDomainPackPatchParser structuralPatchParser;
+  private final SimulationStructuralPatchApplyService structuralPatchApplyService;
+  private final ObjectMapper objectMapper;
 
   public SimulationImprovementDraftPatchService(
       DomainPackVersionRepository domainPackVersionRepository,
@@ -42,7 +49,10 @@ public class SimulationImprovementDraftPatchService {
       SlotDefinitionRepository slotDefinitionRepository,
       PolicyDefinitionRepository policyDefinitionRepository,
       RiskDefinitionRepository riskDefinitionRepository,
-      WorkflowDefinitionRepository workflowDefinitionRepository) {
+      WorkflowDefinitionRepository workflowDefinitionRepository,
+      StructuralDomainPackPatchParser structuralPatchParser,
+      SimulationStructuralPatchApplyService structuralPatchApplyService,
+      ObjectMapper objectMapper) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.domainPackVersionCloneService = domainPackVersionCloneService;
     this.intentDefinitionRepository = intentDefinitionRepository;
@@ -50,6 +60,9 @@ public class SimulationImprovementDraftPatchService {
     this.policyDefinitionRepository = policyDefinitionRepository;
     this.riskDefinitionRepository = riskDefinitionRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
+    this.structuralPatchParser = structuralPatchParser;
+    this.structuralPatchApplyService = structuralPatchApplyService;
+    this.objectMapper = objectMapper;
   }
 
   @Transactional
@@ -65,8 +78,27 @@ public class SimulationImprovementDraftPatchService {
                         "Domain pack version not found: " + candidate.getDomainPackVersionId()));
     DomainPackVersion draftVersion =
         resolveDraftVersion(workspaceId, userId, sourceVersion, candidate);
-    applyDescriptionPatch(candidate, draftVersion.getId());
+    if (isStructuralPatch(candidate.getDraftPatchJson())) {
+      StructuralDomainPackPatch patch = structuralPatchParser.parse(candidate.getDraftPatchJson());
+      structuralPatchApplyService.apply(draftVersion.getId(), patch);
+    } else {
+      applyDescriptionPatch(candidate, draftVersion.getId());
+    }
     return draftVersion;
+  }
+
+  private boolean isStructuralPatch(String draftPatchJson) {
+    if (draftPatchJson == null || draftPatchJson.isBlank()) {
+      return false;
+    }
+    try {
+      JsonNode root = objectMapper.readTree(draftPatchJson);
+      return root.isObject()
+          && StructuralDomainPackPatch.SCHEMA_VERSION.equals(
+              root.path("schemaVersion").asText(null));
+    } catch (JsonProcessingException e) {
+      return false;
+    }
   }
 
   private DomainPackVersion resolveDraftVersion(

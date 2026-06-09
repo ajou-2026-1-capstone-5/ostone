@@ -25,13 +25,26 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-final class WorkflowGraphValidator {
+public final class WorkflowGraphValidator {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private WorkflowGraphValidator() {}
 
   private static final Pattern POLICY_REF_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+
+  /** 검증을 통과한 graph에서 재도출한 초기 상태와 terminal 상태 목록(JSON 배열). */
+  public record WorkflowGraphValidation(String initialState, String terminalStatesJson) {}
+
+  /**
+   * graphJson을 V1-V8 규칙으로 검증하고, 검증을 통과하면 재도출한 초기/terminal 상태를 반환한다. 위반 시 해당 {@code
+   * BadRequestException} 하위 예외를 던진다.
+   */
+  public static WorkflowGraphValidation validate(String graphJson, String workflowCode) {
+    ParsedGraph graph = parseAndValidate(graphJson, workflowCode);
+    return new WorkflowGraphValidation(
+        extractInitialState(graph), extractTerminalStatesJson(graph));
+  }
 
   record ParsedGraph(List<GraphNode> nodes, List<GraphEdge> edges) {}
 
