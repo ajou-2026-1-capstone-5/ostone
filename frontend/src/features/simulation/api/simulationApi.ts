@@ -71,6 +71,26 @@ export type SimulationImprovementCandidateStatus =
   | "APPLIED"
   | "REJECTED";
 
+export type SimulationPatchValidationStatus = "VALID" | "INVALID" | "LEGACY" | "NONE";
+
+export interface SimulationPatchOperationView {
+  operationType: string;
+  kind: "ELEMENT" | "WORKFLOW_NODE" | "WORKFLOW_TRANSITION";
+  targetCategory: string | null;
+  targetCode: string | null;
+  targetId: number | null;
+  value: string | null;
+  nodeId: string | null;
+  nodeType: string | null;
+  slotCode: string | null;
+  prompt: string | null;
+  from: string | null;
+  to: string | null;
+  condition: string | null;
+  reason: string | null;
+  targetComplete: boolean;
+}
+
 export type SimulationGoldenCaseReplayStatus = "PASS" | "FAIL";
 
 export interface SimulationFeedback {
@@ -134,6 +154,11 @@ export interface SimulationImprovementCandidate {
   createdBy: number;
   createdAt: string;
   updatedAt: string;
+  patchSchemaVersion: string | null;
+  patchSummary: string | null;
+  patchValidationStatus: SimulationPatchValidationStatus;
+  patchValidationErrors: string[];
+  operations: SimulationPatchOperationView[];
 }
 
 export interface SimulationImprovementCandidatePage {

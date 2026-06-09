@@ -20,6 +20,8 @@ export type {
   SimulationImprovementCandidateStatus,
   SimulationImprovementCandidateTargetType,
   SimulationImprovementCandidateType,
+  SimulationPatchValidationStatus,
+  SimulationPatchOperationView,
   ReplaySimulationGoldenCasePayload,
   SendSimulationMessagePayload,
   SimulationSessionDetail,

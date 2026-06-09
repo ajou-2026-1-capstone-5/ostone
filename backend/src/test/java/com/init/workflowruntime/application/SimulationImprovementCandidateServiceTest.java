@@ -56,6 +56,7 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.DomainPage;
 import com.init.workflowruntime.domain.DomainPageRequest;
+import com.init.workflowruntime.domain.InvalidStructuralPatchException;
 import com.init.workflowruntime.domain.SimulationFeedback;
 import com.init.workflowruntime.domain.SimulationFeedbackContent;
 import com.init.workflowruntime.domain.SimulationFeedbackRepository;
@@ -68,6 +69,7 @@ import com.init.workflowruntime.domain.SimulationImprovementCandidateRepository;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateStatus;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateTargetType;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateType;
+import com.init.workflowruntime.domain.SimulationPatchValidationStatus;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
@@ -164,6 +166,8 @@ class SimulationImprovementCandidateServiceTest {
         reviewTaskService,
         decisionService,
         structuralPatchGenerationService,
+        new SimulationCandidatePatchViewMapper(
+            new StructuralDomainPackPatchParser(objectMapper), objectMapper),
         objectMapper,
         structuralPatchEnabled);
   }
@@ -1413,5 +1417,184 @@ class SimulationImprovementCandidateServiceTest {
             "{}",
             REVIEWED_AT);
     return reviewTaskWithId(task, id);
+  }
+
+  // ---- 정규화 필드 회귀 방지 ----
+
+  @Test
+  @DisplayName("getCandidate: VALID 패치 후보 조회 시 patchValidationStatus·operations·patchSummary가 채워진다")
+  void getCandidate_returnsNormalizedPatchFields_whenPatchIsValid() {
+    givenMembership();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    candidate.defineDraftPatch(validStructuralPatchJson());
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+
+    var result = service.getCandidate(WORKSPACE_ID, USER_ID, 1000L);
+
+    assertThat(result.patchValidationStatus()).isEqualTo(SimulationPatchValidationStatus.VALID);
+    assertThat(result.operations()).isNotEmpty();
+    assertThat(result.patchSummary()).isEqualTo("슬롯 보강");
+    assertThat(result.patchSchemaVersion()).isEqualTo("simulation-structural-patch.v1");
+  }
+
+  @Test
+  @DisplayName("listCandidates: VALID 패치 후보 목록 조회 시 operations가 채워진다")
+  void listCandidates_returnsNormalizedPatchFields_whenPatchIsValid() {
+    givenMembership();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    candidate.defineDraftPatch(validStructuralPatchJson());
+    given(candidateRepository.findByWorkspaceId(any(), any()))
+        .willReturn(new DomainPage<>(List.of(candidate), 0, 20, 1, 1));
+
+    var result = service.listCandidates(WORKSPACE_ID, USER_ID, null, 0, 20);
+
+    assertThat(result.content()).hasSize(1);
+    var item = result.content().get(0);
+    assertThat(item.patchValidationStatus()).isEqualTo(SimulationPatchValidationStatus.VALID);
+    assertThat(item.operations()).isNotEmpty();
+  }
+
+  // ---- approve INVALID 가드 ----
+
+  @Test
+  @DisplayName(
+      "approve: INVALID 패치(미상 schemaVersion) 후보를 승인하면 InvalidStructuralPatchException이 발생한다")
+  void approve_throwsInvalidStructuralPatchException_whenPatchIsInvalid_unknownSchemaVersion() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    // generation failure envelope: 미상 schemaVersion → INVALID
+    String invalidPatch =
+        "{\"schemaVersion\":\"simulation-structural-patch-generation.v1\","
+            + "\"status\":\"INVALID_OUTPUT\",\"summary\":\"생성 실패\"}";
+    candidate.defineDraftPatch(invalidPatch);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    // patchView.validationStatus == INVALID 확인 후 즉시 예외 → feedbackRepository 호출 없음
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, "반영합니다.")))
+        .isInstanceOf(InvalidStructuralPatchException.class)
+        .hasMessageContaining("INVALID 구조 패치");
+  }
+
+  @Test
+  @DisplayName("approve: INVALID 패치(깨진 JSON) 후보를 승인하면 InvalidStructuralPatchException이 발생한다")
+  void approve_throwsInvalidStructuralPatchException_whenPatchIsInvalid_malformedJson() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    candidate.defineDraftPatch("{not valid json!!!");
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    // patchView.validationStatus == INVALID 확인 후 즉시 예외 → feedbackRepository 호출 없음
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(InvalidStructuralPatchException.class)
+        .hasMessageContaining("INVALID 구조 패치");
+  }
+
+  // ---- approve 정상: VALID/LEGACY/NONE 패치 ----
+
+  @Test
+  @DisplayName("approve: NONE 패치('{}')를 가진 후보는 정상 승인된다")
+  void approve_succeedsForNonePatch() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.SLOT, null, "order_number", "주문번호 질문을 추가합니다.");
+    // draftPatchJson 기본값 = "{}" → NONE
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            VERSION_ID, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    givenApprovalBasics(candidate, draftVersion);
+    given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, "order_number"))
+        .willReturn(Optional.of(slot));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(result.patchValidationStatus()).isEqualTo(SimulationPatchValidationStatus.NONE);
+  }
+
+  @Test
+  @DisplayName("approve: LEGACY 패치 후보는 정상 승인된다")
+  void approve_succeedsForLegacyPatch() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.SLOT,
+            null,
+            "order_number",
+            "주문번호 질문 설명을 보강합니다.");
+    String legacyPatch =
+        "{\"schemaVersion\":\"simulation-candidate-draft-patch.v1\","
+            + "\"operation\":\"UPDATE_DESCRIPTION\"}";
+    candidate.defineDraftPatch(legacyPatch);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            VERSION_ID, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    givenApprovalBasics(candidate, draftVersion);
+    given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, "order_number"))
+        .willReturn(Optional.of(slot));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(result.patchValidationStatus()).isEqualTo(SimulationPatchValidationStatus.LEGACY);
+  }
+
+  @Test
+  @DisplayName("approve: VALID 패치 후보는 정상 승인되고 operations가 응답에 포함된다")
+  void approve_succeedsForValidPatch_andIncludesOperationsInResponse() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.SLOT, null, "order_number", "주문번호 질문을 추가합니다.");
+    candidate.defineDraftPatch(validStructuralPatchJson());
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    // VALID 구조 패치는 structuralPatchApplyService(mock)로 처리되므로 slot 조회가 발생하지 않는다
+    givenApprovalBasics(candidate, draftVersion);
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(result.patchValidationStatus()).isEqualTo(SimulationPatchValidationStatus.VALID);
+    assertThat(result.operations()).isNotEmpty();
+  }
+
+  /** 서비스 테스트에서 재사용하는 유효한 simulation-structural-patch.v1 JSON fixture. */
+  private static String validStructuralPatchJson() {
+    return "{\"schemaVersion\":\"simulation-structural-patch.v1\",\"summary\":\"슬롯 보강\","
+        + "\"evidence\":{\"failureSummary\":\"missing slot\"},"
+        + "\"operations\":[{\"op\":\"MARK_SLOT_REQUIRED\",\"slotCode\":\"order_number\","
+        + "\"reason\":\"필수\"}]}";
   }
 }
