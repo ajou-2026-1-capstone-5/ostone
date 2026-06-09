@@ -906,14 +906,6 @@ export function WorkspaceSimulationPage() {
   }, [workflowDefinitionId, workflows.entries]);
   const candidateWorkflowTarget =
     useMemo<CandidateWorkflowTarget | null>(() => {
-      if (selectedWorkflow) {
-        return {
-          workflowId: selectedWorkflow.workflowId,
-          workflowCode: selectedWorkflow.workflowCode,
-          workflowName: selectedWorkflow.name,
-        };
-      }
-
       if (detail?.matchedWorkflow?.workflowDefinitionId) {
         return {
           workflowId: detail.matchedWorkflow.workflowDefinitionId,
@@ -922,6 +914,14 @@ export function WorkspaceSimulationPage() {
             detail.matchedWorkflow.workflowName ??
             detail.matchedWorkflow.workflowCode ??
             `Workflow #${detail.matchedWorkflow.workflowDefinitionId}`,
+        };
+      }
+
+      if (selectedWorkflow) {
+        return {
+          workflowId: selectedWorkflow.workflowId,
+          workflowCode: selectedWorkflow.workflowCode,
+          workflowName: selectedWorkflow.name,
         };
       }
 
@@ -1360,6 +1360,9 @@ export function WorkspaceSimulationPage() {
     if (!description || !expectedBehavior || detail?.session.id == null) return;
     const chatMessageId =
       feedbackTarget === "session" ? null : Number.parseInt(feedbackTarget, 10);
+    const existingFeedbackIds = new Set(
+      (detail.feedback?.items ?? []).map((item) => item.id),
+    );
     setIsSubmittingFeedback(true);
     try {
       const nextDetail = await simulationApi.createFeedback(
@@ -1376,36 +1379,47 @@ export function WorkspaceSimulationPage() {
       setDetail(nextDetail);
       setFeedbackDescription("");
       setFeedbackExpectedBehavior("");
+      toast.success("시뮬레이션 피드백을 남겼습니다.");
+      await reloadFeedbackAndCandidates();
 
       const newFeedback = nextDetail.feedback?.items?.find(
-        (item) => item.description === description,
+        (item) => !existingFeedbackIds.has(item.id),
       );
       if (newFeedback) {
-        const targetType = inferCandidateTargetType(newFeedback.feedbackType);
-        const payload = buildCandidateTargetPayload(
-          newFeedback,
-          targetType,
-          candidateWorkflowTarget,
-          detail?.matchedWorkflow?.intentCode,
-        );
-        const candidate = await simulationApi.createImprovementCandidate(
-          parsedWorkspaceId,
-          newFeedback.id,
-          payload,
-        );
-        await simulationApi.updateImprovementCandidateStatus(
-          parsedWorkspaceId,
-          candidate.id,
-          { status: "READY_FOR_REVIEW" },
-        );
-        toast.success(
-          "시뮬레이션 피드백을 저장하고 리뷰 대기 개선 후보로 등록했습니다.",
-        );
-        setActiveSideTab("candidates");
-      } else {
-        toast.success("시뮬레이션 피드백을 남겼습니다.");
+        const resolvedIntentCode =
+          detail?.matchedWorkflow?.intentCode ??
+          selectedIntentCode(detail?.session ?? null);
+        try {
+          const targetType = inferCandidateTargetType(newFeedback.feedbackType);
+          const payload = buildCandidateTargetPayload(
+            newFeedback,
+            targetType,
+            candidateWorkflowTarget,
+            resolvedIntentCode,
+          );
+          const candidate = await simulationApi.createImprovementCandidate(
+            parsedWorkspaceId,
+            newFeedback.id,
+            payload,
+          );
+          await simulationApi.updateImprovementCandidateStatus(
+            parsedWorkspaceId,
+            candidate.id,
+            { status: "READY_FOR_REVIEW" },
+          );
+          toast.success("리뷰 대기 개선 후보로 등록했습니다.");
+          setActiveSideTab("candidates");
+          await reloadFeedbackAndCandidates();
+        } catch (candidateError) {
+          console.error(
+            "Failed to auto-create improvement candidate:",
+            candidateError,
+          );
+          toast.error(
+            "개선 후보 자동 등록에 실패했습니다. 피드백 목록에서 직접 후보를 생성하세요.",
+          );
+        }
       }
-      await reloadFeedbackAndCandidates();
     } catch {
       toast.error("시뮬레이션 피드백을 저장하지 못했습니다.");
     } finally {
@@ -1423,7 +1437,8 @@ export function WorkspaceSimulationPage() {
         feedback,
         targetType,
         candidateWorkflowTarget,
-        detail?.matchedWorkflow?.intentCode,
+        detail?.matchedWorkflow?.intentCode ??
+          selectedIntentCode(detail?.session ?? null),
       );
       await simulationApi.createImprovementCandidate(
         parsedWorkspaceId,
