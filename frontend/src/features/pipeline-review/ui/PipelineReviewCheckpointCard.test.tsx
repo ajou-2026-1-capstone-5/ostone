@@ -143,7 +143,7 @@ describe("PipelineReviewCheckpointCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
 
-    expect(screen.getAllByText("92%").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1순위").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /카드 상담/ })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -283,7 +283,10 @@ describe("PipelineReviewCheckpointCard", () => {
               rationale: "카드 분실·정지 문의가 반복적으로 나타납니다.",
               evidenceTerms: ["분실", "한도"],
               evidenceSnippets: [
-                { conversationId: "c1", snippet: "카드를 분실했어요 정지 부탁합니다" },
+                {
+                  conversationId: "c1",
+                  snippet: "카드를 분실했어요 정지 부탁합니다",
+                },
               ],
             },
           },
@@ -296,10 +299,6 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(
       screen.getByText("카드 분실·정지 문의가 반복적으로 나타납니다."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("카드를 분실했어요 정지 부탁합니다"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("c1")).toBeInTheDocument();
   });
 
   it("distinguishes the fallback candidate and guides re-review on selection", () => {
@@ -337,9 +336,7 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(screen.getByText("도메인 분류 호출 실패")).toBeInTheDocument();
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /혼합 또는 미확정/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /혼합 또는 미확정/ }));
 
     expect(
       screen.getByText(/profile을 직접 작성하거나 업로드부터 재검토/),
@@ -375,9 +372,7 @@ describe("PipelineReviewCheckpointCard", () => {
     renderCard();
     fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
 
-    expect(
-      screen.getByText(/후보 신뢰도가 낮습니다/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/후보 신뢰도가 낮습니다/)).toBeInTheDocument();
   });
 
   it("refreshes active review sessions without open tasks", () => {

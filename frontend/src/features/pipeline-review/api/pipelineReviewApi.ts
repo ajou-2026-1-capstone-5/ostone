@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   confirmDomain,
   getCheckpoint,
@@ -167,6 +168,12 @@ export function useConfirmPipelineDomain(
       void queryClient.invalidateQueries({
         queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
       });
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "도메인 확정에 실패했습니다.";
+      toast.error(message);
+      console.error("Pipeline domain confirmation failed:", error);
     },
   });
 }

@@ -161,7 +161,9 @@
 .domainOption {
   display: grid;
   gap: var(--s-3);
+  height: 240px;
   min-height: 148px;
+  overflow: hidden;
   padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-2);

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ListChecksIcon, RefreshCwIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  type DomainEvidenceSnippet,
   type FeedbackAnswerOption,
   type ReviewCaseContext,
   type ReviewTaskPayload,
@@ -412,7 +411,6 @@ export function PipelineReviewCheckpointCard({
                       </span>
                     ))}
                 </span>
-                <DomainEvidenceList snippets={task.payload.evidenceSnippets} />
               </button>
             );
           })}
@@ -459,21 +457,12 @@ export function PipelineReviewCheckpointCard({
                 />
                 <ProfileMultilineField
                   id="domain-edit-lexicon"
-                  label="도메인 lexicon"
+                  label="도메인 키워드"
                   hint="쉼표 또는 줄바꿈으로 구분합니다."
                   value={activeDomainEdits.domainLexicon}
                   disabled={confirmDomain.isPending}
                   showChips
                   onChange={(value) => updateDomainEdit("domainLexicon", value)}
-                />
-                <ProfileMultilineField
-                  id="domain-edit-evidence"
-                  label="근거 키워드"
-                  hint="쉼표 또는 줄바꿈으로 구분합니다."
-                  value={activeDomainEdits.evidenceTerms}
-                  disabled={confirmDomain.isPending}
-                  showChips
-                  onChange={(value) => updateDomainEdit("evidenceTerms", value)}
                 />
                 <ProfileMultilineField
                   id="domain-edit-exclusion"
@@ -755,7 +744,9 @@ function questionScopeLabel(
 }
 
 function formatDomainConfidence(confidence: number): string {
-  return `${Math.round(confidence * 100)}%`;
+  if (confidence >= 0.8) return "1순위";
+  if (confidence >= 0.5) return "2순위";
+  return "3순위";
 }
 
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
@@ -793,33 +784,6 @@ function lowConfidenceGuidance(payload: ReviewTaskPayload): string | null {
   return null;
 }
 
-function DomainEvidenceList({
-  snippets,
-}: {
-  snippets?: DomainEvidenceSnippet[];
-}) {
-  const items =
-    snippets?.filter((item) => item.snippet?.trim()).slice(0, 2) ?? [];
-  if (items.length === 0) {
-    return null;
-  }
-  return (
-    <span className={styles.evidenceList}>
-      {items.map((item, index) => (
-        <span
-          key={item.conversationId ?? index}
-          className={styles.evidenceSnippet}
-        >
-          {item.conversationId && (
-            <span className={styles.evidenceId}>{item.conversationId}</span>
-          )}
-          {item.snippet}
-        </span>
-      ))}
-    </span>
-  );
-}
-
 function emptyDomainEdits(): DomainProfileEdits {
   return {
     confirmedDomain: "",
@@ -835,7 +799,7 @@ function seedDomainEdits(task?: ReviewTaskView): DomainProfileEdits {
   if (!task) {
     return emptyDomainEdits();
   }
-  const name = task.payload.displayName ?? task.title;
+  const name = task.payload.displayName ?? task.title ?? "";
   return {
     confirmedDomain: name,
     displayName: name,

@@ -277,6 +277,19 @@ describe("WorkspaceSimulationPage", () => {
     fireEvent.change(screen.getByLabelText("기대 응답/행동"), {
       target: { value: "주문번호를 먼저 요청합니다." },
     });
+    mockedSimulationApi.createFeedback.mockResolvedValue({
+      ...detail,
+      feedback: {
+        ...detail.feedback,
+        items: [
+          ...detail.feedback.items,
+          {
+            ...detail.feedback.items[0],
+            id: 901,
+          },
+        ],
+      },
+    });
     mockedSimulationApi.listFeedback.mockRejectedValueOnce(
       new Error("refresh failed"),
     );
@@ -284,14 +297,37 @@ describe("WorkspaceSimulationPage", () => {
 
     await waitFor(() => {
       expect(mockedSimulationApi.createFeedback).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith(
+        "시뮬레이션 피드백을 남겼습니다.",
+      );
     });
-    expect(toast.success).toHaveBeenCalledWith(
-      "시뮬레이션 피드백을 남겼습니다.",
-    );
+
     await waitFor(() => {
       expect(
-        screen.getByText("시뮬레이션 피드백 목록을 불러오지 못했습니다."),
-      ).toBeInTheDocument();
+        mockedSimulationApi.createImprovementCandidate,
+      ).toHaveBeenCalledWith(
+        1,
+        901,
+        expect.objectContaining({
+          targetElementType: "SLOT",
+          beforeSummary:
+            "Slot 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+          afterSummary: "주문번호를 먼저 요청합니다.",
+        }),
+      );
+      expect(
+        mockedSimulationApi.updateImprovementCandidateStatus,
+      ).toHaveBeenCalledWith(1, 1000, { status: "READY_FOR_REVIEW" });
+    });
+    expect(toast.success).toHaveBeenCalledWith(
+      "리뷰 대기 개선 후보로 등록했습니다.",
+    );
+    // 피드백 저장 성공 시 탭이 개선 후보로 자동 전환된다.
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "개선 후보" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
     });
     expect(toast.error).not.toHaveBeenCalledWith(
       "시뮬레이션 피드백 목록을 불러오지 못했습니다.",
