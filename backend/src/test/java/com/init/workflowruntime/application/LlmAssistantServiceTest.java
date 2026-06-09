@@ -1,6 +1,7 @@
 package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.BDDMockito.given;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClient.CallResponseSpec;
 import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
+import org.springframework.ai.retry.NonTransientAiException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LlmAssistantService")
@@ -140,7 +142,7 @@ class LlmAssistantServiceTest {
     given(promptSpec.tools(workflowAssistantTools)).willReturn(promptSpec);
     given(promptSpec.toolContext(anyMap())).willReturn(promptSpec);
     given(promptSpec.user(any(Consumer.class))).willReturn(promptSpec);
-    given(promptSpec.call()).willThrow(new IllegalStateException("llm unavailable"));
+    given(promptSpec.call()).willThrow(new NonTransientAiException("llm unavailable"));
     given(workflowAssistantStateService.inspect(new InspectAssistantConversationCommand(7L)))
         .willReturn(
             AssistantConversationResult.of(
@@ -156,5 +158,84 @@ class LlmAssistantServiceTest {
             .content();
 
     assertThat(result).isEqualTo("주문번호를 알려주세요.");
+  }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: fallback 비활성화 시 LLM 실패를 다시 던진다")
+  void should_rethrowAiFailure_when_fallbackDisabled() {
+    givenWorkflowChatThrows(new NonTransientAiException("llm unavailable"));
+
+    assertThatThrownBy(
+            () ->
+                service.generateWorkflowAwareResponse(
+                    new GenerateWorkflowAwareResponseCommand(7L, null, null)))
+        .isInstanceOf(NonTransientAiException.class)
+        .hasMessageContaining("llm unavailable");
+  }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: 질문이 비어 있으면 fallback message를 사용한다")
+  void should_returnFallbackMessage_when_questionIsBlank() {
+    service =
+        new LlmAssistantService(
+            chatClient, workflowAssistantTools, workflowAssistantStateService, true);
+    givenWorkflowChatThrows(new NonTransientAiException("llm unavailable"));
+    given(workflowAssistantStateService.inspect(new InspectAssistantConversationCommand(8L)))
+        .willReturn(
+            AssistantConversationResult.of(
+                new AssistantConversationState(
+                    "IN_WORKFLOW",
+                    null,
+                    new AssistantNextAction("ANSWER", null, " ", "확인 결과를 안내드리겠습니다.", null),
+                    java.util.List.of())));
+
+    String result =
+        service
+            .generateWorkflowAwareResponse(new GenerateWorkflowAwareResponseCommand(8L, null, null))
+            .content();
+
+    assertThat(result).isEqualTo("확인 결과를 안내드리겠습니다.");
+  }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: workflow state가 없으면 기본 fallback 문구를 사용한다")
+  void should_returnDefaultFallback_when_stateIsMissing() {
+    service =
+        new LlmAssistantService(
+            chatClient, workflowAssistantTools, workflowAssistantStateService, true);
+    givenWorkflowChatThrows(new NonTransientAiException("llm unavailable"));
+    given(workflowAssistantStateService.inspect(new InspectAssistantConversationCommand(9L)))
+        .willReturn(AssistantConversationResult.of(null));
+
+    String result =
+        service
+            .generateWorkflowAwareResponse(new GenerateWorkflowAwareResponseCommand(9L, null, null))
+            .content();
+
+    assertThat(result).isEqualTo("문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.");
+  }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: fallback 활성화 시에도 내부 버그는 숨기지 않는다")
+  void should_notCatchInternalRuntimeException_when_fallbackEnabled() {
+    service =
+        new LlmAssistantService(
+            chatClient, workflowAssistantTools, workflowAssistantStateService, true);
+    givenWorkflowChatThrows(new IllegalStateException("invalid prompt state"));
+
+    assertThatThrownBy(
+            () ->
+                service.generateWorkflowAwareResponse(
+                    new GenerateWorkflowAwareResponseCommand(10L, null, null)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("invalid prompt state");
+  }
+
+  private void givenWorkflowChatThrows(RuntimeException exception) {
+    given(chatClient.prompt()).willReturn(promptSpec);
+    given(promptSpec.tools(workflowAssistantTools)).willReturn(promptSpec);
+    given(promptSpec.toolContext(anyMap())).willReturn(promptSpec);
+    given(promptSpec.user(any(Consumer.class))).willReturn(promptSpec);
+    given(promptSpec.call()).willThrow(exception);
   }
 }

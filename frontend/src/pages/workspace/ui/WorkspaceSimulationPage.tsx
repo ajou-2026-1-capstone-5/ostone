@@ -304,7 +304,7 @@ function customerName(session: ChatSession | null): string {
 
 function selectedIntentCode(session: ChatSession | null): string | null {
   const intentCode = parseMeta(session?.metaJson).selectedIntentCode?.trim();
-  return intentCode ? intentCode : null;
+  return intentCode || null;
 }
 
 function slotEntries(detail: SimulationSessionDetail | null) {
@@ -971,10 +971,7 @@ export function WorkspaceSimulationPage() {
     if (detail?.session) {
       setGoldenCaseName(`${customerName(detail.session)} 검증 케이스`);
       setExpectedIntentCode(
-        detail.matchedWorkflow?.intentCode ??
-          detail.matchedWorkflow?.intentName ??
-          selectedIntentCode(detail.session) ??
-          "",
+        detail.matchedWorkflow?.intentCode ?? selectedIntentCode(detail.session) ?? "",
       );
       setExpectedWorkflowCode(detail.matchedWorkflow?.workflowCode ?? "");
       setExpectedCurrentState(detail.matchedWorkflow?.currentState ?? "");

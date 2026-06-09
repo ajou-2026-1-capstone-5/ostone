@@ -10,6 +10,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,7 @@ public class LlmAssistantService {
   private static final String SESSION_ID = "sessionId";
   private static final String LATEST_USER_MESSAGE = "latestUserMessage";
   private static final String CONVERSATION_CONTEXT = "conversationContext";
+  private static final String DEFAULT_FALLBACK_RESPONSE = "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
   private static final String WORKFLOW_AWARE_USER_PROMPT =
       """
       Recent conversation:
@@ -93,7 +96,7 @@ public class LlmAssistantService {
               .call()
               .content();
       return new GenerateWorkflowAwareResponseResult(content);
-    } catch (RuntimeException e) {
+    } catch (NonTransientAiException | TransientAiException e) {
       if (!fallbackEnabled) {
         throw e;
       }
@@ -134,11 +137,11 @@ public class LlmAssistantService {
             .inspect(new InspectAssistantConversationCommand(sessionId))
             .state();
     if (state == null) {
-      return "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+      return DEFAULT_FALLBACK_RESPONSE;
     }
     AssistantNextAction nextAction = state.nextAction();
     if (nextAction == null) {
-      return "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+      return DEFAULT_FALLBACK_RESPONSE;
     }
     String prompt = nullToEmpty(nextAction.question()).trim();
     if (prompt.isEmpty()) {
@@ -152,7 +155,7 @@ public class LlmAssistantService {
       case "COMPLETED" -> "요청 처리가 완료되었습니다.";
       case "HANDOFF" -> "이 요청은 상담원 추가 확인이 필요합니다.";
       case "NEED_INTENT" -> "어떤 업무를 도와드리면 될지 조금 더 자세히 알려주세요.";
-      default -> "문의 내용을 확인하기 위해 필요한 정보를 조금 더 알려주세요.";
+      default -> DEFAULT_FALLBACK_RESPONSE;
     };
   }
 

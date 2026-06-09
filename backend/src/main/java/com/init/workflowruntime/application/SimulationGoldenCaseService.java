@@ -44,7 +44,6 @@ import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -298,45 +297,47 @@ public class SimulationGoldenCaseService {
       return;
     }
 
-    Optional<WorkflowDefinition> workflow = Optional.empty();
+    Long domainPackVersionId = replaySession.getDomainPackVersionId();
+    WorkflowDefinition workflow = null;
     if (workflowCode != null) {
       workflow =
-          workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
-              replaySession.getDomainPackVersionId(), workflowCode);
-      if (workflow.isEmpty()) {
+          workflowDefinitionRepository
+              .findByDomainPackVersionIdAndWorkflowCode(domainPackVersionId, workflowCode)
+              .orElse(null);
+      if (workflow == null) {
         return;
       }
     }
 
-    Optional<IntentDefinition> intent = Optional.empty();
+    IntentDefinition intent = null;
     if (intentCode != null) {
       intent =
-          intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
-              replaySession.getDomainPackVersionId(), intentCode);
-      if (intent.isEmpty()) {
+          intentDefinitionRepository
+              .findByDomainPackVersionIdAndIntentCode(domainPackVersionId, intentCode)
+              .orElse(null);
+      if (intent == null) {
         return;
       }
-    } else if (workflow.isPresent()) {
+    } else if (workflow != null) {
       intent =
-          intentDefinitionRepository.findByIdAndDomainPackVersionId(
-              workflow.get().getIntentDefinitionId(), replaySession.getDomainPackVersionId());
-      if (intent.isEmpty()) {
+          intentDefinitionRepository
+              .findByIdAndDomainPackVersionId(workflow.getIntentDefinitionId(), domainPackVersionId)
+              .orElse(null);
+      if (intent == null) {
         return;
       }
-      intentCode = intent.get().getIntentCode();
+      intentCode = intent.getIntentCode();
     }
 
-    if (workflow.isPresent()
-        && intent.isPresent()
-        && !workflow.get().getIntentDefinitionId().equals(intent.get().getId())) {
+    if (workflow != null
+        && intent != null
+        && !workflow.getIntentDefinitionId().equals(intent.getId())) {
       return;
     }
 
     llmToolService.selectIntent(
         new SelectLlmToolIntentCommand(
-            replaySession.getId(),
-            intentCode,
-            workflow.map(WorkflowDefinition::getId).orElse(null)));
+            replaySession.getId(), intentCode, workflow == null ? null : workflow.getId()));
   }
 
   private void replayCustomerInput(ChatSession replaySession, String content) {

@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -239,6 +240,102 @@ class SimulationGoldenCaseServiceTest {
   }
 
   @Test
+  @DisplayName("replay: 기대 workflow만 있어도 intent를 역참조해 runtime을 먼저 선택한다")
+  void should_preselectIntentFromExpectedWorkflow_when_expectedIntentIsMissing() {
+    givenMembership();
+    SimulationGoldenCase goldenCase =
+        withGoldenCaseId(
+            goldenCase(expectedJsonWithoutIntent("collect_order_no", "ASK_SLOT")), GOLDEN_CASE_ID);
+    ChatSession replaySession =
+        withId(
+            ChatSession.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                ChatSessionStatus.OPEN,
+                SimulationGoldenCaseService.SIMULATION_REPLAY_CHANNEL,
+                "{}",
+                USER_ID),
+            901L);
+    ChatMessage customerMessage = message(901L, 1, "USER", "환불하고 싶어요");
+    ChatMessage assistantMessage = message(901L, 2, "ASSISTANT", "주문번호를 알려주세요.");
+    given(goldenCaseRepository.findByIdAndWorkspaceId(GOLDEN_CASE_ID, WORKSPACE_ID))
+        .willReturn(Optional.of(goldenCase));
+    given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
+        .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
+    given(chatSessionRepository.save(any(ChatSession.class))).willReturn(replaySession);
+    givenExpectedWorkflowOnlyReplaySelection(VERSION_ID);
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(901L))
+        .willReturn(Optional.empty(), Optional.of(customerMessage));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willReturn(customerMessage, assistantMessage);
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(901L))
+        .willReturn(List.of(customerMessage));
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
+        .willReturn(new GenerateWorkflowAwareResponseResult("주문번호를 알려주세요."));
+    givenActualRuntime(901L, replaySession, "collect_order_no", "ASK_SLOT");
+    given(replayResultRepository.save(any(SimulationGoldenCaseReplayResult.class)))
+        .willAnswer(invocation -> withReplayResultId(invocation.getArgument(0), 953L));
+
+    SimulationGoldenCaseReplayResultResponse result =
+        service.replay(
+            new ReplaySimulationGoldenCaseCommand(
+                WORKSPACE_ID, GOLDEN_CASE_ID, VERSION_ID, USER_ID));
+
+    assertThat(result.status()).isEqualTo(SimulationGoldenCaseReplayStatus.PASS);
+    verify(llmToolService)
+        .selectIntent(new SelectLlmToolIntentCommand(901L, "refund_request", WORKFLOW_ID));
+  }
+
+  @Test
+  @DisplayName("replay: 기대 intent와 workflow 소유 intent가 다르면 runtime 선선택을 건너뛴다")
+  void should_skipRuntimePreselect_when_expectedIntentAndWorkflowMismatch() {
+    givenMembership();
+    SimulationGoldenCase goldenCase =
+        withGoldenCaseId(goldenCase(expectedJson("collect_order_no", "ASK_SLOT")), GOLDEN_CASE_ID);
+    ChatSession replaySession =
+        withId(
+            ChatSession.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                ChatSessionStatus.OPEN,
+                SimulationGoldenCaseService.SIMULATION_REPLAY_CHANNEL,
+                "{}",
+                USER_ID),
+            901L);
+    ChatMessage customerMessage = message(901L, 1, "USER", "환불하고 싶어요");
+    ChatMessage assistantMessage = message(901L, 2, "ASSISTANT", "주문번호를 알려주세요.");
+    given(goldenCaseRepository.findByIdAndWorkspaceId(GOLDEN_CASE_ID, WORKSPACE_ID))
+        .willReturn(Optional.of(goldenCase));
+    given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
+        .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
+    given(chatSessionRepository.save(any(ChatSession.class))).willReturn(replaySession);
+    givenExpectedMismatchedReplaySelection(VERSION_ID);
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(901L))
+        .willReturn(Optional.empty(), Optional.of(customerMessage));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willReturn(customerMessage, assistantMessage);
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(901L))
+        .willReturn(List.of(customerMessage));
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
+        .willReturn(new GenerateWorkflowAwareResponseResult("주문번호를 알려주세요."));
+    givenActualRuntime(901L, replaySession, "collect_order_no", "ASK_SLOT");
+    given(replayResultRepository.save(any(SimulationGoldenCaseReplayResult.class)))
+        .willAnswer(invocation -> withReplayResultId(invocation.getArgument(0), 954L));
+
+    SimulationGoldenCaseReplayResultResponse result =
+        service.replay(
+            new ReplaySimulationGoldenCaseCommand(
+                WORKSPACE_ID, GOLDEN_CASE_ID, VERSION_ID, USER_ID));
+
+    assertThat(result.status()).isEqualTo(SimulationGoldenCaseReplayStatus.PASS);
+    verify(llmToolService, never()).selectIntent(any(SelectLlmToolIntentCommand.class));
+  }
+
+  @Test
   @DisplayName("replay: state/action/slot 불일치를 failure summary로 저장한다")
   void should_recordFail_whenReplaySnapshotDiffers() {
     givenMembership();
@@ -432,6 +529,27 @@ class SimulationGoldenCaseServiceTest {
         .willReturn(Optional.of(intent));
   }
 
+  private void givenExpectedWorkflowOnlyReplaySelection(Long versionId) {
+    WorkflowDefinition workflow = workflow(versionId);
+    given(
+            workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
+                versionId, "refund_workflow"))
+        .willReturn(Optional.of(workflow));
+  }
+
+  private void givenExpectedMismatchedReplaySelection(Long versionId) {
+    WorkflowDefinition workflow = workflow(versionId);
+    IntentDefinition intent = intentDefinitionWithId(intent(versionId), 999L);
+    given(
+            workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
+                versionId, "refund_workflow"))
+        .willReturn(Optional.of(workflow));
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                versionId, "refund_request"))
+        .willReturn(Optional.of(intent));
+  }
+
   private LlmToolWorkflowResponse workflowResponse(
       Long sessionId, Long versionId, String currentState) {
     return new LlmToolWorkflowResponse(
@@ -495,6 +613,15 @@ class SimulationGoldenCaseServiceTest {
     expected.put("currentState", currentState);
     expected.put("actionType", actionType);
     expected.set("slotValues", slotValues);
+    return expected.toString();
+  }
+
+  private String expectedJsonWithoutIntent(String currentState, String actionType) {
+    ObjectNode expected = objectMapper.createObjectNode();
+    expected.put("workflowCode", "refund_workflow");
+    expected.put("currentState", currentState);
+    expected.put("actionType", actionType);
+    expected.set("slotValues", slotValues("A-100"));
     return expected.toString();
   }
 

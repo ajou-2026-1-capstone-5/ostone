@@ -33,6 +33,33 @@ describe("WorkspaceSimulationPage", () => {
     expect(screen.getByText("A-100")).toBeInTheDocument();
   });
 
+  it("workflow 매칭 전이면 세션 meta의 선택 intent와 필수 slot으로 검증 기본값을 채운다", async () => {
+    mockedSimulationApi.getSession.mockResolvedValue({
+      ...detail,
+      session: {
+        ...session,
+        metaJson: JSON.stringify({
+          customerName: "테스트 고객",
+          selectedIntentCode: " hc_premium_voucher_issue_change_request ",
+        }),
+      },
+      matchedWorkflow: null,
+      slotValues: {},
+      slots: [{ slotCode: "orderNo", required: true, hasValue: false }],
+    });
+    renderPage();
+
+    expect(
+      await screen.findAllByText("hc_premium_voucher_issue_change_request"),
+    ).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getByLabelText("기대 intent")).toHaveValue(
+        "hc_premium_voucher_issue_change_request",
+      );
+      expect(screen.getByLabelText("기대 action")).toHaveValue("ASK_SLOT");
+    });
+  });
+
   it("대시보드 추천 query로 피드백과 개선 후보 상태 필터를 초기화한다", async () => {
     renderPage(
       "/workspaces/1/simulation?feedbackStatus=RESOLVED&candidateStatus=READY_FOR_REVIEW",
