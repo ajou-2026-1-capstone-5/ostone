@@ -93,7 +93,7 @@ export function IntentDetailPanel({
     <section className={styles.panel} aria-label="상담 유형 상세">
       <DetailHeader detail={state.data} actions={headerActions?.(state.data)} />
       {afterHeader?.(state.data)}
-      <div className={styles.body}>
+      <div className={styles.body} data-testid="intent-detail-body">
         <div className={styles.grid}>
           <InfoCard
             label="상태"
@@ -116,8 +116,8 @@ export function IntentDetailPanel({
         <section className={styles.resourceSection} aria-labelledby="intent-resource-section-title">
           <IntentResourceSection detail={state.data} />
         </section>
+        {children?.(state.data)}
       </div>
-      {children?.(state.data)}
     </section>
   );
 }
