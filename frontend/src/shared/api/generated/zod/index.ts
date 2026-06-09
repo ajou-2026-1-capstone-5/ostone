@@ -143,6 +143,7 @@ export * from './loginBody.zod';
 export * from './loginRequest.zod';
 export * from './loginResponse.zod';
 export * from './messageDomainPackElementsResponse.zod';
+export * from './normalizedPatchOperationView.zod';
 export * from './passwordResetCompleteBody.zod';
 export * from './passwordResetCompleteRequest.zod';
 export * from './passwordResetInitBody.zod';

@@ -170,6 +170,11 @@ const candidate = {
   createdBy: 7,
   createdAt: "2026-06-04T10:45:00Z",
   updatedAt: "2026-06-04T10:45:00Z",
+  patchSchemaVersion: null,
+  patchSummary: null,
+  patchValidationStatus: "NONE",
+  patchValidationErrors: [],
+  operations: [],
 } as const;
 
 const validDraftPatchJson = JSON.stringify({

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.review.domain.model.ReviewTask;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.SimulationCandidatePatchViewMapper.PatchView;
 import com.init.workflowruntime.application.command.ApproveSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.CreateSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.RejectSimulationImprovementCandidateCommand;
@@ -16,6 +17,7 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.DomainPage;
 import com.init.workflowruntime.domain.DomainPageRequest;
+import com.init.workflowruntime.domain.InvalidStructuralPatchException;
 import com.init.workflowruntime.domain.SimulationFeedback;
 import com.init.workflowruntime.domain.SimulationFeedbackRepository;
 import com.init.workflowruntime.domain.SimulationFeedbackStatus;
@@ -26,6 +28,7 @@ import com.init.workflowruntime.domain.SimulationImprovementCandidateRepository;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateStatus;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateTargetType;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateType;
+import com.init.workflowruntime.domain.SimulationPatchValidationStatus;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.Locale;
@@ -49,6 +52,7 @@ public class SimulationImprovementCandidateService {
   private final SimulationImprovementCandidateReviewTaskService reviewTaskService;
   private final SimulationImprovementCandidateDecisionService decisionService;
   private final SimulationStructuralPatchGenerationService structuralPatchGenerationService;
+  private final SimulationCandidatePatchViewMapper patchViewMapper;
   private final ObjectMapper objectMapper;
   private final boolean structuralPatchEnabled;
 
@@ -60,6 +64,7 @@ public class SimulationImprovementCandidateService {
       SimulationImprovementCandidateReviewTaskService reviewTaskService,
       SimulationImprovementCandidateDecisionService decisionService,
       SimulationStructuralPatchGenerationService structuralPatchGenerationService,
+      SimulationCandidatePatchViewMapper patchViewMapper,
       ObjectMapper objectMapper,
       @Value("${app.simulation.structural-patch.enabled:false}") boolean structuralPatchEnabled) {
     this.feedbackRepository = feedbackRepository;
@@ -69,6 +74,7 @@ public class SimulationImprovementCandidateService {
     this.reviewTaskService = reviewTaskService;
     this.decisionService = decisionService;
     this.structuralPatchGenerationService = structuralPatchGenerationService;
+    this.patchViewMapper = patchViewMapper;
     this.objectMapper = objectMapper;
     this.structuralPatchEnabled = structuralPatchEnabled;
   }
@@ -82,7 +88,7 @@ public class SimulationImprovementCandidateService {
 
     return candidateRepository
         .findByFeedbackId(feedback.getId())
-        .map(SimulationImprovementCandidateResponse::from)
+        .map(this::toResponse)
         .orElseGet(() -> createNewCandidate(command, feedback));
   }
 
@@ -96,7 +102,7 @@ public class SimulationImprovementCandidateService {
             ? candidateRepository.findByWorkspaceId(workspaceId, pageRequest)
             : candidateRepository.findByWorkspaceIdAndStatus(
                 workspaceId, parsedStatus, pageRequest);
-    return SimulationImprovementCandidatePageResponse.from(candidatePage);
+    return SimulationImprovementCandidatePageResponse.from(candidatePage, this::toResponse);
   }
 
   public SimulationImprovementCandidateResponse getCandidate(
@@ -104,7 +110,7 @@ public class SimulationImprovementCandidateService {
     validateWorkspaceMembership(workspaceId, userId);
     SimulationImprovementCandidate candidate = findCandidate(candidateId);
     validateCandidateWorkspace(workspaceId, candidate);
-    return SimulationImprovementCandidateResponse.from(candidate);
+    return toResponse(candidate);
   }
 
   @Transactional
@@ -122,7 +128,7 @@ public class SimulationImprovementCandidateService {
     }
     ReviewTask task = reviewTaskService.ensureReviewTask(candidate, command.userId());
     candidate.submitForReview(task.getReviewSessionId(), task.getId());
-    return SimulationImprovementCandidateResponse.from(candidateRepository.save(candidate));
+    return toResponse(candidateRepository.save(candidate));
   }
 
   @Transactional
@@ -131,11 +137,17 @@ public class SimulationImprovementCandidateService {
     validateWorkspaceMembership(command.workspaceId(), command.userId());
     SimulationImprovementCandidate candidate = findCandidate(command.candidateId());
     validateCandidateWorkspace(command.workspaceId(), candidate);
+    PatchView patchView = patchViewMapper.map(candidate.getDraftPatchJson());
+    if (patchView.validationStatus() == SimulationPatchValidationStatus.INVALID) {
+      throw new InvalidStructuralPatchException("승인할 수 없는 INVALID 구조 패치입니다.");
+    }
     SimulationFeedback feedback = findFeedbackForUpdate(candidate.getFeedbackId());
     validateFeedbackWorkspace(command.workspaceId(), feedback);
-    return SimulationImprovementCandidateResponse.from(
+    SimulationImprovementCandidate approved =
         decisionService.approve(
-            command.workspaceId(), command.userId(), command.reason(), candidate, feedback));
+            command.workspaceId(), command.userId(), command.reason(), candidate, feedback);
+    return SimulationImprovementCandidateResponse.from(
+        approved, patchViewMapper.map(approved.getDraftPatchJson()));
   }
 
   @Transactional
@@ -146,7 +158,7 @@ public class SimulationImprovementCandidateService {
     validateCandidateWorkspace(command.workspaceId(), candidate);
     SimulationFeedback feedback = findFeedbackForUpdate(candidate.getFeedbackId());
     validateFeedbackWorkspace(command.workspaceId(), feedback);
-    return SimulationImprovementCandidateResponse.from(
+    return toResponse(
         decisionService.reject(command.userId(), command.reason(), candidate, feedback));
   }
 
@@ -170,7 +182,13 @@ public class SimulationImprovementCandidateService {
     SimulationImprovementCandidate saved = candidateRepository.save(candidate);
     feedback.markCandidateCreated();
     feedbackRepository.save(feedback);
-    return SimulationImprovementCandidateResponse.from(saved);
+    return toResponse(saved);
+  }
+
+  private SimulationImprovementCandidateResponse toResponse(
+      SimulationImprovementCandidate candidate) {
+    PatchView patchView = patchViewMapper.map(candidate.getDraftPatchJson());
+    return SimulationImprovementCandidateResponse.from(candidate, patchView);
   }
 
   private String buildDraftPatch(

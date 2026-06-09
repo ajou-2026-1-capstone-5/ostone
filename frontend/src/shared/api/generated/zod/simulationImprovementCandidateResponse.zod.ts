@@ -30,7 +30,28 @@ export const SimulationImprovementCandidateResponse = zod.object({
   "status": zod.enum(['DRAFT', 'READY_FOR_REVIEW', 'APPLIED', 'REJECTED']).optional(),
   "createdBy": zod.number().optional(),
   "createdAt": zod.iso.datetime({"offset":true}).optional(),
-  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+  "updatedAt": zod.iso.datetime({"offset":true}).optional(),
+  "patchSchemaVersion": zod.string().optional(),
+  "patchSummary": zod.string().optional(),
+  "patchValidationStatus": zod.enum(['VALID', 'INVALID', 'LEGACY', 'NONE']).optional(),
+  "patchValidationErrors": zod.array(zod.string()).optional(),
+  "operations": zod.array(zod.object({
+  "operationType": zod.string().optional(),
+  "kind": zod.string().optional(),
+  "targetCategory": zod.string().optional(),
+  "targetCode": zod.string().optional(),
+  "targetId": zod.number().optional(),
+  "value": zod.string().optional(),
+  "nodeId": zod.string().optional(),
+  "nodeType": zod.string().optional(),
+  "slotCode": zod.string().optional(),
+  "prompt": zod.string().optional(),
+  "from": zod.string().optional(),
+  "to": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "reason": zod.string().optional(),
+  "targetComplete": zod.boolean().optional()
+})).optional()
 })
 
 export type SimulationImprovementCandidateResponse = zod.input<typeof SimulationImprovementCandidateResponse>;
