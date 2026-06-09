@@ -73,7 +73,12 @@ export function MessageList({
         style={{ ...STATE_CONTAINER_BASE, color: "var(--ink-3)" }}
         data-testid="message-list-loading"
       >
-        <Loader2 className="animate-spin" aria-hidden="true" size={14} style={{ marginRight: 8 }} />
+        <Loader2
+          className="animate-spin"
+          aria-hidden="true"
+          size={14}
+          style={{ marginRight: 8 }}
+        />
         <span style={{ fontSize: 13 }}>메시지를 불러오는 중입니다...</span>
       </div>
     );
@@ -85,7 +90,9 @@ export function MessageList({
         style={{ ...STATE_CONTAINER_BASE, color: "var(--ink-3)" }}
         data-testid="message-list-empty"
       >
-        <span style={{ fontSize: 13 }}>아직 메시지가 없습니다. 첫 메시지를 보내보세요!</span>
+        <span style={{ fontSize: 13 }}>
+          아직 메시지가 없습니다. 첫 메시지를 보내보세요!
+        </span>
       </div>
     );
   }
@@ -158,13 +165,17 @@ export function MessageList({
               >
                 {isUser ? (
                   <>
-                    <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
+                    <time dateTime={message.createdAt}>
+                      {formatMessageTime(message.createdAt)}
+                    </time>
                     <span>{resolveSenderName(message)}</span>
                   </>
                 ) : (
                   <>
                     <span>{resolveSenderName(message)}</span>
-                    <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
+                    <time dateTime={message.createdAt}>
+                      {formatMessageTime(message.createdAt)}
+                    </time>
                   </>
                 )}
               </div>
@@ -173,9 +184,13 @@ export function MessageList({
                   padding: "10px 14px",
                   borderRadius: 12,
                   fontSize: 13.5,
+                  fontWeight: 450,
                   lineHeight: 1.55,
                   letterSpacing: "-0.12px",
-                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  boxShadow:
+                    "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
                   ...(isUser
                     ? {
                         background: "var(--paper)",
@@ -237,7 +252,8 @@ export function MessageList({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 5,
-                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
+                boxShadow:
+                  "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
               }}
             >
               <span className={styles.typingDot} aria-hidden="true" />
