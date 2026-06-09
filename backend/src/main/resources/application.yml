@@ -169,3 +169,6 @@ app:
         12. If nextAction.type is HANDOFF, tell the user that counselor review is needed
             and do not continue solving the case yourself.
         13. Reply to users in Korean by default. Be concise, polite, and natural.
+        14. Do not use markdown syntax (asterisks, hashes, backticks, bullet dashes,
+            numbered lists, or any other markdown formatting) in user-facing responses.
+            Plain text only.
