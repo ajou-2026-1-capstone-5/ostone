@@ -52,6 +52,11 @@ import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 
+import { StructuralPatchReview } from "./simulation/StructuralPatchReviewPanel";
+import {
+  buildStructuralPatchReview,
+  evaluateApprovalGuardrail,
+} from "./simulation/structuralPatchReview";
 import styles from "./simulation/workspace-simulation-page.module.css";
 
 const PAGE_SIZE = 20;
@@ -755,10 +760,19 @@ function buildCandidatePatchReview(
   };
 }
 
+function usesStructuralReview(candidate: SimulationImprovementCandidate): boolean {
+  const kind = buildStructuralPatchReview(candidate).kind;
+  return kind === "structural" || kind === "invalid";
+}
+
 function canApproveCandidate(
   candidate: SimulationImprovementCandidate,
   confirmed: boolean,
 ): boolean {
+  if (usesStructuralReview(candidate)) {
+    const model = buildStructuralPatchReview(candidate);
+    return evaluateApprovalGuardrail(model, confirmed).canApprove;
+  }
   return confirmed && buildCandidatePatchReview(candidate).kind === "ready";
 }
 
@@ -1509,11 +1523,22 @@ export function WorkspaceSimulationPage() {
   ) => {
     const confirmationKey = candidatePatchConfirmationKey(candidate);
     setConfirmedCandidatePatchKeys((current) => {
-      if (current.has(confirmationKey)) return current;
       const next = new Set(current);
-      next.add(confirmationKey);
+      if (next.has(confirmationKey)) {
+        next.delete(confirmationKey);
+      } else {
+        next.add(confirmationKey);
+      }
       return next;
     });
+  };
+
+  const handleReplayAppliedVersion = (versionId: number) => {
+    setReplayVersionId(String(versionId));
+    setActiveSideTab("state");
+    toast.success(
+      `검증 케이스에서 version #${versionId} 기준으로 Replay를 실행하세요.`,
+    );
   };
 
   const handleRejectCandidate = async (
@@ -2519,15 +2544,33 @@ export function WorkspaceSimulationPage() {
                             </dd>
                           </div>
                         </dl>
-                        <CandidatePatchReview
-                          candidate={candidate}
-                          confirmed={confirmedCandidatePatchKeys.has(
-                            candidatePatchConfirmationKey(candidate),
-                          )}
-                          onConfirm={() =>
-                            handleConfirmCandidatePatch(candidate)
-                          }
-                        />
+                        {usesStructuralReview(candidate) ? (
+                          <StructuralPatchReview
+                            candidate={candidate}
+                            confirmed={confirmedCandidatePatchKeys.has(
+                              candidatePatchConfirmationKey(candidate),
+                            )}
+                            onToggleConfirm={() => handleConfirmCandidatePatch(candidate)}
+                            onReplayAppliedVersion={handleReplayAppliedVersion}
+                            legacyFallback={
+                              <CandidatePatchReview
+                                candidate={candidate}
+                                confirmed={confirmedCandidatePatchKeys.has(
+                                  candidatePatchConfirmationKey(candidate),
+                                )}
+                                onConfirm={() => handleConfirmCandidatePatch(candidate)}
+                              />
+                            }
+                          />
+                        ) : (
+                          <CandidatePatchReview
+                            candidate={candidate}
+                            confirmed={confirmedCandidatePatchKeys.has(
+                              candidatePatchConfirmationKey(candidate),
+                            )}
+                            onConfirm={() => handleConfirmCandidatePatch(candidate)}
+                          />
+                        )}
                         {candidate.status === "DRAFT" ? (
                           <div className={styles.candidateActions}>
                             <Button

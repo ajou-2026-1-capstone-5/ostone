@@ -20,6 +20,7 @@ import com.init.workflowruntime.application.dto.SimulationImprovementCandidateRe
 import com.init.workflowruntime.domain.SimulationImprovementCandidateStatus;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateTargetType;
 import com.init.workflowruntime.domain.SimulationImprovementCandidateType;
+import com.init.workflowruntime.domain.SimulationPatchValidationStatus;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -143,7 +144,12 @@ class SimulationImprovementCandidateControllerTest {
                 SimulationImprovementCandidateStatus.READY_FOR_REVIEW,
                 7L,
                 null,
-                null));
+                null,
+                null,
+                null,
+                SimulationPatchValidationStatus.NONE,
+                List.of(),
+                List.of()));
 
     mockMvc
         .perform(
@@ -263,7 +269,12 @@ class SimulationImprovementCandidateControllerTest {
         status,
         7L,
         null,
-        null);
+        null,
+        null,
+        null,
+        SimulationPatchValidationStatus.NONE,
+        List.of(),
+        List.of());
   }
 
   private UsernamePasswordAuthenticationToken auth() {
