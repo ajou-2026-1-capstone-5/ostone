@@ -28,7 +28,7 @@ describe("useVersionDetail", () => {
       data: undefined,
       fetchStatus: "idle",
       isPending: true,
-    } as any);
+    } as unknown as ReturnType<typeof useGetDomainPackVersion>);
     const { result } = renderHook(() => useVersionDetail(1, 2, null), { wrapper: makeWrapper() });
     expect(result.current.fetchStatus).toBe("idle");
     expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe("useVersionDetail", () => {
       failureReason: null,
       dataUpdatedAt: 0,
       fetchStatus: "idle",
-    } as any);
+    } as unknown as ReturnType<typeof useGetDomainPackVersion>);
     const { result } = renderHook(() => useVersionDetail(1, 2, 3), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.data).toEqual(data));
     expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(

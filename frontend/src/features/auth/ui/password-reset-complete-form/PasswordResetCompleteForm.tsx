@@ -41,6 +41,7 @@ export const PasswordResetCompleteForm: React.FC = () => {
       setError(null);
       await passwordResetCompleteApi({ resetToken, newPassword: password });
       setSuccess(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- axios-style error shape narrowed inline
     } catch (err: any) {
       setError(
         err.response?.data?.message ||

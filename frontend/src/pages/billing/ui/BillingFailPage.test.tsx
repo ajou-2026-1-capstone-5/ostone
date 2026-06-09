@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import { BillingFailPage } from "./BillingFailPage";
 
 function renderWithRouter(searchParams = "") {
-  const navigate = vi.fn();
   vi.mock("react-router-dom", async (importOriginal) => {
     const original = await importOriginal<typeof import("react-router-dom")>();
     return { ...original };

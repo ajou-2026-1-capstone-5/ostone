@@ -114,22 +114,25 @@ describe("CreateDraftModal", () => {
     const file = new File([""], "test.json", { type: "application/json" });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    let capturedReader: FileReader | null = null;
+    const capturedReaders: FileReader[] = [];
     const OriginalFileReader = globalThis.FileReader;
     globalThis.FileReader = class extends OriginalFileReader {
       constructor() {
         super();
-        capturedReader = this;
+        capturedReaders.push(this);
       }
     } as typeof FileReader;
 
-    fireEvent.change(input, { target: { files: [file] } });
+    try {
+      fireEvent.change(input, { target: { files: [file] } });
+    } finally {
+      globalThis.FileReader = OriginalFileReader;
+    }
 
-    globalThis.FileReader = OriginalFileReader;
-
+    const capturedReader = capturedReaders[0];
     if (capturedReader) {
       Object.defineProperty(capturedReader, "error", { value: new DOMException("read error") });
-      (capturedReader as FileReader).dispatchEvent(new ProgressEvent("error"));
+      capturedReader.dispatchEvent(new ProgressEvent("error"));
     }
 
     await waitFor(() =>

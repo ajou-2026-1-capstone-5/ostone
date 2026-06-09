@@ -51,6 +51,7 @@ export function WorkflowDetailPanel({
   const idPrefix = useId();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset view when the selected workflow changes
     setTab("graph");
     setSelectedEdgeId(null);
   }, [workflowId]);

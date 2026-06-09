@@ -8,7 +8,9 @@ const mockReactFlow = vi.hoisted(() =>
   )),
 );
 
-const mockToFlow = vi.hoisted(() => vi.fn((): any => ({ nodes: [], edges: [] })));
+const mockToFlow = vi.hoisted(() =>
+  vi.fn((): { nodes: unknown[]; edges: unknown[] } => ({ nodes: [], edges: [] })),
+);
 
 vi.mock("@xyflow/react", () => ({
   ReactFlow: mockReactFlow,
