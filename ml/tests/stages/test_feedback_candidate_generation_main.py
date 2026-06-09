@@ -237,6 +237,7 @@ def test_review_question_enrichment_sends_runtime_options_and_respects_limit(
     assert summary["skippedByLimitCount"] == 1
     assert second_question.get("enrichmentStatus") is None
     assert _FakeClient.calls[0]["headers"]["Authorization"] == "Bearer local-token"
+    assert _FakeClient.calls[0]["json"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert _FakeClient.calls[0]["json"]["options"] == {"think": False}
     assert question["enrichmentStatus"] == "applied"
 

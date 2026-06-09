@@ -140,6 +140,7 @@ def _generate_llm_candidates(
             {"role": "user", "content": prompt},
         ],
         "response_format": {"type": "json_object"},
+        "chat_template_kwargs": {"enable_thinking": False},
         "options": {"think": False},
     }
     with httpx.Client(timeout=_llm_timeout()) as client:
