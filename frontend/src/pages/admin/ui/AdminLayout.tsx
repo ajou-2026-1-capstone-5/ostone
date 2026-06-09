@@ -1,5 +1,6 @@
-import { Building2, CreditCard, Plane, ShieldPlus } from "lucide-react";
+import { Building2, CreditCard, LogOut, Plane, ShieldPlus } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+import { useLogout } from "@/features/auth/model/useLogout";
 import styles from "./admin-layout.module.css";
 
 const NAV_ITEMS = [
@@ -10,6 +11,8 @@ const NAV_ITEMS = [
 ];
 
 export function AdminLayout() {
+  const { logout } = useLogout();
+
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar} aria-label="admin navigation">
@@ -34,6 +37,17 @@ export function AdminLayout() {
             );
           })}
         </nav>
+        <div className={styles.footer}>
+          <button
+            type="button"
+            className={styles.logoutButton}
+            onClick={logout}
+            data-testid="admin-logout"
+          >
+            <LogOut size={16} />
+            <span>로그아웃</span>
+          </button>
+        </div>
       </aside>
       <div className={styles.content}>
         <header className={styles.topbar}>
