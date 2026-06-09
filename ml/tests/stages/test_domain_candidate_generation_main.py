@@ -25,12 +25,13 @@ def _conversation(conversation_id: str, text: str) -> ProcessedConversation:
     )
 
 
-def test_normalize_candidates_keeps_valid_llm_domains_and_adds_mixed_unknown() -> None:
+def test_normalize_candidates_keeps_valid_llm_domains_with_evidence_and_rationale() -> None:
     sampled = [
         _conversation("c1", "카드 분실 정지"),
         _conversation("c2", "카드 결제 한도"),
         _conversation("c3", "앱 로그인 오류"),
     ]
+    snippet_index = main._snippet_index(sampled)
 
     candidates = main._normalize_candidates(
         [
@@ -38,7 +39,8 @@ def test_normalize_candidates_keeps_valid_llm_domains_and_adds_mixed_unknown() -
                 "displayName": "카드 상담",
                 "confidence": 1.7,
                 "description": "카드 업무",
-                "evidenceTerms": ["카드", "", "한도"],
+                "rationale": "카드 분실·정지 문의가 반복됩니다.",
+                "evidenceTerms": ["카드", "", "한도", "문의"],
                 "evidenceConversationIds": ["c1", "missing"],
                 "suggestedDomainLexicon": ["분실", "결제"],
             },
@@ -51,16 +53,23 @@ def test_normalize_candidates_keeps_valid_llm_domains_and_adds_mixed_unknown() -
         ],
         ["카드", "분실", "한도"],
         sampled,
+        snippet_index,
     )
 
-    assert [candidate["candidateId"] for candidate in candidates] == [
-        "카드_상담",
-        "앱_지원",
-        main.MIXED_UNKNOWN_ID,
-    ]
+    # `혼합 또는 미확정` 후보는 normalize가 붙이지 않는다(실질 domain만 반환).
+    assert [candidate["candidateId"] for candidate in candidates] == ["카드_상담", "앱_지원"]
+    assert all(candidate["kind"] == main.CANDIDATE_KIND_DOMAIN for candidate in candidates)
     assert candidates[0]["confidence"] == 1.0
     assert candidates[0]["evidenceConversationIds"] == ["c1"]
-    assert candidates[1]["confidence"] == 0.5
+    assert candidates[0]["rationale"] == "카드 분실·정지 문의가 반복됩니다."
+    # stopword("문의")와 빈 토큰은 evidenceTerms에서 제거된다.
+    assert candidates[0]["evidenceTerms"] == ["카드", "한도"]
+    # evidenceConversationIds의 표시 가능한 snippet이 후보에 포함된다.
+    assert candidates[0]["evidenceSnippets"] == [{"conversationId": "c1", "snippet": "카드 분실 정지"}]
+    # rationale가 없으면 evidenceTerms 기반으로 합성한다.
+    second_rationale = candidates[1]["rationale"]
+    assert isinstance(second_rationale, str)
+    assert second_rationale.startswith("앱 지원 관련 표현")
     assert candidates[1]["description"] == "앱 지원 상담 도메인"
 
 
@@ -71,9 +80,69 @@ def test_normalize_candidates_returns_empty_when_llm_output_has_too_few_valid_do
         [{"displayName": ""}, {"description": "이름 없음"}],
         ["배송지"],
         sampled,
+        main._snippet_index(sampled),
     )
 
     assert candidates == []
+
+
+def test_normalize_candidates_drops_overly_generic_cross_candidate_terms() -> None:
+    sampled = [_conversation("c1", "카드 환불"), _conversation("c2", "예약 환불")]
+
+    candidates = main._normalize_candidates(
+        [
+            {"displayName": "카드 상담", "suggestedDomainLexicon": ["카드", "환불"]},
+            {"displayName": "예약 상담", "suggestedDomainLexicon": ["예약", "환불"]},
+        ],
+        ["카드", "예약"],
+        sampled,
+        main._snippet_index(sampled),
+    )
+
+    # "환불"은 두 후보 모두에 등장하는 일반어이므로 각 lexicon에서 제거된다.
+    assert candidates[0]["suggestedDomainLexicon"] == ["카드"]
+    assert candidates[1]["suggestedDomainLexicon"] == ["예약"]
+
+
+def test_resolve_fallback_reason_classifies_each_failure() -> None:
+    assert main._resolve_fallback_reason(main.FALLBACK_LLM_REQUEST_FAILURE, 0, 24) == main.FALLBACK_LLM_REQUEST_FAILURE
+    assert (
+        main._resolve_fallback_reason(main.FALLBACK_SCHEMA_VALIDATION_FAILURE, 0, 24)
+        == main.FALLBACK_SCHEMA_VALIDATION_FAILURE
+    )
+    assert main._resolve_fallback_reason(None, 0, 1) == main.FALLBACK_INSUFFICIENT_EVIDENCE
+    assert main._resolve_fallback_reason(None, 0, 24) == main.FALLBACK_GENUINELY_MIXED
+    # 실질 후보가 있으면 fallback이 아니다.
+    assert main._resolve_fallback_reason(None, 2, 24) is None
+
+
+def test_mixed_unknown_candidate_carries_fallback_metadata() -> None:
+    sampled = [_conversation("c1", "예약 변경"), _conversation("c2", "결제 오류")]
+
+    candidate = main._mixed_unknown_candidate(
+        ["예약", "결제"],
+        sampled,
+        main._snippet_index(sampled),
+        main.FALLBACK_GENUINELY_MIXED,
+    )
+
+    assert candidate["candidateId"] == main.MIXED_UNKNOWN_ID
+    assert candidate["kind"] == main.CANDIDATE_KIND_FALLBACK
+    assert candidate["isFallback"] is True
+    assert candidate["fallbackReason"] == main.FALLBACK_GENUINELY_MIXED
+    assert candidate["rationale"] == main._FALLBACK_RATIONALE[main.FALLBACK_GENUINELY_MIXED]
+    snippets = candidate["evidenceSnippets"]
+    assert isinstance(snippets, list)
+    assert snippets[0] == {"conversationId": "c1", "snippet": "예약 변경"}
+
+
+def test_mixed_unknown_candidate_uses_alternative_rationale_without_failure() -> None:
+    sampled = [_conversation("c1", "예약 변경")]
+
+    candidate = main._mixed_unknown_candidate(["예약"], sampled, main._snippet_index(sampled), None)
+
+    assert candidate["fallbackReason"] is None
+    assert candidate["rationale"] == main._MIXED_ALTERNATIVE_RATIONALE
 
 
 def test_sampling_and_runtime_knobs_are_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -130,8 +199,8 @@ def test_generation_fallback_can_be_explicitly_disabled(monkeypatch: pytest.Monk
     assert not main._allow_generation_fallback(runtime_config)
 
 
-def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    runtime_config = type(
+def _fallback_runtime_config(tmp_path) -> Any:
+    return type(
         "RuntimeConfig",
         (),
         {
@@ -147,6 +216,10 @@ def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.Mon
         },
     )()
 
+
+def _patch_run_io(
+    monkeypatch: pytest.MonkeyPatch, tmp_path, runtime_config: Any, sampled: list[ProcessedConversation]
+) -> None:
     monkeypatch.setattr(main.PipelineRuntimeConfig, "from_env", lambda: runtime_config)
     monkeypatch.setattr(
         main,
@@ -164,24 +237,49 @@ def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.Mon
             },
         )(),
     )
-    monkeypatch.setattr(
-        main, "read_preprocessed_artifact", lambda _config, _context: ([_conversation("c1", "예약")], [])
-    )
+    monkeypatch.setattr(main, "read_preprocessed_artifact", lambda _config, _context: (sampled, []))
+
+    def fake_stage_directory(_context: object, _config: object):
+        stage_dir = tmp_path / "dag" / "run1" / "domain_candidate_generation"
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        return stage_dir
+
+    monkeypatch.setattr(main, "ensure_stage_directory", fake_stage_directory)
+    monkeypatch.setattr(main, "write_stage_manifest", lambda _context, _config, _metrics: tmp_path / "manifest.json")
+
+
+def test_run_raises_when_configured_llm_generation_fails(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    runtime_config = _fallback_runtime_config(tmp_path)
+    _patch_run_io(monkeypatch, tmp_path, runtime_config, [_conversation("c1", "예약")])
     monkeypatch.setattr(
         main,
         "_generate_llm_candidates",
         lambda *_args: (_ for _ in ()).throw(ValueError("bad llm response")),
     )
 
-    def fake_stage_directory(_context: object, _config: object):
-        stage_dir = tmp_path / "dag" / "run1" / "domain_candidate_generation"
-        stage_dir.mkdir(parents=True)
-        return stage_dir
-
-    monkeypatch.setattr(main, "ensure_stage_directory", fake_stage_directory)
-
     with pytest.raises(PipelineStageError, match="Domain candidate LLM generation failed"):
         main.run("/tmp/upstream/manifest.json")
+
+
+def test_run_records_llm_request_failure_fallback_reason_in_artifact(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    runtime_config = _fallback_runtime_config(tmp_path)
+    sampled = [_conversation(f"c{i}", f"상담 {i} 환불") for i in range(5)]
+    _patch_run_io(monkeypatch, tmp_path, runtime_config, sampled)
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_ALLOW_LLM_FALLBACK", "true")
+    monkeypatch.setattr(
+        main,
+        "_generate_llm_candidates",
+        lambda *_args: (_ for _ in ()).throw(main.httpx.ConnectError("connection refused")),
+    )
+
+    main.run("/tmp/upstream/manifest.json")
+
+    artifact = json.loads((tmp_path / "dag" / "run1" / "domain_candidate_generation" / main.ARTIFACT_NAME).read_text())
+    assert artifact["schemaVersion"] == "domain-candidates.v1"
+    assert artifact["fallbackReason"] == main.FALLBACK_LLM_REQUEST_FAILURE
+    assert artifact["candidates"][0]["candidateId"] == main.MIXED_UNKNOWN_ID
+    assert artifact["candidates"][0]["fallbackReason"] == main.FALLBACK_LLM_REQUEST_FAILURE
+    assert artifact["generationError"]["type"] == "ConnectError"
 
 
 def test_prompt_and_terms_are_stable() -> None:
@@ -197,6 +295,7 @@ def test_prompt_and_terms_are_stable() -> None:
     assert prompt["sampleHash"] == "hash-1"
     assert prompt["samples"][0]["conversationId"] == "c1"
     assert "고객 카드 분실" in prompt["samples"][0]["text"]
+    assert "rationale" in prompt["outputSchema"]["candidates"][0]
 
 
 def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -225,7 +324,7 @@ def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: p
                                 },
                                 ensure_ascii=False,
                             )
-                        }
+                        },
                     }
                 ]
             }
@@ -319,19 +418,23 @@ def test_parse_llm_json_response_requires_json_object() -> None:
         main._parse_llm_json_response("[]", "stop")
 
 
-def test_generate_llm_candidates_requires_candidates_list() -> None:
+def test_normalize_candidates_trims_to_max_without_appending_fallback() -> None:
+    sampled = [_conversation("c1", "배송 문의"), _conversation("c2", "교환 문의"), _conversation("c3", "환불 문의")]
+
     parsed = main._normalize_candidates(
         [
-            {"displayName": "배송 문의"},
-            {"displayName": "교환 문의"},
-            {"displayName": "환불 문의"},
-            {"displayName": "앱 문의"},
-            {"displayName": "결제 문의"},
+            {"displayName": "배송 상담"},
+            {"displayName": "교환 상담"},
+            {"displayName": "환불 상담"},
+            {"displayName": "앱 상담"},
+            {"displayName": "결제 상담"},
             {"displayName": "초과 후보"},
         ],
         ["배송", "교환"],
-        [_conversation("c1", "배송 문의"), _conversation("c2", "교환 문의"), _conversation("c3", "환불 문의")],
+        sampled,
+        main._snippet_index(sampled),
     )
 
     assert len(parsed) == main.MAX_CANDIDATES
-    assert parsed[-1]["candidateId"] == "결제_문의"
+    assert parsed[-1]["candidateId"] == "결제_상담"
+    assert all(candidate["candidateId"] != main.MIXED_UNKNOWN_ID for candidate in parsed)

@@ -249,6 +249,126 @@ describe("PipelineReviewCheckpointCard", () => {
     ).toBeDisabled();
   });
 
+  it("shows candidate rationale and evidence snippet for domain confirmation", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 101,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: {
+              displayName: "카드 상담",
+              confidence: 0.92,
+              kind: "domain",
+              description: "카드 분실, 결제, 한도 문의",
+              rationale: "카드 분실·정지 문의가 반복적으로 나타납니다.",
+              evidenceTerms: ["분실", "한도"],
+              evidenceSnippets: [
+                { conversationId: "c1", snippet: "카드를 분실했어요 정지 부탁합니다" },
+              ],
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+
+    expect(
+      screen.getByText("카드 분실·정지 문의가 반복적으로 나타납니다."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("카드를 분실했어요 정지 부탁합니다"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("c1")).toBeInTheDocument();
+  });
+
+  it("distinguishes the fallback candidate and guides re-review on selection", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 201,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "혼합 또는 미확정",
+            payload: {
+              displayName: "혼합 또는 미확정",
+              confidence: 0,
+              kind: "fallback",
+              isFallback: true,
+              fallbackReason: "llm_request_failure",
+              description: "도메인을 확정하기 어려운 상담 로그입니다.",
+              rationale: "도메인 분류 모델 호출에 실패했습니다.",
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+
+    // fallback 후보는 신뢰도 대신 원인 badge로 구분된다.
+    expect(screen.getByText("도메인 분류 호출 실패")).toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /혼합 또는 미확정/ }),
+    );
+
+    expect(
+      screen.getByText(/profile을 직접 작성하거나 업로드부터 재검토/),
+    ).toBeInTheDocument();
+  });
+
+  it("guides operators when the selected candidate has low confidence", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 301,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: {
+              displayName: "카드 상담",
+              confidence: 0.3,
+              kind: "domain",
+              description: "신뢰도가 낮은 후보",
+            },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
+
+    expect(
+      screen.getByText(/후보 신뢰도가 낮습니다/),
+    ).toBeInTheDocument();
+  });
+
   it("refreshes active review sessions without open tasks", () => {
     const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({

@@ -16,7 +16,13 @@ export interface ReviewTaskPayload {
   displayName?: string;
   confidence?: number;
   description?: string;
+  rationale?: string;
+  kind?: string;
+  isFallback?: boolean;
+  fallbackReason?: string;
   evidenceTerms?: string[];
+  evidenceConversationIds?: string[];
+  evidenceSnippets?: DomainEvidenceSnippet[];
   suggestedDomainLexicon?: string[];
   sourceId?: string;
   targetId?: string;
@@ -30,6 +36,11 @@ export interface ReviewTaskPayload {
   answerOptions?: FeedbackAnswerOption[];
   reason?: string;
   reasonLabel?: string;
+}
+
+export interface DomainEvidenceSnippet {
+  conversationId?: string;
+  snippet?: string;
 }
 
 export interface FeedbackAnswerOption {
