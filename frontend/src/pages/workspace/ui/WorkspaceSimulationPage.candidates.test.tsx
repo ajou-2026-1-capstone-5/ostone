@@ -126,7 +126,12 @@ describe("WorkspaceSimulationPage improvement candidates", () => {
     expect(screen.getAllByText("기타")).toHaveLength(1);
     expect(screen.getByText("CUSTOM")).toBeInTheDocument();
     expect(screen.getAllByText("초안").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("변경 전").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("현재 동작 (피드백 설명)").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("기대 동작 (기대 응답/행동)").length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText("근거").length).toBeGreaterThan(0);
   });
 

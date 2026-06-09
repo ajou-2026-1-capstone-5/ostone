@@ -311,7 +311,7 @@ describe("WorkspaceSimulationPage", () => {
         expect.objectContaining({
           targetElementType: "SLOT",
           beforeSummary:
-            "Slot 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+            "주문번호를 묻지 않았습니다. (세션에 적용된 workflow: 환불 처리)",
           afterSummary: "주문번호를 먼저 요청합니다.",
         }),
       );
@@ -402,7 +402,7 @@ describe("WorkspaceSimulationPage", () => {
         expect.objectContaining({
           targetElementType: "SLOT",
           beforeSummary:
-            "Slot 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+            "주문번호를 묻지 않았습니다. (세션에 적용된 workflow: 환불 처리)",
           afterSummary: "주문번호를 먼저 요청합니다.",
         }),
       );
@@ -443,7 +443,7 @@ describe("WorkspaceSimulationPage", () => {
           targetElementId: 100,
           targetElementKey: "refund_workflow",
           beforeSummary:
-            "Workflow 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+            "주문번호를 묻지 않았습니다. (세션에 적용된 workflow: 환불 처리)",
           afterSummary: "주문번호를 먼저 요청합니다.",
         }),
       );
@@ -471,7 +471,7 @@ describe("WorkspaceSimulationPage", () => {
         expect.objectContaining({
           targetElementType: "POLICY",
           beforeSummary:
-            "Policy 개선 후보 (환불 처리 workflow 맥락): 주문번호를 묻지 않았습니다.",
+            "주문번호를 묻지 않았습니다. (세션에 적용된 workflow: 환불 처리)",
         }),
       );
     });
@@ -560,7 +560,7 @@ describe("WorkspaceSimulationPage", () => {
         905,
         expect.objectContaining({
           targetElementType: "WORKFLOW",
-          beforeSummary: "Workflow 개선 후보: 주문번호를 묻지 않았습니다.",
+          beforeSummary: "주문번호를 묻지 않았습니다.",
         }),
       );
     });
@@ -571,6 +571,38 @@ describe("WorkspaceSimulationPage", () => {
         targetElementId: expect.any(Number),
       }),
     );
+  });
+
+  it("workflow 맥락 문구를 붙이면 2000자를 넘는 설명은 원문만 beforeSummary로 보낸다", async () => {
+    const longDescription = "가".repeat(2000);
+    mockedSimulationApi.listFeedback.mockResolvedValue({
+      content: [
+        {
+          ...feedbackWithType(908, "MISSING_SLOT_QUESTION"),
+          description: longDescription,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await openFeedbackTab();
+    fireEvent.click(await screen.findByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(
+        mockedSimulationApi.createImprovementCandidate,
+      ).toHaveBeenCalledWith(
+        1,
+        908,
+        expect.objectContaining({
+          beforeSummary: longDescription,
+        }),
+      );
+    });
   });
 
   it("개선 후보 생성 후 목록 새로고침 실패는 생성 실패로 처리하지 않는다", async () => {

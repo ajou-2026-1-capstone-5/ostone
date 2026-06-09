@@ -44,6 +44,7 @@ import type {
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { ApiRequestError, selectApiList } from "@/shared/api";
 import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
+import { createSimulationImprovementCandidateRequestBeforeSummaryMax } from "@/shared/api/generated/zod";
 import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
@@ -481,16 +482,20 @@ function candidateTargetElementLabel(
   return "세부 element 미선택";
 }
 
+const BEFORE_SUMMARY_MAX_LENGTH =
+  createSimulationImprovementCandidateRequestBeforeSummaryMax;
+
 function buildCandidateBeforeSummary(
   feedback: SimulationFeedback,
-  targetType: SimulationImprovementCandidateTargetType,
   workflowTarget: CandidateWorkflowTarget | null,
 ): string {
-  const targetLabel = candidateTargetTypeLabel(targetType);
-  const workflowLabel = workflowTarget
-    ? ` (${workflowTarget.workflowName} workflow 맥락)`
-    : "";
-  return `${targetLabel} 개선 후보${workflowLabel}: ${feedback.description}`;
+  if (!workflowTarget) {
+    return feedback.description;
+  }
+  const summary = `${feedback.description} (세션에 적용된 workflow: ${workflowTarget.workflowName})`;
+  return summary.length <= BEFORE_SUMMARY_MAX_LENGTH
+    ? summary
+    : feedback.description;
 }
 
 function buildCandidateTargetPayload(
@@ -501,11 +506,7 @@ function buildCandidateTargetPayload(
 ): CreateSimulationImprovementCandidatePayload {
   const payload: CreateSimulationImprovementCandidatePayload = {
     targetElementType: targetType,
-    beforeSummary: buildCandidateBeforeSummary(
-      feedback,
-      targetType,
-      workflowTarget,
-    ),
+    beforeSummary: buildCandidateBeforeSummary(feedback, workflowTarget),
     afterSummary: feedback.expectedBehavior,
   };
 
@@ -2521,11 +2522,11 @@ export function WorkspaceSimulationPage() {
                         </div>
                         <dl className={styles.candidateSummary}>
                           <div>
-                            <dt>변경 전</dt>
+                            <dt>현재 동작 (피드백 설명)</dt>
                             <dd>{candidate.beforeSummary}</dd>
                           </div>
                           <div>
-                            <dt>변경 후</dt>
+                            <dt>기대 동작 (기대 응답/행동)</dt>
                             <dd>{candidate.afterSummary}</dd>
                           </div>
                           <div>
