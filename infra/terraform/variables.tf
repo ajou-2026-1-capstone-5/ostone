@@ -462,6 +462,17 @@ variable "llm_service_container_port" {
   default     = 8000
 }
 
+variable "llm_service_alb_idle_timeout_seconds" {
+  description = "Idle timeout for the internal LLM ALB. Keep it above the longest LLM client read timeout."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.llm_service_alb_idle_timeout_seconds >= 1 && var.llm_service_alb_idle_timeout_seconds <= 4000
+    error_message = "llm_service_alb_idle_timeout_seconds must be between 1 and 4000."
+  }
+}
+
 variable "llm_runtime_api_key" {
   description = "Optional API key shared between the ML pipeline and the internal LLM service."
   type        = string

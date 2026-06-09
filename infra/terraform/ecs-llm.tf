@@ -4,6 +4,7 @@ resource "aws_lb" "ml_llm_internal" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.ml_llm_alb.id]
   subnets            = values(aws_subnet.private)[*].id
+  idle_timeout       = var.llm_service_alb_idle_timeout_seconds
 
   enable_deletion_protection = false
 
@@ -160,6 +161,10 @@ resource "aws_ecs_service" "ml_llm" {
 
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 
   depends_on = [aws_lb_listener.ml_llm]
 }
