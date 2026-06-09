@@ -18,7 +18,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useListAllWorkspaceWorkflows, type WorkspaceWorkflowEntry } from "@/entities/workflow";
+import {
+  useListAllWorkspaceWorkflows,
+  type WorkspaceWorkflowEntry,
+} from "@/entities/workflow";
 import { safeParseGraph } from "@/entities/workflow/ui/lib/parseGraph";
 import {
   simulationApi,
@@ -34,7 +37,10 @@ import {
   type SimulationImprovementCandidateTargetType,
   type SimulationSessionDetail,
 } from "@/features/simulation";
-import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
+import type {
+  ChatMessage,
+  ChatSession,
+} from "@/features/consultation/api/consultationApi";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { ApiRequestError, selectApiList } from "@/shared/api";
 import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
@@ -52,15 +58,16 @@ const PAGE_SIZE = 20;
 const DEFAULT_FEEDBACK_TYPE: SimulationFeedbackType = "INTENT_MISMATCH";
 const DEFAULT_FEEDBACK_SEVERITY: SimulationFeedbackSeverity = "MEDIUM";
 
-const FEEDBACK_TYPES: Array<{ value: SimulationFeedbackType; label: string }> = [
-  { value: "INTENT_MISMATCH", label: "잘못된 intent 매칭" },
-  { value: "MISSING_SLOT_QUESTION", label: "누락된 slot 질문" },
-  { value: "INAPPROPRIATE_RESPONSE", label: "부적절한 응답 문구" },
-  { value: "POLICY_CONDITION_MISSING", label: "policy 조건 누락" },
-  { value: "RISK_HANDOFF_REQUIRED", label: "risk/handoff 필요" },
-  { value: "WORKFLOW_BRANCH_ERROR", label: "workflow 분기 오류" },
-  { value: "OTHER", label: "기타" },
-];
+const FEEDBACK_TYPES: Array<{ value: SimulationFeedbackType; label: string }> =
+  [
+    { value: "INTENT_MISMATCH", label: "잘못된 intent 매칭" },
+    { value: "MISSING_SLOT_QUESTION", label: "누락된 slot 질문" },
+    { value: "INAPPROPRIATE_RESPONSE", label: "부적절한 응답 문구" },
+    { value: "POLICY_CONDITION_MISSING", label: "policy 조건 누락" },
+    { value: "RISK_HANDOFF_REQUIRED", label: "risk/handoff 필요" },
+    { value: "WORKFLOW_BRANCH_ERROR", label: "workflow 분기 오류" },
+    { value: "OTHER", label: "기타" },
+  ];
 
 const FEEDBACK_SEVERITIES: Array<{
   value: SimulationFeedbackSeverity;
@@ -112,7 +119,14 @@ const FEEDBACK_LIST_ERROR = "시뮬레이션 피드백 목록을 불러오지 �
 const CANDIDATE_LIST_ERROR = "개선 후보 목록을 불러오지 못했습니다.";
 const GOLDEN_CASE_LIST_ERROR = "검증 케이스 목록을 불러오지 못했습니다.";
 
-const ACTION_TYPES = ["ASK_SLOT", "ADVANCE", "ANSWER", "COMPLETED", "HANDOFF", "WAIT"] as const;
+const ACTION_TYPES = [
+  "ASK_SLOT",
+  "ADVANCE",
+  "ANSWER",
+  "COMPLETED",
+  "HANDOFF",
+  "WAIT",
+] as const;
 
 type SimulationSideTab = "state" | "feedback" | "candidates";
 
@@ -167,7 +181,9 @@ function readInitialSideTab(searchParams: URLSearchParams): SimulationSideTab {
   return "state";
 }
 
-function readFeedbackStatusParam(searchParams: URLSearchParams): SimulationFeedbackStatus | "" {
+function readFeedbackStatusParam(
+  searchParams: URLSearchParams,
+): SimulationFeedbackStatus | "" {
   const value = searchParams.get("feedbackStatus");
   return FEEDBACK_STATUSES.some((status) => status.value === value)
     ? (value as SimulationFeedbackStatus | "")
@@ -190,7 +206,9 @@ function readPositiveIntParam(
   return parseRouteId(searchParams.get(key) ?? undefined);
 }
 
-function readSimulationTargetFromSearch(searchParams: URLSearchParams): SimulationTarget | null {
+function readSimulationTargetFromSearch(
+  searchParams: URLSearchParams,
+): SimulationTarget | null {
   const packId = readPositiveIntParam(searchParams, "packId");
   const versionId = readPositiveIntParam(searchParams, "versionId");
   const workflowId = readPositiveIntParam(searchParams, "workflowId");
@@ -200,10 +218,14 @@ function readSimulationTargetFromSearch(searchParams: URLSearchParams): Simulati
 }
 
 function readStateTargetId(value: unknown): number | null {
-  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0
+    ? value
+    : null;
 }
 
-function readSimulationTargetFromState(state: unknown): SimulationTarget | null {
+function readSimulationTargetFromState(
+  state: unknown,
+): SimulationTarget | null {
   if (typeof state !== "object" || state === null) return null;
   const value = (state as { simulationTarget?: unknown }).simulationTarget;
   if (typeof value !== "object" || value === null) return null;
@@ -309,13 +331,18 @@ function selectedIntentCode(session: ChatSession | null): string | null {
 
 function slotEntries(detail: SimulationSessionDetail | null) {
   const values = detail?.slotValues ?? {};
-  return Object.entries(values).filter(([, value]) => value !== null && value !== undefined);
+  return Object.entries(values).filter(
+    ([, value]) => value !== null && value !== undefined,
+  );
 }
 
-function hasMissingRequiredSlot(detail: SimulationSessionDetail | null): boolean {
+function hasMissingRequiredSlot(
+  detail: SimulationSessionDetail | null,
+): boolean {
   return (
     detail?.slots.some((slot) => {
-      if (typeof slot !== "object" || slot === null || Array.isArray(slot)) return false;
+      if (typeof slot !== "object" || slot === null || Array.isArray(slot))
+        return false;
       const required = (slot as { required?: unknown }).required;
       const hasValue = (slot as { hasValue?: unknown }).hasValue;
       return required === true && hasValue !== true;
@@ -323,7 +350,9 @@ function hasMissingRequiredSlot(detail: SimulationSessionDetail | null): boolean
   );
 }
 
-function inferExpectedActionType(detail: SimulationSessionDetail | null): string {
+function inferExpectedActionType(
+  detail: SimulationSessionDetail | null,
+): string {
   return hasMissingRequiredSlot(detail) ? "ASK_SLOT" : "";
 }
 
@@ -332,18 +361,29 @@ function feedbackTypeLabel(type: SimulationFeedbackType): string {
 }
 
 function feedbackSeverityLabel(severity: SimulationFeedbackSeverity): string {
-  return FEEDBACK_SEVERITIES.find((item) => item.value === severity)?.label ?? severity;
+  return (
+    FEEDBACK_SEVERITIES.find((item) => item.value === severity)?.label ??
+    severity
+  );
 }
 
 function feedbackStatusLabel(status: SimulationFeedbackStatus): string {
-  return FEEDBACK_STATUSES.find((item) => item.value === status)?.label ?? status;
+  return (
+    FEEDBACK_STATUSES.find((item) => item.value === status)?.label ?? status
+  );
 }
 
-function candidateStatusLabel(status: SimulationImprovementCandidateStatus): string {
-  return CANDIDATE_STATUSES.find((item) => item.value === status)?.label ?? status;
+function candidateStatusLabel(
+  status: SimulationImprovementCandidateStatus,
+): string {
+  return (
+    CANDIDATE_STATUSES.find((item) => item.value === status)?.label ?? status
+  );
 }
 
-function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"]): string {
+function candidateTypeLabel(
+  type: SimulationImprovementCandidate["candidateType"],
+): string {
   switch (type) {
     case "INTENT_DESCRIPTION_EXAMPLE":
       return "intent 설명/예시";
@@ -366,14 +406,22 @@ function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"
   }
 }
 
-function candidateTargetLabel(candidate: SimulationImprovementCandidate): string {
+function candidateTargetLabel(
+  candidate: SimulationImprovementCandidate,
+): string {
   const id = candidate.targetElementId ? ` #${candidate.targetElementId}` : "";
-  const key = candidate.targetElementKey ? ` · ${candidate.targetElementKey}` : "";
+  const key = candidate.targetElementKey
+    ? ` · ${candidate.targetElementKey}`
+    : "";
   return `${candidate.targetElementType}${id}${key}`;
 }
 
-function candidateTargetTypeLabel(type: SimulationImprovementCandidateTargetType): string {
-  return CANDIDATE_TARGET_TYPES.find((item) => item.value === type)?.label ?? type;
+function candidateTargetTypeLabel(
+  type: SimulationImprovementCandidateTargetType,
+): string {
+  return (
+    CANDIDATE_TARGET_TYPES.find((item) => item.value === type)?.label ?? type
+  );
 }
 
 function inferCandidateTargetType(
@@ -434,7 +482,9 @@ function buildCandidateBeforeSummary(
   workflowTarget: CandidateWorkflowTarget | null,
 ): string {
   const targetLabel = candidateTargetTypeLabel(targetType);
-  const workflowLabel = workflowTarget ? ` (${workflowTarget.workflowName} workflow 맥락)` : "";
+  const workflowLabel = workflowTarget
+    ? ` (${workflowTarget.workflowName} workflow 맥락)`
+    : "";
   return `${targetLabel} 개선 후보${workflowLabel}: ${feedback.description}`;
 }
 
@@ -442,22 +492,34 @@ function buildCandidateTargetPayload(
   feedback: SimulationFeedback,
   targetType: SimulationImprovementCandidateTargetType,
   workflowTarget: CandidateWorkflowTarget | null,
+  intentCode?: string | null,
 ): CreateSimulationImprovementCandidatePayload {
   const payload: CreateSimulationImprovementCandidatePayload = {
     targetElementType: targetType,
-    beforeSummary: buildCandidateBeforeSummary(feedback, targetType, workflowTarget),
+    beforeSummary: buildCandidateBeforeSummary(
+      feedback,
+      targetType,
+      workflowTarget,
+    ),
     afterSummary: feedback.expectedBehavior,
   };
 
   if (targetType === "WORKFLOW" && workflowTarget) {
     payload.targetElementId = workflowTarget.workflowId;
-    payload.targetElementKey = workflowTarget.workflowCode ?? workflowTarget.workflowName;
+    payload.targetElementKey =
+      workflowTarget.workflowCode ?? workflowTarget.workflowName;
+  }
+
+  if (targetType === "INTENT" && intentCode) {
+    payload.targetElementKey = intentCode;
   }
 
   return payload;
 }
 
-function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): string {
+function replayStatusLabel(
+  status?: SimulationGoldenCaseReplayStatus | null,
+): string {
   switch (status) {
     case "PASS":
       return "PASS";
@@ -468,7 +530,10 @@ function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): st
   }
 }
 
-function readExpectedField(goldenCase: SimulationGoldenCase, field: string): string | null {
+function readExpectedField(
+  goldenCase: SimulationGoldenCase,
+  field: string,
+): string | null {
   try {
     const parsed = JSON.parse(goldenCase.expectedJson);
     if (parsed && typeof parsed === "object" && field in parsed) {
@@ -511,7 +576,8 @@ function patchText(value: unknown): string | null {
     const trimmed = value.trim();
     return trimmed || null;
   }
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : null;
+  if (typeof value === "number")
+    return Number.isFinite(value) ? String(value) : null;
   if (typeof value === "boolean") return value ? "true" : "false";
   try {
     const json = JSON.stringify(value);
@@ -552,13 +618,19 @@ function readPatchObject(raw: string): Record<string, unknown> | null {
   return parsed as Record<string, unknown>;
 }
 
-function readPatchChanges(patch: Record<string, unknown>): CandidatePatchChange[] {
+function readPatchChanges(
+  patch: Record<string, unknown>,
+): CandidatePatchChange[] {
   const changes: CandidatePatchChange[] = [];
   const rawChanges = patch.changes;
 
   if (Array.isArray(rawChanges)) {
     rawChanges.forEach((rawChange, index) => {
-      if (typeof rawChange !== "object" || rawChange === null || Array.isArray(rawChange)) {
+      if (
+        typeof rawChange !== "object" ||
+        rawChange === null ||
+        Array.isArray(rawChange)
+      ) {
         return;
       }
       const change = rawChange as Record<string, unknown>;
@@ -579,8 +651,12 @@ function readPatchChanges(patch: Record<string, unknown>): CandidatePatchChange[
       if (!before && !after) return;
       changes.push({
         label:
-          firstPatchText(change.field, change.path, change.name, change.label) ??
-          `변경 ${index + 1}`,
+          firstPatchText(
+            change.field,
+            change.path,
+            change.name,
+            change.label,
+          ) ?? `변경 ${index + 1}`,
         before: before ?? "값 없음",
         after: after ?? "값 없음",
       });
@@ -604,10 +680,16 @@ function patchTargetLabel(
   patch: Record<string, unknown>,
   candidate: SimulationImprovementCandidate,
 ): string {
-  const targetType = firstPatchText(patch.targetElementType) ?? candidate.targetElementType;
-  const targetId = firstPatchText(patch.targetElementId) ?? patchText(candidate.targetElementId);
-  const targetKey = firstPatchText(patch.targetElementKey) ?? candidate.targetElementKey;
-  return [targetType, targetId ? `#${targetId}` : null, targetKey].filter(Boolean).join(" · ");
+  const targetType =
+    firstPatchText(patch.targetElementType) ?? candidate.targetElementType;
+  const targetId =
+    firstPatchText(patch.targetElementId) ??
+    patchText(candidate.targetElementId);
+  const targetKey =
+    firstPatchText(patch.targetElementKey) ?? candidate.targetElementKey;
+  return [targetType, targetId ? `#${targetId}` : null, targetKey]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function buildCandidatePatchReview(
@@ -617,7 +699,8 @@ function buildCandidatePatchReview(
   if (!raw || raw === "{}" || raw === "[]" || raw === "null") {
     return {
       kind: "missing",
-      message: "draft patch 정보가 없습니다. 변경 전/후 필드를 확인할 수 없습니다.",
+      message:
+        "draft patch 정보가 없습니다. 변경 전/후 필드를 확인할 수 없습니다.",
     };
   }
 
@@ -651,7 +734,8 @@ function buildCandidatePatchReview(
 
   const targetLabel = patchTargetLabel(patch, candidate);
   const evidence =
-    firstPatchText(patch.evidenceSummary, patch.evidence) ?? candidate.evidenceSummary;
+    firstPatchText(patch.evidenceSummary, patch.evidence) ??
+    candidate.evidenceSummary;
   const impactItems = [
     `Domain Pack version #${candidate.domainPackVersionId}`,
     targetLabel ? `변경 대상: ${targetLabel}` : null,
@@ -678,19 +762,27 @@ function canApproveCandidate(
   return confirmed && buildCandidatePatchReview(candidate).kind === "ready";
 }
 
-function candidatePatchConfirmationKey(candidate: SimulationImprovementCandidate): string {
+function candidatePatchConfirmationKey(
+  candidate: SimulationImprovementCandidate,
+): string {
   return `${candidate.id}:${candidate.draftPatchJson ?? ""}`;
 }
 
-function candidateApprovalGuide(candidate: SimulationImprovementCandidate): string {
+function candidateApprovalGuide(
+  candidate: SimulationImprovementCandidate,
+): string {
   const versionPart = candidate.appliedDomainPackVersionId
     ? `적용 version #${candidate.appliedDomainPackVersionId}`
     : "적용 version 응답 대기";
   const reviewPart =
     candidate.reviewSessionId || candidate.reviewTaskId
       ? [
-          candidate.reviewSessionId ? `review session #${candidate.reviewSessionId}` : null,
-          candidate.reviewTaskId ? `review task #${candidate.reviewTaskId}` : null,
+          candidate.reviewSessionId
+            ? `review session #${candidate.reviewSessionId}`
+            : null,
+          candidate.reviewTaskId
+            ? `review task #${candidate.reviewTaskId}`
+            : null,
         ]
           .filter(Boolean)
           .join(" · ")
@@ -703,7 +795,10 @@ export function WorkspaceSimulationPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.toString();
-  const querySearchParams = useMemo(() => new URLSearchParams(searchQuery), [searchQuery]);
+  const querySearchParams = useMemo(
+    () => new URLSearchParams(searchQuery),
+    [searchQuery],
+  );
   const querySimulationTarget = useMemo(
     () => readSimulationTargetFromSearch(querySearchParams),
     [querySearchParams],
@@ -725,16 +820,21 @@ export function WorkspaceSimulationPage() {
   const { setCrumbs } = useOutletContext<ShellContext>();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [detail, setDetail] = useState<SimulationSessionDetail | null>(null);
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(
+    null,
+  );
   const [customerNameInput, setCustomerNameInput] = useState("시뮬레이션 고객");
   const [workflowDefinitionId, setWorkflowDefinitionId] = useState("");
-  const [workflowSelectionTouched, setWorkflowSelectionTouched] = useState(false);
+  const [workflowSelectionTouched, setWorkflowSelectionTouched] =
+    useState(false);
   const [messageInput, setMessageInput] = useState("");
   const [feedbackItems, setFeedbackItems] = useState<SimulationFeedback[]>([]);
-  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<SimulationFeedbackStatus | "">(
-    () => feedbackStatusFromQuery,
-  );
-  const [candidateItems, setCandidateItems] = useState<SimulationImprovementCandidate[]>([]);
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<
+    SimulationFeedbackStatus | ""
+  >(() => feedbackStatusFromQuery);
+  const [candidateItems, setCandidateItems] = useState<
+    SimulationImprovementCandidate[]
+  >([]);
   const [goldenCases, setGoldenCases] = useState<SimulationGoldenCase[]>([]);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
@@ -746,7 +846,9 @@ export function WorkspaceSimulationPage() {
     readInitialSideTab(querySearchParams),
   );
   const [feedbackTarget, setFeedbackTarget] = useState("session");
-  const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(DEFAULT_FEEDBACK_TYPE);
+  const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(
+    DEFAULT_FEEDBACK_TYPE,
+  );
   const [feedbackSeverity, setFeedbackSeverity] =
     useState<SimulationFeedbackSeverity>(DEFAULT_FEEDBACK_SEVERITY);
   const [feedbackDescription, setFeedbackDescription] = useState("");
@@ -767,17 +869,26 @@ export function WorkspaceSimulationPage() {
   const [isSending, setIsSending] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isCreatingGoldenCase, setIsCreatingGoldenCase] = useState(false);
-  const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<number | null>(null);
-  const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
+  const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<
+    number | null
+  >(null);
+  const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(
+    null,
+  );
   const [candidateTargetSelections, setCandidateTargetSelections] = useState<
     Record<number, SimulationImprovementCandidateTargetType>
   >({});
-  const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
-  const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
-  const [confirmedCandidatePatchKeys, setConfirmedCandidatePatchKeys] = useState<
-    ReadonlySet<string>
-  >(() => new Set());
-  const [candidateApprovalNotice, setCandidateApprovalNotice] = useState<string | null>(null);
+  const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(
+    null,
+  );
+  const [candidateRejectReasons, setCandidateRejectReasons] = useState<
+    Record<number, string>
+  >({});
+  const [confirmedCandidatePatchKeys, setConfirmedCandidatePatchKeys] =
+    useState<ReadonlySet<string>>(() => new Set());
+  const [candidateApprovalNotice, setCandidateApprovalNotice] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   const workflows = useListAllWorkspaceWorkflows({
@@ -789,55 +900,70 @@ export function WorkspaceSimulationPage() {
   );
   const selectedWorkflow = useMemo(() => {
     const numericId = Number(workflowDefinitionId);
-    return workflows.entries.find((entry) => entry.workflowId === numericId) ?? null;
+    return (
+      workflows.entries.find((entry) => entry.workflowId === numericId) ?? null
+    );
   }, [workflowDefinitionId, workflows.entries]);
-  const candidateWorkflowTarget = useMemo<CandidateWorkflowTarget | null>(() => {
-    if (selectedWorkflow) {
-      return {
-        workflowId: selectedWorkflow.workflowId,
-        workflowCode: selectedWorkflow.workflowCode,
-        workflowName: selectedWorkflow.name,
-      };
-    }
+  const candidateWorkflowTarget =
+    useMemo<CandidateWorkflowTarget | null>(() => {
+      if (selectedWorkflow) {
+        return {
+          workflowId: selectedWorkflow.workflowId,
+          workflowCode: selectedWorkflow.workflowCode,
+          workflowName: selectedWorkflow.name,
+        };
+      }
 
-    if (detail?.matchedWorkflow?.workflowDefinitionId) {
-      return {
-        workflowId: detail.matchedWorkflow.workflowDefinitionId,
-        workflowCode: detail.matchedWorkflow.workflowCode ?? null,
-        workflowName:
-          detail.matchedWorkflow.workflowName ??
-          detail.matchedWorkflow.workflowCode ??
-          `Workflow #${detail.matchedWorkflow.workflowDefinitionId}`,
-      };
-    }
+      if (detail?.matchedWorkflow?.workflowDefinitionId) {
+        return {
+          workflowId: detail.matchedWorkflow.workflowDefinitionId,
+          workflowCode: detail.matchedWorkflow.workflowCode ?? null,
+          workflowName:
+            detail.matchedWorkflow.workflowName ??
+            detail.matchedWorkflow.workflowCode ??
+            `Workflow #${detail.matchedWorkflow.workflowDefinitionId}`,
+        };
+      }
 
-    if (targetWorkflow) {
-      return {
-        workflowId: targetWorkflow.workflowId,
-        workflowCode: targetWorkflow.workflowCode,
-        workflowName: targetWorkflow.name,
-      };
-    }
+      if (targetWorkflow) {
+        return {
+          workflowId: targetWorkflow.workflowId,
+          workflowCode: targetWorkflow.workflowCode,
+          workflowName: targetWorkflow.name,
+        };
+      }
 
-    if (simulationTarget?.workflowId) {
-      return {
-        workflowId: simulationTarget.workflowId,
-        workflowCode: null,
-        workflowName: `Workflow #${simulationTarget.workflowId}`,
-      };
-    }
+      if (simulationTarget?.workflowId) {
+        return {
+          workflowId: simulationTarget.workflowId,
+          workflowCode: null,
+          workflowName: `Workflow #${simulationTarget.workflowId}`,
+        };
+      }
 
-    return null;
-  }, [detail?.matchedWorkflow, selectedWorkflow, simulationTarget, targetWorkflow]);
+      return null;
+    }, [
+      detail?.matchedWorkflow,
+      selectedWorkflow,
+      simulationTarget,
+      targetWorkflow,
+    ]);
   const matched = detail?.matchedWorkflow ?? null;
   // 기대 intent 자동완성 옵션을 위해 시뮬레이션 대상 도메인팩 버전의 intent 목록을 불러온다. 세션의
   // matchedWorkflow 버전을 우선 사용하고, 없으면 시작 target/워크스페이스 워크플로우에서 pack·version을 찾는다.
   const intentLookupSource = useMemo(() => {
-    const versionId = matched?.domainPackVersionId ?? simulationTarget?.versionId ?? null;
+    const versionId =
+      matched?.domainPackVersionId ?? simulationTarget?.versionId ?? null;
     const entry =
-      workflows.entries.find((wf) => wf.versionId === versionId) ?? workflows.entries[0] ?? null;
+      workflows.entries.find((wf) => wf.versionId === versionId) ??
+      workflows.entries[0] ??
+      null;
     return entry ? { packId: entry.packId, versionId: entry.versionId } : null;
-  }, [matched?.domainPackVersionId, simulationTarget?.versionId, workflows.entries]);
+  }, [
+    matched?.domainPackVersionId,
+    simulationTarget?.versionId,
+    workflows.entries,
+  ]);
   const workspaceIntents = useListIntents(
     parsedWorkspaceId ?? -1,
     intentLookupSource?.packId ?? -1,
@@ -858,33 +984,47 @@ export function WorkspaceSimulationPage() {
   }, [workflows.entries, matched?.workflowCode]);
   const expectedStateOptions = useMemo(() => {
     const states = new Set<string>();
-    safeParseGraph(matched?.graphJson).nodes.forEach((node) => states.add(node.id));
+    safeParseGraph(matched?.graphJson).nodes.forEach((node) =>
+      states.add(node.id),
+    );
     if (matched?.currentState) states.add(matched.currentState);
     return Array.from(states);
   }, [matched?.graphJson, matched?.currentState]);
   const expectedIntentOptions = useMemo(() => {
     const codes = new Set<string>();
-    selectApiList<IntentDefinitionSummary>(workspaceIntents.data).forEach((intent) => {
-      if (intent.intentCode) codes.add(intent.intentCode);
-    });
+    selectApiList<IntentDefinitionSummary>(workspaceIntents.data).forEach(
+      (intent) => {
+        if (intent.intentCode) codes.add(intent.intentCode);
+      },
+    );
     if (matched?.intentCode) codes.add(matched.intentCode);
     return Array.from(codes);
   }, [workspaceIntents.data, matched?.intentCode]);
-  const currentIntentCode = matched?.intentCode ?? selectedIntentCode(detail?.session ?? null);
+  const currentIntentCode =
+    matched?.intentCode ?? selectedIntentCode(detail?.session ?? null);
   const currentIntentLabel = matched?.intentName ?? currentIntentCode;
-  const isTargetContextConfirmed = matchesTargetContext(targetWorkflow, simulationTarget);
+  const isTargetContextConfirmed = matchesTargetContext(
+    targetWorkflow,
+    simulationTarget,
+  );
   const targetPackLabel =
     (isTargetContextConfirmed ? targetWorkflow?.packName : null) ??
-    (simulationTarget ? `Pack ${formatTargetId(simulationTarget.packId, "미지정")}` : "");
+    (simulationTarget
+      ? `Pack ${formatTargetId(simulationTarget.packId, "미지정")}`
+      : "");
   const targetVersionLabel = simulationTarget
     ? `Version ${formatTargetId(simulationTarget.versionId, "미지정")}`
     : "";
   const targetWorkflowLabel =
     targetWorkflow?.name ??
-    (simulationTarget ? `Workflow ${formatTargetId(simulationTarget.workflowId, "미지정")}` : "");
+    (simulationTarget
+      ? `Workflow ${formatTargetId(simulationTarget.workflowId, "미지정")}`
+      : "");
   const targetWorkflowMeta =
     targetWorkflow?.workflowCode ??
-    (simulationTarget?.workflowId ? `workflowId ${simulationTarget.workflowId}` : "자동 매칭");
+    (simulationTarget?.workflowId
+      ? `workflowId ${simulationTarget.workflowId}`
+      : "자동 매칭");
 
   const reloadFeedback = async (status = feedbackStatusFilter) => {
     if (parsedWorkspaceId === null) return;
@@ -908,11 +1048,14 @@ export function WorkspaceSimulationPage() {
     if (parsedWorkspaceId === null) return;
     setCandidateError(null);
     try {
-      const page = await simulationApi.listImprovementCandidates(parsedWorkspaceId, {
-        status,
-        page: 0,
-        size: PAGE_SIZE,
-      });
+      const page = await simulationApi.listImprovementCandidates(
+        parsedWorkspaceId,
+        {
+          status,
+          page: 0,
+          size: PAGE_SIZE,
+        },
+      );
       setCandidateItems(page.content);
     } catch (error) {
       console.error("Failed to load simulation improvement candidates:", error);
@@ -971,13 +1114,19 @@ export function WorkspaceSimulationPage() {
     if (detail?.session) {
       setGoldenCaseName(`${customerName(detail.session)} 검증 케이스`);
       setExpectedIntentCode(
-        detail.matchedWorkflow?.intentCode ?? selectedIntentCode(detail.session) ?? "",
+        detail.matchedWorkflow?.intentCode ??
+          selectedIntentCode(detail.session) ??
+          "",
       );
       setExpectedWorkflowCode(detail.matchedWorkflow?.workflowCode ?? "");
       setExpectedCurrentState(detail.matchedWorkflow?.currentState ?? "");
       setExpectedSlotValuesJson(stringifySlotValues(detail.slotValues));
       setReplayVersionId(
-        String(simulationTarget?.versionId ?? detail.matchedWorkflow?.domainPackVersionId ?? ""),
+        String(
+          simulationTarget?.versionId ??
+            detail.matchedWorkflow?.domainPackVersionId ??
+            "",
+        ),
       );
       setExpectedActionType(inferExpectedActionType(detail));
     } else {
@@ -1066,7 +1215,10 @@ export function WorkspaceSimulationPage() {
       })
       .catch((error) => {
         if (!active) return;
-        console.error("Failed to load simulation improvement candidates:", error);
+        console.error(
+          "Failed to load simulation improvement candidates:",
+          error,
+        );
         setCandidateItems([]);
         setCandidateError(CANDIDATE_LIST_ERROR);
       })
@@ -1185,9 +1337,13 @@ export function WorkspaceSimulationPage() {
     setIsSending(true);
     setError(null);
     try {
-      const nextDetail = await simulationApi.sendMessage(parsedWorkspaceId, detail.session.id, {
-        content,
-      });
+      const nextDetail = await simulationApi.sendMessage(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          content,
+        },
+      );
       setDetail(nextDetail);
       setMessageInput("");
       await reloadSessions();
@@ -1198,25 +1354,58 @@ export function WorkspaceSimulationPage() {
     }
   };
 
-  const handleSubmitFeedback = async () => {
+  const handleSubmitFeedbackAndCreateCandidate = async () => {
     const description = feedbackDescription.trim();
     const expectedBehavior = feedbackExpectedBehavior.trim();
     if (!description || !expectedBehavior || detail?.session.id == null) return;
-    const chatMessageId = feedbackTarget === "session" ? null : Number.parseInt(feedbackTarget, 10);
+    const chatMessageId =
+      feedbackTarget === "session" ? null : Number.parseInt(feedbackTarget, 10);
     setIsSubmittingFeedback(true);
     try {
-      const nextDetail = await simulationApi.createFeedback(parsedWorkspaceId, detail.session.id, {
-        chatMessageId: Number.isNaN(chatMessageId) ? null : chatMessageId,
-        feedbackType,
-        description,
-        expectedBehavior,
-        severity: feedbackSeverity,
-      });
+      const nextDetail = await simulationApi.createFeedback(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          chatMessageId: Number.isNaN(chatMessageId) ? null : chatMessageId,
+          feedbackType,
+          description,
+          expectedBehavior,
+          severity: feedbackSeverity,
+        },
+      );
       setDetail(nextDetail);
       setFeedbackDescription("");
       setFeedbackExpectedBehavior("");
-      toast.success("시뮬레이션 피드백을 남겼습니다.");
-      await reloadFeedback().catch(() => undefined);
+
+      const newFeedback = nextDetail.feedback?.items?.find(
+        (item) => item.description === description,
+      );
+      if (newFeedback) {
+        const targetType = inferCandidateTargetType(newFeedback.feedbackType);
+        const payload = buildCandidateTargetPayload(
+          newFeedback,
+          targetType,
+          candidateWorkflowTarget,
+          detail?.matchedWorkflow?.intentCode,
+        );
+        const candidate = await simulationApi.createImprovementCandidate(
+          parsedWorkspaceId,
+          newFeedback.id,
+          payload,
+        );
+        await simulationApi.updateImprovementCandidateStatus(
+          parsedWorkspaceId,
+          candidate.id,
+          { status: "READY_FOR_REVIEW" },
+        );
+        toast.success(
+          "시뮬레이션 피드백을 저장하고 리뷰 대기 개선 후보로 등록했습니다.",
+        );
+        setActiveSideTab("candidates");
+      } else {
+        toast.success("시뮬레이션 피드백을 남겼습니다.");
+      }
+      await reloadFeedbackAndCandidates();
     } catch {
       toast.error("시뮬레이션 피드백을 저장하지 못했습니다.");
     } finally {
@@ -1228,8 +1417,14 @@ export function WorkspaceSimulationPage() {
     setCreatingCandidateId(feedback.id);
     try {
       const targetType =
-        candidateTargetSelections[feedback.id] ?? inferCandidateTargetType(feedback.feedbackType);
-      const payload = buildCandidateTargetPayload(feedback, targetType, candidateWorkflowTarget);
+        candidateTargetSelections[feedback.id] ??
+        inferCandidateTargetType(feedback.feedbackType);
+      const payload = buildCandidateTargetPayload(
+        feedback,
+        targetType,
+        candidateWorkflowTarget,
+        detail?.matchedWorkflow?.intentCode,
+      );
       await simulationApi.createImprovementCandidate(
         parsedWorkspaceId,
         feedback.id,
@@ -1251,9 +1446,13 @@ export function WorkspaceSimulationPage() {
   ) => {
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.updateImprovementCandidateStatus(parsedWorkspaceId, candidate.id, {
-        status,
-      });
+      await simulationApi.updateImprovementCandidateStatus(
+        parsedWorkspaceId,
+        candidate.id,
+        {
+          status,
+        },
+      );
       toast.success("개선 후보 상태를 변경했습니다.");
       await reloadCandidates().catch(() => undefined);
     } catch {
@@ -1263,7 +1462,9 @@ export function WorkspaceSimulationPage() {
     }
   };
 
-  const handleApproveCandidate = async (candidate: SimulationImprovementCandidate) => {
+  const handleApproveCandidate = async (
+    candidate: SimulationImprovementCandidate,
+  ) => {
     setUpdatingCandidateId(candidate.id);
     try {
       const approved = await simulationApi.approveImprovementCandidate(
@@ -1288,7 +1489,9 @@ export function WorkspaceSimulationPage() {
     }
   };
 
-  const handleConfirmCandidatePatch = (candidate: SimulationImprovementCandidate) => {
+  const handleConfirmCandidatePatch = (
+    candidate: SimulationImprovementCandidate,
+  ) => {
     const confirmationKey = candidatePatchConfirmationKey(candidate);
     setConfirmedCandidatePatchKeys((current) => {
       if (current.has(confirmationKey)) return current;
@@ -1298,7 +1501,9 @@ export function WorkspaceSimulationPage() {
     });
   };
 
-  const handleRejectCandidate = async (candidate: SimulationImprovementCandidate) => {
+  const handleRejectCandidate = async (
+    candidate: SimulationImprovementCandidate,
+  ) => {
     const reason = (candidateRejectReasons[candidate.id] ?? "").trim();
     if (!reason) {
       toast.error("반려 사유를 입력하세요.");
@@ -1306,7 +1511,11 @@ export function WorkspaceSimulationPage() {
     }
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.rejectImprovementCandidate(parsedWorkspaceId, candidate.id, { reason });
+      await simulationApi.rejectImprovementCandidate(
+        parsedWorkspaceId,
+        candidate.id,
+        { reason },
+      );
       toast.success("개선 후보를 반려했습니다.");
       setCandidateRejectReasons((current) => {
         const next = { ...current };
@@ -1325,7 +1534,8 @@ export function WorkspaceSimulationPage() {
     if (detail?.session.id == null) return;
     if (
       messages.filter(
-        (message) => message.senderRole === "USER" || message.senderRole === "CUSTOMER",
+        (message) =>
+          message.senderRole === "USER" || message.senderRole === "CUSTOMER",
       ).length === 0
     ) {
       toast.error("고객 메시지가 있어야 검증 케이스로 저장할 수 있습니다.");
@@ -1353,14 +1563,18 @@ export function WorkspaceSimulationPage() {
     }
     setIsCreatingGoldenCase(true);
     try {
-      await simulationApi.createGoldenCase(parsedWorkspaceId, detail.session.id, {
-        name: optionalText(goldenCaseName),
-        expectedIntentCode: expectedIntent,
-        expectedWorkflowCode: expectedWorkflow,
-        expectedCurrentState: optionalText(expectedState),
-        expectedActionType: expectedAction,
-        expectedSlotValues,
-      });
+      await simulationApi.createGoldenCase(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          name: optionalText(goldenCaseName),
+          expectedIntentCode: expectedIntent,
+          expectedWorkflowCode: expectedWorkflow,
+          expectedCurrentState: optionalText(expectedState),
+          expectedActionType: expectedAction,
+          expectedSlotValues,
+        },
+      );
       toast.success("검증 케이스를 저장했습니다.");
       await reloadGoldenCases().catch(() => undefined);
     } catch {
@@ -1378,9 +1592,13 @@ export function WorkspaceSimulationPage() {
     }
     setReplayingGoldenCaseId(goldenCase.id);
     try {
-      const result = await simulationApi.replayGoldenCase(parsedWorkspaceId, goldenCase.id, {
-        domainPackVersionId: versionId,
-      });
+      const result = await simulationApi.replayGoldenCase(
+        parsedWorkspaceId,
+        goldenCase.id,
+        {
+          domainPackVersionId: versionId,
+        },
+      );
       if (result.status === "PASS") {
         toast.success("검증 케이스 replay가 통과했습니다.");
       } else {
@@ -1401,9 +1619,13 @@ export function WorkspaceSimulationPage() {
   const messages = detail?.messages ?? [];
   const slots = slotEntries(detail);
   const feedbackCounts = detail?.feedback?.messageFeedbackCounts ?? {};
-  const selectedFeedbackTarget = messages.find((message) => String(message.id) === feedbackTarget);
+  const selectedFeedbackTarget = messages.find(
+    (message) => String(message.id) === feedbackTarget,
+  );
   const selectedTargetLabel =
-    feedbackTarget === "session" ? "세션 전체" : `Turn ${selectedFeedbackTarget?.seqNo ?? ""}`;
+    feedbackTarget === "session"
+      ? "세션 전체"
+      : `Turn ${selectedFeedbackTarget?.seqNo ?? ""}`;
 
   return (
     <div className={styles.pageWrapper}>
@@ -1412,7 +1634,8 @@ export function WorkspaceSimulationPage() {
           <p className={styles.eyebrow}>Simulation Lab</p>
           <h1 className={styles.pageTitle}>상담 시뮬레이션</h1>
           <p className={styles.pageSubtitle}>
-            운영 중인 Domain Pack 기준으로 고객 문의를 시험하고 매칭된 workflow 상태를 확인합니다.
+            운영 중인 Domain Pack 기준으로 고객 문의를 시험하고 매칭된 workflow
+            상태를 확인합니다.
           </p>
         </div>
         <Button
@@ -1434,7 +1657,10 @@ export function WorkspaceSimulationPage() {
       {error ? <ErrorState message={error} /> : null}
 
       {simulationTarget ? (
-        <section className={styles.targetBanner} aria-labelledby="simulation-target-title">
+        <section
+          className={styles.targetBanner}
+          aria-labelledby="simulation-target-title"
+        >
           <div>
             <p className={styles.eyebrow}>Verification Target</p>
             <h2 id="simulation-target-title">{targetWorkflowLabel}</h2>
@@ -1448,7 +1674,10 @@ export function WorkspaceSimulationPage() {
         </section>
       ) : null}
 
-      <section className={styles.createPanel} aria-labelledby="simulation-create-title">
+      <section
+        className={styles.createPanel}
+        aria-labelledby="simulation-create-title"
+      >
         <div>
           <h2 id="simulation-create-title" className={styles.sectionTitle}>
             새 시뮬레이션
@@ -1482,13 +1711,20 @@ export function WorkspaceSimulationPage() {
               </NativeSelectOption>
             ) : null}
             {workflows.entries.map((workflow) => (
-              <NativeSelectOption key={workflow.workflowId} value={String(workflow.workflowId)}>
+              <NativeSelectOption
+                key={workflow.workflowId}
+                value={String(workflow.workflowId)}
+              >
                 {workflow.packName} · {workflow.name}
               </NativeSelectOption>
             ))}
           </NativeSelect>
         </label>
-        <Button type="button" onClick={handleCreateSession} disabled={isCreating}>
+        <Button
+          type="button"
+          onClick={handleCreateSession}
+          disabled={isCreating}
+        >
           <PlusIcon className={styles.buttonIcon} />
           <span>{isCreating ? "생성 중" : "세션 생성"}</span>
         </Button>
@@ -1534,7 +1770,9 @@ export function WorkspaceSimulationPage() {
         <section className={styles.chatPane} aria-label="시뮬레이션 대화">
           <div className={styles.paneHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>{customerName(detail?.session ?? null)}</h2>
+              <h2 className={styles.sectionTitle}>
+                {customerName(detail?.session ?? null)}
+              </h2>
               <p className={styles.sectionDescription}>
                 {selectedWorkflow?.name ??
                   targetWorkflow?.name ??
@@ -1560,13 +1798,22 @@ export function WorkspaceSimulationPage() {
             <>
               <div className={styles.messageList}>
                 {messages.length === 0 ? (
-                  <p className={styles.emptyMessage}>고객 메시지를 입력하면 응답이 생성됩니다.</p>
+                  <p className={styles.emptyMessage}>
+                    고객 메시지를 입력하면 응답이 생성됩니다.
+                  </p>
                 ) : (
                   messages.map((message, index) => (
                     <MessageBubble
-                      key={message.id ?? `${message.seqNo ?? index}-${message.createdAt ?? ""}`}
+                      key={
+                        message.id ??
+                        `${message.seqNo ?? index}-${message.createdAt ?? ""}`
+                      }
                       message={message}
-                      feedbackCount={message.id ? (feedbackCounts[String(message.id)] ?? 0) : 0}
+                      feedbackCount={
+                        message.id
+                          ? (feedbackCounts[String(message.id)] ?? 0)
+                          : 0
+                      }
                       onFeedbackClick={
                         message.id
                           ? () => {
@@ -1606,8 +1853,15 @@ export function WorkspaceSimulationPage() {
           )}
         </section>
 
-        <aside className={styles.statePane} aria-label="시뮬레이션 상태와 개선 작업">
-          <div className={styles.sideTabList} role="tablist" aria-label="시뮬레이션 우측 패널">
+        <aside
+          className={styles.statePane}
+          aria-label="시뮬레이션 상태와 개선 작업"
+        >
+          <div
+            className={styles.sideTabList}
+            role="tablist"
+            aria-label="시뮬레이션 우측 패널"
+          >
             {SIDE_TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -1639,7 +1893,9 @@ export function WorkspaceSimulationPage() {
                 </div>
                 <div>
                   <dt>Workflow</dt>
-                  <dd>{matched?.workflowName ?? matched?.workflowCode ?? "미매칭"}</dd>
+                  <dd>
+                    {matched?.workflowName ?? matched?.workflowCode ?? "미매칭"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Current State</dt>
@@ -1647,7 +1903,11 @@ export function WorkspaceSimulationPage() {
                 </div>
                 <div>
                   <dt>Status</dt>
-                  <dd>{matched?.executionStatus ?? detail?.session.status ?? "대기"}</dd>
+                  <dd>
+                    {matched?.executionStatus ??
+                      detail?.session.status ??
+                      "대기"}
+                  </dd>
                 </div>
               </dl>
 
@@ -1693,7 +1953,11 @@ export function WorkspaceSimulationPage() {
                     </div>
                     <div>
                       <dt>Workflow</dt>
-                      <dd>{displayText(matched?.workflowCode ?? matched?.workflowName)}</dd>
+                      <dd>
+                        {displayText(
+                          matched?.workflowCode ?? matched?.workflowName,
+                        )}
+                      </dd>
                     </div>
                     <div>
                       <dt>State</dt>
@@ -1714,7 +1978,9 @@ export function WorkspaceSimulationPage() {
                     <span>기대 intent</span>
                     <input
                       value={expectedIntentCode}
-                      onChange={(event) => setExpectedIntentCode(event.target.value)}
+                      onChange={(event) =>
+                        setExpectedIntentCode(event.target.value)
+                      }
                       maxLength={255}
                       aria-label="기대 intent"
                       list="expected-intent-options"
@@ -1729,7 +1995,9 @@ export function WorkspaceSimulationPage() {
                     <span>기대 workflow</span>
                     <input
                       value={expectedWorkflowCode}
-                      onChange={(event) => setExpectedWorkflowCode(event.target.value)}
+                      onChange={(event) =>
+                        setExpectedWorkflowCode(event.target.value)
+                      }
                       maxLength={255}
                       aria-label="기대 workflow"
                       list="expected-workflow-options"
@@ -1744,7 +2012,9 @@ export function WorkspaceSimulationPage() {
                     <span>기대 state</span>
                     <input
                       value={expectedCurrentState}
-                      onChange={(event) => setExpectedCurrentState(event.target.value)}
+                      onChange={(event) =>
+                        setExpectedCurrentState(event.target.value)
+                      }
                       maxLength={255}
                       aria-label="기대 state"
                       list="expected-state-options"
@@ -1759,10 +2029,14 @@ export function WorkspaceSimulationPage() {
                     <span>기대 action</span>
                     <NativeSelect
                       value={expectedActionType}
-                      onChange={(event) => setExpectedActionType(event.target.value)}
+                      onChange={(event) =>
+                        setExpectedActionType(event.target.value)
+                      }
                       aria-label="기대 action"
                     >
-                      <NativeSelectOption value="">선택하세요</NativeSelectOption>
+                      <NativeSelectOption value="">
+                        선택하세요
+                      </NativeSelectOption>
                       {ACTION_TYPES.map((type) => (
                         <NativeSelectOption key={type} value={type}>
                           {type}
@@ -1774,7 +2048,9 @@ export function WorkspaceSimulationPage() {
                     <span>필수 slot JSON</span>
                     <textarea
                       value={expectedSlotValuesJson}
-                      onChange={(event) => setExpectedSlotValuesJson(event.target.value)}
+                      onChange={(event) =>
+                        setExpectedSlotValuesJson(event.target.value)
+                      }
                       rows={4}
                       aria-label="필수 slot JSON"
                     />
@@ -1798,7 +2074,9 @@ export function WorkspaceSimulationPage() {
                   <span>{isCreatingGoldenCase ? "저장 중" : "등록"}</span>
                 </Button>
                 {isLoadingGoldenCases ? (
-                  <p className={styles.feedbackMuted}>검증 케이스를 불러오는 중입니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    검증 케이스를 불러오는 중입니다.
+                  </p>
                 ) : goldenCaseError ? (
                   <div className={styles.secondaryErrorState}>
                     <ErrorState
@@ -1809,13 +2087,22 @@ export function WorkspaceSimulationPage() {
                     />
                   </div>
                 ) : goldenCases.length === 0 ? (
-                  <p className={styles.feedbackMuted}>저장된 검증 케이스가 없습니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    저장된 검증 케이스가 없습니다.
+                  </p>
                 ) : (
                   <ul className={styles.goldenCaseList}>
                     {goldenCases.map((goldenCase) => {
-                      const replayStatus = goldenCase.latestReplayResult?.status;
-                      const state = readExpectedField(goldenCase, "currentState");
-                      const action = readExpectedField(goldenCase, "actionType");
+                      const replayStatus =
+                        goldenCase.latestReplayResult?.status;
+                      const state = readExpectedField(
+                        goldenCase,
+                        "currentState",
+                      );
+                      const action = readExpectedField(
+                        goldenCase,
+                        "actionType",
+                      );
                       return (
                         <li key={goldenCase.id}>
                           <div className={styles.feedbackRowHeader}>
@@ -1839,7 +2126,9 @@ export function WorkspaceSimulationPage() {
                               {replayStatus === "FAIL" ? (
                                 <XCircleIcon className={styles.buttonIcon} />
                               ) : replayStatus === "PASS" ? (
-                                <CheckCircleIcon className={styles.buttonIcon} />
+                                <CheckCircleIcon
+                                  className={styles.buttonIcon}
+                                />
                               ) : (
                                 <PlayIcon className={styles.buttonIcon} />
                               )}
@@ -1856,13 +2145,17 @@ export function WorkspaceSimulationPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => void handleReplayGoldenCase(goldenCase)}
+                              onClick={() =>
+                                void handleReplayGoldenCase(goldenCase)
+                              }
                               disabled={replayingGoldenCaseId === goldenCase.id}
                               aria-label={`${goldenCase.name} replay`}
                             >
                               <PlayIcon className={styles.buttonIcon} />
                               <span>
-                                {replayingGoldenCaseId === goldenCase.id ? "Replay 중" : "Replay"}
+                                {replayingGoldenCaseId === goldenCase.id
+                                  ? "Replay 중"
+                                  : "Replay"}
                               </span>
                             </Button>
                           </div>
@@ -1894,7 +2187,9 @@ export function WorkspaceSimulationPage() {
                     onChange={(event) => setFeedbackTarget(event.target.value)}
                     aria-label="피드백 대상 선택"
                   >
-                    <NativeSelectOption value="session">세션 전체</NativeSelectOption>
+                    <NativeSelectOption value="session">
+                      세션 전체
+                    </NativeSelectOption>
                     {messages.map((message) => (
                       <NativeSelectOption
                         key={message.id ?? message.seqNo}
@@ -1911,7 +2206,9 @@ export function WorkspaceSimulationPage() {
                   <NativeSelect
                     value={feedbackType}
                     onChange={(event) =>
-                      setFeedbackType(event.target.value as SimulationFeedbackType)
+                      setFeedbackType(
+                        event.target.value as SimulationFeedbackType,
+                      )
                     }
                     aria-label="피드백 유형 선택"
                   >
@@ -1927,7 +2224,9 @@ export function WorkspaceSimulationPage() {
                   <NativeSelect
                     value={feedbackSeverity}
                     onChange={(event) =>
-                      setFeedbackSeverity(event.target.value as SimulationFeedbackSeverity)
+                      setFeedbackSeverity(
+                        event.target.value as SimulationFeedbackSeverity,
+                      )
                     }
                     aria-label="피드백 심각도 선택"
                   >
@@ -1942,7 +2241,9 @@ export function WorkspaceSimulationPage() {
                   <span>설명</span>
                   <textarea
                     value={feedbackDescription}
-                    onChange={(event) => setFeedbackDescription(event.target.value)}
+                    onChange={(event) =>
+                      setFeedbackDescription(event.target.value)
+                    }
                     maxLength={2000}
                     rows={3}
                   />
@@ -1951,14 +2252,16 @@ export function WorkspaceSimulationPage() {
                   <span>기대 응답/행동</span>
                   <textarea
                     value={feedbackExpectedBehavior}
-                    onChange={(event) => setFeedbackExpectedBehavior(event.target.value)}
+                    onChange={(event) =>
+                      setFeedbackExpectedBehavior(event.target.value)
+                    }
                     maxLength={2000}
                     rows={3}
                   />
                 </label>
                 <Button
                   type="button"
-                  onClick={handleSubmitFeedback}
+                  onClick={handleSubmitFeedbackAndCreateCandidate}
                   disabled={
                     isSubmittingFeedback ||
                     detail === null ||
@@ -1967,7 +2270,9 @@ export function WorkspaceSimulationPage() {
                   }
                 >
                   <FlagIcon className={styles.buttonIcon} />
-                  <span>{isSubmittingFeedback ? "저장 중" : "피드백 저장"}</span>
+                  <span>
+                    {isSubmittingFeedback ? "저장 중" : "피드백 저장"}
+                  </span>
                 </Button>
               </div>
 
@@ -1977,19 +2282,26 @@ export function WorkspaceSimulationPage() {
                   <NativeSelect
                     value={feedbackStatusFilter}
                     onChange={(event) =>
-                      setFeedbackStatusFilter(event.target.value as SimulationFeedbackStatus | "")
+                      setFeedbackStatusFilter(
+                        event.target.value as SimulationFeedbackStatus | "",
+                      )
                     }
                     aria-label="피드백 상태 필터"
                   >
                     {FEEDBACK_STATUSES.map((item) => (
-                      <NativeSelectOption key={item.value || "ALL"} value={item.value}>
+                      <NativeSelectOption
+                        key={item.value || "ALL"}
+                        value={item.value}
+                      >
                         {item.label}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </div>
                 {isLoadingFeedback ? (
-                  <p className={styles.feedbackMuted}>피드백을 불러오는 중입니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    피드백을 불러오는 중입니다.
+                  </p>
                 ) : feedbackError ? (
                   <div className={styles.secondaryErrorState}>
                     <ErrorState
@@ -2000,7 +2312,9 @@ export function WorkspaceSimulationPage() {
                     />
                   </div>
                 ) : feedbackItems.length === 0 ? (
-                  <p className={styles.feedbackMuted}>조건에 맞는 피드백이 없습니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    조건에 맞는 피드백이 없습니다.
+                  </p>
                 ) : (
                   <ul className={styles.feedbackList}>
                     {feedbackItems.map((feedback) => {
@@ -2016,12 +2330,15 @@ export function WorkspaceSimulationPage() {
                         candidateWorkflowTarget,
                       );
                       const isCandidateActionDisabled =
-                        feedback.status !== "OPEN" || creatingCandidateId === feedback.id;
+                        feedback.status !== "OPEN" ||
+                        creatingCandidateId === feedback.id;
                       return (
                         <li key={feedback.id}>
                           <div className={styles.feedbackRowHeader}>
                             <div>
-                              <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
+                              <strong>
+                                {feedbackTypeLabel(feedback.feedbackType)}
+                              </strong>
                               <span>
                                 {feedbackSeverityLabel(feedback.severity)} ·{" "}
                                 {feedbackStatusLabel(feedback.status)}
@@ -2031,12 +2348,16 @@ export function WorkspaceSimulationPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => void handleCreateCandidate(feedback)}
+                              onClick={() =>
+                                void handleCreateCandidate(feedback)
+                              }
                               disabled={isCandidateActionDisabled}
                             >
                               <LightbulbIcon className={styles.buttonIcon} />
                               <span>
-                                {creatingCandidateId === feedback.id ? "생성 중" : "후보"}
+                                {creatingCandidateId === feedback.id
+                                  ? "생성 중"
+                                  : "후보"}
                               </span>
                             </Button>
                           </div>
@@ -2057,7 +2378,10 @@ export function WorkspaceSimulationPage() {
                                 aria-label={`피드백 #${feedback.id} 개선 대상 선택`}
                               >
                                 {CANDIDATE_TARGET_TYPES.map((item) => (
-                                  <NativeSelectOption key={item.value} value={item.value}>
+                                  <NativeSelectOption
+                                    key={item.value}
+                                    value={item.value}
+                                  >
                                     {item.label}
                                   </NativeSelectOption>
                                 ))}
@@ -2098,13 +2422,18 @@ export function WorkspaceSimulationPage() {
                     value={candidateStatusFilter}
                     onChange={(event) =>
                       setCandidateStatusFilter(
-                        event.target.value as SimulationImprovementCandidateStatus | "",
+                        event.target.value as
+                          | SimulationImprovementCandidateStatus
+                          | "",
                       )
                     }
                     aria-label="개선 후보 상태 필터"
                   >
                     {CANDIDATE_STATUSES.map((item) => (
-                      <NativeSelectOption key={item.value || "ALL"} value={item.value}>
+                      <NativeSelectOption
+                        key={item.value || "ALL"}
+                        value={item.value}
+                      >
                         {item.label}
                       </NativeSelectOption>
                     ))}
@@ -2116,7 +2445,9 @@ export function WorkspaceSimulationPage() {
                   </output>
                 ) : null}
                 {isLoadingCandidates ? (
-                  <p className={styles.feedbackMuted}>개선 후보를 불러오는 중입니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    개선 후보를 불러오는 중입니다.
+                  </p>
                 ) : candidateError ? (
                   <div className={styles.secondaryErrorState}>
                     <ErrorState
@@ -2127,14 +2458,18 @@ export function WorkspaceSimulationPage() {
                     />
                   </div>
                 ) : candidateItems.length === 0 ? (
-                  <p className={styles.feedbackMuted}>조건에 맞는 개선 후보가 없습니다.</p>
+                  <p className={styles.feedbackMuted}>
+                    조건에 맞는 개선 후보가 없습니다.
+                  </p>
                 ) : (
                   <ul className={styles.candidateList}>
                     {candidateItems.map((candidate) => (
                       <li key={candidate.id}>
                         <div className={styles.feedbackRowHeader}>
                           <div>
-                            <strong>{candidateTypeLabel(candidate.candidateType)}</strong>
+                            <strong>
+                              {candidateTypeLabel(candidate.candidateType)}
+                            </strong>
                             <span>
                               버전 #{candidate.domainPackVersionId} · 대상:{" "}
                               {candidateTargetLabel(candidate)}
@@ -2162,7 +2497,9 @@ export function WorkspaceSimulationPage() {
                                 {candidate.chatMessageId
                                   ? ` · 메시지 #${candidate.chatMessageId}`
                                   : ""}
-                                {candidate.feedbackId ? ` · 피드백 #${candidate.feedbackId}` : ""}
+                                {candidate.feedbackId
+                                  ? ` · 피드백 #${candidate.feedbackId}`
+                                  : ""}
                               </span>
                             </dd>
                           </div>
@@ -2172,7 +2509,9 @@ export function WorkspaceSimulationPage() {
                           confirmed={confirmedCandidatePatchKeys.has(
                             candidatePatchConfirmationKey(candidate),
                           )}
-                          onConfirm={() => handleConfirmCandidatePatch(candidate)}
+                          onConfirm={() =>
+                            handleConfirmCandidatePatch(candidate)
+                          }
                         />
                         {candidate.status === "DRAFT" ? (
                           <div className={styles.candidateActions}>
@@ -2182,11 +2521,16 @@ export function WorkspaceSimulationPage() {
                               size="sm"
                               disabled={updatingCandidateId === candidate.id}
                               onClick={() =>
-                                void handleCandidateStatusChange(candidate, "READY_FOR_REVIEW")
+                                void handleCandidateStatusChange(
+                                  candidate,
+                                  "READY_FOR_REVIEW",
+                                )
                               }
                             >
                               <span>
-                                {updatingCandidateId === candidate.id ? "요청 중" : "리뷰 요청"}
+                                {updatingCandidateId === candidate.id
+                                  ? "요청 중"
+                                  : "리뷰 요청"}
                               </span>
                             </Button>
                           </div>
@@ -2210,7 +2554,9 @@ export function WorkspaceSimulationPage() {
                                 type="button"
                                 variant="outline"
                                 disabled={updatingCandidateId === candidate.id}
-                                onClick={() => void handleRejectCandidate(candidate)}
+                                onClick={() =>
+                                  void handleRejectCandidate(candidate)
+                                }
                               >
                                 <span>반려</span>
                               </Button>
@@ -2225,7 +2571,9 @@ export function WorkspaceSimulationPage() {
                                     ),
                                   )
                                 }
-                                onClick={() => void handleApproveCandidate(candidate)}
+                                onClick={() =>
+                                  void handleApproveCandidate(candidate)
+                                }
                               >
                                 <span>승인</span>
                               </Button>
@@ -2264,7 +2612,10 @@ function CandidatePatchReview({
   const patchReview = buildCandidatePatchReview(candidate);
 
   return (
-    <section className={styles.candidatePatchPanel} aria-label="draft patch 검토">
+    <section
+      className={styles.candidatePatchPanel}
+      aria-label="draft patch 검토"
+    >
       <div className={styles.candidatePatchHeader}>
         <div>
           <strong>Draft patch 검토</strong>
@@ -2334,15 +2685,17 @@ function CandidatePatchReview({
         </>
       ) : (
         <>
-          <p className={styles.patchUnavailableMessage}>{patchReview.message}</p>
+          <p className={styles.patchUnavailableMessage}>
+            {patchReview.message}
+          </p>
           {patchReview.rawJson ? (
             <pre className={styles.patchRawPreview}>
               <code>{patchReview.rawJson}</code>
             </pre>
           ) : null}
           <p className={styles.patchConfirmHint}>
-            patch 내용을 확인할 수 없어 승인할 수 없습니다. 리뷰 요청 상태나 후보 생성 데이터를 먼저
-            확인하세요.
+            patch 내용을 확인할 수 없어 승인할 수 없습니다. 리뷰 요청 상태나
+            후보 생성 데이터를 먼저 확인하세요.
           </p>
         </>
       )}
@@ -2356,14 +2709,23 @@ type MessageBubbleProps = Readonly<{
   onFeedbackClick?: () => void;
 }>;
 
-function MessageBubble({ message, feedbackCount, onFeedbackClick }: MessageBubbleProps) {
-  const isCustomer = message.senderRole === "USER" || message.senderRole === "CUSTOMER";
+function MessageBubble({
+  message,
+  feedbackCount,
+  onFeedbackClick,
+}: MessageBubbleProps) {
+  const isCustomer =
+    message.senderRole === "USER" || message.senderRole === "CUSTOMER";
   return (
-    <article className={`${styles.message} ${isCustomer ? styles.messageCustomer : ""}`}>
+    <article
+      className={`${styles.message} ${isCustomer ? styles.messageCustomer : ""}`}
+    >
       <div className={styles.messageMeta}>
         <span>{roleLabel(message.senderRole)}</span>
         <div className={styles.messageActions}>
-          {feedbackCount > 0 ? <span className={styles.feedbackBadge}>{feedbackCount}</span> : null}
+          {feedbackCount > 0 ? (
+            <span className={styles.feedbackBadge}>{feedbackCount}</span>
+          ) : null}
           {onFeedbackClick ? (
             <button
               type="button"
