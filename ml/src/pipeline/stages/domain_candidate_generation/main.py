@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import time
@@ -27,7 +28,9 @@ MIN_CANDIDATES = 3
 MAX_SNIPPET_CHARS = 360
 DEFAULT_LLM_TIMEOUT_SECONDS = 240.0
 MAX_LLM_TIMEOUT_SECONDS = 300.0
-LLM_MAX_TOKENS = 520
+DEFAULT_LLM_MAX_TOKENS: int | None = None
+MAX_LLM_MAX_TOKENS = 4096
+LOGGER = logging.getLogger(__name__)
 STOPWORDS = frozenset(
     {
         "고객",
@@ -128,7 +131,6 @@ def _generate_llm_candidates(
     request_payload = {
         "model": runtime_config.llm_model_name,
         "temperature": 0.1,
-        "max_tokens": LLM_MAX_TOKENS,
         "messages": [
             {
                 "role": "system",
@@ -143,16 +145,41 @@ def _generate_llm_candidates(
         "chat_template_kwargs": {"enable_thinking": False},
         "options": {"think": False},
     }
+    max_tokens = _llm_max_tokens()
+    if max_tokens is not None:
+        request_payload["max_tokens"] = max_tokens
     with httpx.Client(timeout=_llm_timeout()) as client:
         response = client.post(endpoint, headers=headers, json=request_payload)
         response.raise_for_status()
     response_payload = response.json()
-    content = response_payload["choices"][0]["message"]["content"]
-    parsed = json.loads(str(content))
+    choice = response_payload["choices"][0]
+    content = choice["message"]["content"]
+    parsed = _parse_llm_json_response(content, choice.get("finish_reason"))
     raw_candidates = parsed.get("candidates")
     if not isinstance(raw_candidates, list):
         raise ValueError("LLM response must contain candidates list.")
     return [cast(dict[str, object], item) for item in raw_candidates if isinstance(item, dict)]
+
+
+def _parse_llm_json_response(content: object, finish_reason: object) -> dict[str, object]:
+    content_text = str(content)
+    try:
+        parsed = json.loads(content_text)
+    except json.JSONDecodeError as exc:
+        message = (
+            "LLM domain candidate response was not valid JSON "
+            f"finish_reason={finish_reason!r} content_length={len(content_text)}"
+        )
+        if finish_reason == "length":
+            message = (
+                "LLM domain candidate response was truncated before valid JSON completed "
+                f"content_length={len(content_text)}"
+            )
+        LOGGER.warning(message)
+        raise ValueError(message) from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("LLM response must be a JSON object.")
+    return cast(dict[str, object], parsed)
 
 
 def _prompt(sampled: list[ProcessedConversation], fallback_terms: list[str], sample_hash: str) -> str:
@@ -270,6 +297,19 @@ def _llm_timeout() -> float:
     except ValueError:
         return DEFAULT_LLM_TIMEOUT_SECONDS
     return max(1.0, min(MAX_LLM_TIMEOUT_SECONDS, parsed))
+
+
+def _llm_max_tokens() -> int | None:
+    raw = os.getenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "").strip()
+    if not raw:
+        return DEFAULT_LLM_MAX_TOKENS
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return DEFAULT_LLM_MAX_TOKENS
+    if parsed <= 0:
+        return None
+    return min(MAX_LLM_MAX_TOKENS, parsed)
 
 
 def _allow_generation_fallback(runtime_config: PipelineRuntimeConfig) -> bool:
