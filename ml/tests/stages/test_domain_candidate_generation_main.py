@@ -88,11 +88,20 @@ def test_sampling_and_runtime_knobs_are_bounded(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "-3")
     assert main._sample_size() == 80
     assert main._llm_timeout() == 1.0
+    assert main._llm_max_tokens() is None
 
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_SAMPLE_SIZE", "not-a-number")
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "not-a-number")
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "not-a-number")
     assert main._sample_size() == main.MAX_SAMPLE_SIZE
     assert main._llm_timeout() == main.DEFAULT_LLM_TIMEOUT_SECONDS
+    assert main._llm_max_tokens() is None
+
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "8192")
+    assert main._llm_max_tokens() == main.MAX_LLM_MAX_TOKENS
+
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "0")
+    assert main._llm_max_tokens() is None
 
 
 def test_generation_fallback_is_allowed_when_llm_runtime_is_not_configured() -> None:
@@ -202,6 +211,7 @@ def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: p
             return {
                 "choices": [
                     {
+                        "finish_reason": "stop",
                         "message": {
                             "content": json.dumps(
                                 {
@@ -253,9 +263,60 @@ def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: p
     assert request["endpoint"] == "http://llm.local/chat/completions"
     assert request["headers"]["Authorization"] == "Bearer secret-token"
     assert request["json"]["model"] == "model-a"
-    assert request["json"]["max_tokens"] == main.LLM_MAX_TOKENS
+    assert "max_tokens" not in request["json"]
     assert request["json"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert request["json"]["options"] == {"think": False}
+
+
+def test_generate_llm_candidates_accepts_optional_max_tokens_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    sampled = [_conversation("c1", "카드 결제 한도 문의")]
+    posts: list[dict[str, Any]] = []
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"finish_reason": "stop", "message": {"content": '{"candidates":[]}'}}]}
+
+    class FakeClient:
+        def __init__(self, timeout: float) -> None:
+            pass
+
+        def __enter__(self) -> "FakeClient":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def post(self, endpoint: str, *, headers: dict[str, str], json: dict[str, object]) -> FakeResponse:
+            posts.append({"endpoint": endpoint, "headers": headers, "json": json})
+            return FakeResponse()
+
+    runtime_config = type(
+        "RuntimeConfig",
+        (),
+        {
+            "llm_runtime_base_url": "http://llm.local/",
+            "llm_runtime_api_key": None,
+            "llm_model_name": "model-a",
+        },
+    )()
+    monkeypatch.setattr(main.httpx, "Client", FakeClient)
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "2048")
+
+    assert main._generate_llm_candidates(runtime_config, sampled, ["카드"], "hash-1") == []
+    assert posts[0]["json"]["max_tokens"] == 2048
+
+
+def test_parse_llm_json_response_reports_truncated_json() -> None:
+    with pytest.raises(ValueError, match="truncated before valid JSON completed"):
+        main._parse_llm_json_response('{"candidates":[{"displayName":"예약', "length")
+
+
+def test_parse_llm_json_response_requires_json_object() -> None:
+    with pytest.raises(ValueError, match="JSON object"):
+        main._parse_llm_json_response("[]", "stop")
 
 
 def test_generate_llm_candidates_requires_candidates_list() -> None:
