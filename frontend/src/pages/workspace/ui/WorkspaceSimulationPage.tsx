@@ -258,6 +258,7 @@ function matchesTargetContext(
 
 type Meta = {
   customerName?: string;
+  selectedIntentCode?: string;
 };
 
 function parseMeta(metaJson?: string | null): Meta {
@@ -301,9 +302,29 @@ function customerName(session: ChatSession | null): string {
   return parseMeta(session?.metaJson).customerName ?? "시뮬레이션 고객";
 }
 
+function selectedIntentCode(session: ChatSession | null): string | null {
+  const intentCode = parseMeta(session?.metaJson).selectedIntentCode?.trim();
+  return intentCode || null;
+}
+
 function slotEntries(detail: SimulationSessionDetail | null) {
   const values = detail?.slotValues ?? {};
   return Object.entries(values).filter(([, value]) => value !== null && value !== undefined);
+}
+
+function hasMissingRequiredSlot(detail: SimulationSessionDetail | null): boolean {
+  return (
+    detail?.slots.some((slot) => {
+      if (typeof slot !== "object" || slot === null || Array.isArray(slot)) return false;
+      const required = (slot as { required?: unknown }).required;
+      const hasValue = (slot as { hasValue?: unknown }).hasValue;
+      return required === true && hasValue !== true;
+    }) ?? false
+  );
+}
+
+function inferExpectedActionType(detail: SimulationSessionDetail | null): string {
+  return hasMissingRequiredSlot(detail) ? "ASK_SLOT" : "";
 }
 
 function feedbackTypeLabel(type: SimulationFeedbackType): string {
@@ -849,6 +870,8 @@ export function WorkspaceSimulationPage() {
     if (matched?.intentCode) codes.add(matched.intentCode);
     return Array.from(codes);
   }, [workspaceIntents.data, matched?.intentCode]);
+  const currentIntentCode = matched?.intentCode ?? selectedIntentCode(detail?.session ?? null);
+  const currentIntentLabel = matched?.intentName ?? currentIntentCode;
   const isTargetContextConfirmed = matchesTargetContext(targetWorkflow, simulationTarget);
   const targetPackLabel =
     (isTargetContextConfirmed ? targetWorkflow?.packName : null) ??
@@ -947,13 +970,16 @@ export function WorkspaceSimulationPage() {
   useEffect(() => {
     if (detail?.session) {
       setGoldenCaseName(`${customerName(detail.session)} 검증 케이스`);
-      setExpectedIntentCode(detail.matchedWorkflow?.intentCode ?? "");
+      setExpectedIntentCode(
+        detail.matchedWorkflow?.intentCode ?? selectedIntentCode(detail.session) ?? "",
+      );
       setExpectedWorkflowCode(detail.matchedWorkflow?.workflowCode ?? "");
       setExpectedCurrentState(detail.matchedWorkflow?.currentState ?? "");
       setExpectedSlotValuesJson(stringifySlotValues(detail.slotValues));
       setReplayVersionId(
         String(simulationTarget?.versionId ?? detail.matchedWorkflow?.domainPackVersionId ?? ""),
       );
+      setExpectedActionType(inferExpectedActionType(detail));
     } else {
       setGoldenCaseName("");
       setExpectedIntentCode("");
@@ -961,8 +987,8 @@ export function WorkspaceSimulationPage() {
       setExpectedCurrentState("");
       setExpectedSlotValuesJson("{}");
       setReplayVersionId("");
+      setExpectedActionType("");
     }
-    setExpectedActionType("");
   }, [detail, simulationTarget?.versionId]);
 
   useEffect(() => {
@@ -1609,7 +1635,7 @@ export function WorkspaceSimulationPage() {
               <dl className={styles.stateList}>
                 <div>
                   <dt>Intent</dt>
-                  <dd>{matched?.intentName ?? matched?.intentCode ?? "미매칭"}</dd>
+                  <dd>{currentIntentLabel ?? "미매칭"}</dd>
                 </div>
                 <div>
                   <dt>Workflow</dt>
@@ -1663,7 +1689,7 @@ export function WorkspaceSimulationPage() {
                   <dl>
                     <div>
                       <dt>Intent</dt>
-                      <dd>{displayText(matched?.intentCode ?? matched?.intentName)}</dd>
+                      <dd>{displayText(currentIntentCode)}</dd>
                     </div>
                     <div>
                       <dt>Workflow</dt>

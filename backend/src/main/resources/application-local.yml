@@ -46,3 +46,9 @@ airflow:
       dag-id: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:domain_pack_generation}
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET:local-airflow-webhook-secret}
+
+app:
+  ai:
+    chat:
+      fallback:
+        enabled: ${AI_CHAT_FALLBACK_ENABLED:true}

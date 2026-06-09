@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
@@ -18,6 +19,7 @@ import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.ReplaySimulationGoldenCaseCommand;
+import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
@@ -153,12 +155,13 @@ public class SimulationGoldenCaseService {
                 SIMULATION_REPLAY_CHANNEL,
                 replayMetaJson(goldenCase),
                 command.userId()));
+    JsonNode expectedSnapshot = readJson(goldenCase.getExpectedJson(), "{}");
+    preselectExpectedRuntime(replaySession, expectedSnapshot);
     for (String inputMessage : inputMessages) {
       replayCustomerInput(replaySession, inputMessage);
     }
 
     ObjectNode actualSnapshot = buildActualSnapshot(replaySession.getId(), command.userId());
-    JsonNode expectedSnapshot = readJson(goldenCase.getExpectedJson(), "{}");
     List<String> failures = compareSnapshots(expectedSnapshot, actualSnapshot);
     SimulationGoldenCaseReplayStatus status =
         failures.isEmpty()
@@ -285,6 +288,53 @@ public class SimulationGoldenCaseService {
 
   private String currentState(LlmToolWorkflowResponse workflow) {
     return workflow == null ? null : workflow.currentState();
+  }
+
+  private void preselectExpectedRuntime(ChatSession replaySession, JsonNode expectedSnapshot) {
+    String intentCode = trimToNull(expectedSnapshot.path("intentCode").asText(null));
+    String workflowCode = trimToNull(expectedSnapshot.path("workflowCode").asText(null));
+    if (intentCode == null && workflowCode == null) {
+      return;
+    }
+
+    Long domainPackVersionId = replaySession.getDomainPackVersionId();
+    WorkflowDefinition workflow = null;
+    if (workflowCode != null) {
+      workflow =
+          workflowDefinitionRepository
+              .findByDomainPackVersionIdAndWorkflowCode(domainPackVersionId, workflowCode)
+              .orElse(null);
+      if (workflow == null) {
+        return;
+      }
+    }
+
+    IntentDefinition intent = null;
+    if (intentCode != null) {
+      intent =
+          intentDefinitionRepository
+              .findByDomainPackVersionIdAndIntentCode(domainPackVersionId, intentCode)
+              .orElse(null);
+      if (intent == null) {
+        return;
+      }
+      if (workflow != null && !workflow.getIntentDefinitionId().equals(intent.getId())) {
+        return;
+      }
+    } else {
+      intent =
+          intentDefinitionRepository
+              .findByIdAndDomainPackVersionId(workflow.getIntentDefinitionId(), domainPackVersionId)
+              .orElse(null);
+      if (intent == null) {
+        return;
+      }
+      intentCode = intent.getIntentCode();
+    }
+
+    llmToolService.selectIntent(
+        new SelectLlmToolIntentCommand(
+            replaySession.getId(), intentCode, workflow == null ? null : workflow.getId()));
   }
 
   private void replayCustomerInput(ChatSession replaySession, String content) {
