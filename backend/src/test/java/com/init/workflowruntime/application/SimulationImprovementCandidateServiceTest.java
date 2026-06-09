@@ -21,6 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.DomainPackDraftSourceType;
 import com.init.domainpack.application.DomainPackVersionCloneCommand;
@@ -112,15 +113,17 @@ class SimulationImprovementCandidateServiceTest {
   @Mock private ReviewTaskRepository reviewTaskRepository;
   @Mock private ReviewDecisionRepository reviewDecisionRepository;
   @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
+  @Mock private SimulationStructuralPatchGenerationService structuralPatchGenerationService;
 
   private SimulationImprovementCandidateService service;
   private SimulationImprovementDraftPatchService draftPatchService;
   private SimulationImprovementCandidateReviewTaskService reviewTaskService;
   private SimulationImprovementCandidateDecisionService decisionService;
+  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
-    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper = new ObjectMapper();
     Clock clock = Clock.systemDefaultZone();
     reviewTaskService =
         new SimulationImprovementCandidateReviewTaskService(
@@ -146,15 +149,20 @@ class SimulationImprovementCandidateServiceTest {
             draftPatchService,
             profileBuildRequestService,
             clock);
-    service =
-        new SimulationImprovementCandidateService(
-            feedbackRepository,
-            candidateRepository,
-            chatSessionRepository,
-            workspaceMemberRepository,
-            reviewTaskService,
-            decisionService,
-            objectMapper);
+    service = candidateService(false);
+  }
+
+  private SimulationImprovementCandidateService candidateService(boolean structuralPatchEnabled) {
+    return new SimulationImprovementCandidateService(
+        feedbackRepository,
+        candidateRepository,
+        chatSessionRepository,
+        workspaceMemberRepository,
+        reviewTaskService,
+        decisionService,
+        structuralPatchGenerationService,
+        objectMapper,
+        structuralPatchEnabled);
   }
 
   @Test
@@ -195,6 +203,71 @@ class SimulationImprovementCandidateServiceTest {
     assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.CANDIDATE_CREATED);
     verify(feedbackRepository).save(feedback);
     assertThat(result.id()).isEqualTo(1000L);
+  }
+
+  @Test
+  @DisplayName("createFromFeedback: 구조적 패치 생성이 켜지고 성공하면 검증된 패치를 draftPatchJson에 저장한다")
+  void shouldStoreStructuralPatch_whenGenerationEnabledAndSucceeds() {
+    SimulationImprovementCandidateService enabledService = candidateService(true);
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    ChatSession session = withSessionId(simulationSession(), SESSION_ID);
+    String patchJson =
+        "{\"schemaVersion\":\"simulation-structural-patch.v1\",\"summary\":\"슬롯 보강\","
+            + "\"evidence\":{\"failureSummary\":\"missing slot\"},"
+            + "\"operations\":[{\"op\":\"MARK_SLOT_REQUIRED\",\"slotCode\":\"order_number\","
+            + "\"reason\":\"필수\"}]}";
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(structuralPatchGenerationService.generate(any(), any()))
+        .willReturn(SimulationStructuralPatchGenerationResult.success(patchJson));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> withCandidateId(invocation.getArgument(0), 1000L));
+
+    enabledService.createFromFeedback(
+        new CreateSimulationImprovementCandidateCommand(
+            WORKSPACE_ID, USER_ID, FEEDBACK_ID, null, null, "order_number", null, null));
+
+    ArgumentCaptor<SimulationImprovementCandidate> candidateCaptor =
+        ArgumentCaptor.forClass(SimulationImprovementCandidate.class);
+    verify(candidateRepository).save(candidateCaptor.capture());
+    assertThat(candidateCaptor.getValue().getDraftPatchJson()).isEqualTo(patchJson);
+  }
+
+  @Test
+  @DisplayName("createFromFeedback: 구조적 패치 생성이 실패하면 생성 실패 envelope를 draftPatchJson에 저장한다")
+  void shouldStoreGenerationFailureEnvelope_whenGenerationFails() throws Exception {
+    SimulationImprovementCandidateService enabledService = candidateService(true);
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    ChatSession session = withSessionId(simulationSession(), SESSION_ID);
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(structuralPatchGenerationService.generate(any(), any()))
+        .willReturn(
+            SimulationStructuralPatchGenerationResult.invalidOutput("지원하지 않는 operation입니다: FOO"));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> withCandidateId(invocation.getArgument(0), 1000L));
+
+    enabledService.createFromFeedback(
+        new CreateSimulationImprovementCandidateCommand(
+            WORKSPACE_ID, USER_ID, FEEDBACK_ID, null, null, "order_number", null, null));
+
+    ArgumentCaptor<SimulationImprovementCandidate> candidateCaptor =
+        ArgumentCaptor.forClass(SimulationImprovementCandidate.class);
+    verify(candidateRepository).save(candidateCaptor.capture());
+    JsonNode envelope = objectMapper.readTree(candidateCaptor.getValue().getDraftPatchJson());
+    assertThat(envelope.get("schemaVersion").asText())
+        .isEqualTo("simulation-structural-patch-generation.v1");
+    assertThat(envelope.get("status").asText()).isEqualTo("INVALID_OUTPUT");
+    assertThat(envelope.get("summary").asText()).isNotBlank();
+    assertThat(envelope.get("message").asText()).contains("FOO");
+    assertThat(envelope.get("descriptionPatch").get("schemaVersion").asText())
+        .isEqualTo("simulation-candidate-draft-patch.v1");
   }
 
   @Test

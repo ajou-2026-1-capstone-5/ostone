@@ -13,6 +13,9 @@ public interface JpaSimulationGoldenCaseRepository
 
   Optional<SimulationGoldenCase> findByIdAndWorkspaceId(Long id, Long workspaceId);
 
+  Optional<SimulationGoldenCase> findFirstBySourceChatSessionIdOrderByCreatedAtDesc(
+      Long sourceChatSessionId);
+
   Page<SimulationGoldenCase> findByWorkspaceIdOrderByCreatedAtDesc(
       Long workspaceId, Pageable pageable);
 }

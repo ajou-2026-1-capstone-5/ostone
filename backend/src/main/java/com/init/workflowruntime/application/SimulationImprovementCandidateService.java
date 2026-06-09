@@ -29,6 +29,7 @@ import com.init.workflowruntime.domain.SimulationImprovementCandidateType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.Locale;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +48,9 @@ public class SimulationImprovementCandidateService {
   private final WorkspaceMemberRepository workspaceMemberRepository;
   private final SimulationImprovementCandidateReviewTaskService reviewTaskService;
   private final SimulationImprovementCandidateDecisionService decisionService;
+  private final SimulationStructuralPatchGenerationService structuralPatchGenerationService;
   private final ObjectMapper objectMapper;
+  private final boolean structuralPatchEnabled;
 
   public SimulationImprovementCandidateService(
       SimulationFeedbackRepository feedbackRepository,
@@ -56,14 +59,18 @@ public class SimulationImprovementCandidateService {
       WorkspaceMemberRepository workspaceMemberRepository,
       SimulationImprovementCandidateReviewTaskService reviewTaskService,
       SimulationImprovementCandidateDecisionService decisionService,
-      ObjectMapper objectMapper) {
+      SimulationStructuralPatchGenerationService structuralPatchGenerationService,
+      ObjectMapper objectMapper,
+      @Value("${app.simulation.structural-patch.enabled:false}") boolean structuralPatchEnabled) {
     this.feedbackRepository = feedbackRepository;
     this.candidateRepository = candidateRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
     this.reviewTaskService = reviewTaskService;
     this.decisionService = decisionService;
+    this.structuralPatchGenerationService = structuralPatchGenerationService;
     this.objectMapper = objectMapper;
+    this.structuralPatchEnabled = structuralPatchEnabled;
   }
 
   @Transactional
@@ -159,14 +166,31 @@ public class SimulationImprovementCandidateService {
             feedback.getChatMessageId(),
             draftFrom(command, feedback),
             command.userId());
-    candidate.defineDraftPatch(buildDraftPatchJson(candidate));
+    candidate.defineDraftPatch(buildDraftPatch(candidate, feedback, session));
     SimulationImprovementCandidate saved = candidateRepository.save(candidate);
     feedback.markCandidateCreated();
     feedbackRepository.save(feedback);
     return SimulationImprovementCandidateResponse.from(saved);
   }
 
-  private String buildDraftPatchJson(SimulationImprovementCandidate candidate) {
+  private String buildDraftPatch(
+      SimulationImprovementCandidate candidate, SimulationFeedback feedback, ChatSession session) {
+    if (!structuralPatchEnabled) {
+      return buildDescriptionPatchJson(candidate);
+    }
+    SimulationStructuralPatchGenerationResult result =
+        structuralPatchGenerationService.generate(feedback, session);
+    if (result.isSuccess()) {
+      return result.patchJson();
+    }
+    return buildGenerationFailureEnvelope(candidate, result);
+  }
+
+  private String buildDescriptionPatchJson(SimulationImprovementCandidate candidate) {
+    return toJson(buildDescriptionPatchNode(candidate));
+  }
+
+  private ObjectNode buildDescriptionPatchNode(SimulationImprovementCandidate candidate) {
     ObjectNode root = objectMapper.createObjectNode();
     root.put("schemaVersion", "simulation-candidate-draft-patch.v1");
     root.put("operation", "UPDATE_DESCRIPTION");
@@ -180,6 +204,19 @@ public class SimulationImprovementCandidateService {
     root.put("beforeSummary", candidate.getBeforeSummary());
     root.put("afterSummary", candidate.getAfterSummary());
     root.put("evidenceSummary", candidate.getEvidenceSummary());
+    return root;
+  }
+
+  private String buildGenerationFailureEnvelope(
+      SimulationImprovementCandidate candidate, SimulationStructuralPatchGenerationResult result) {
+    ObjectNode root = objectMapper.createObjectNode();
+    root.put("schemaVersion", "simulation-structural-patch-generation.v1");
+    root.put("status", result.status().name());
+    root.put("summary", result.summary());
+    if (result.message() != null) {
+      root.put("message", result.message());
+    }
+    root.set("descriptionPatch", buildDescriptionPatchNode(candidate));
     return toJson(root);
   }
 

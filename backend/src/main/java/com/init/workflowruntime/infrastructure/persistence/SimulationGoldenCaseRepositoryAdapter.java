@@ -34,6 +34,11 @@ public class SimulationGoldenCaseRepositoryAdapter implements SimulationGoldenCa
   }
 
   @Override
+  public Optional<SimulationGoldenCase> findBySourceChatSessionId(Long sourceChatSessionId) {
+    return jpaRepository.findFirstBySourceChatSessionIdOrderByCreatedAtDesc(sourceChatSessionId);
+  }
+
+  @Override
   public DomainPage<SimulationGoldenCase> findByWorkspaceId(
       Long workspaceId, DomainPageRequest pageRequest) {
     return toDomainPage(

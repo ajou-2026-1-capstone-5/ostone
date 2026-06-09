@@ -10,6 +10,8 @@ public interface SimulationGoldenCaseRepository {
 
   Optional<SimulationGoldenCase> findByIdAndWorkspaceId(Long id, Long workspaceId);
 
+  Optional<SimulationGoldenCase> findBySourceChatSessionId(Long sourceChatSessionId);
+
   DomainPage<SimulationGoldenCase> findByWorkspaceId(
       Long workspaceId, DomainPageRequest pageRequest);
 }
