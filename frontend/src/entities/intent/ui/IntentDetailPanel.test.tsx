@@ -181,6 +181,24 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("INTENT_001")).toBeInTheDocument();
   });
 
+  it("children은 스크롤되는 body 안 내부 리소스 섹션 아래에 렌더링된다 (#910)", () => {
+    mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
+    const childrenFn = vi.fn(() => <div data-testid="children">workflows</div>);
+
+    renderPanel({ children: childrenFn });
+
+    const body = screen.getByTestId("intent-detail-body");
+    const child = screen.getByTestId("children");
+    const resourceTitle = screen.getByText("내부 리소스");
+
+    // 워크플로우 등 children은 body 바깥 형제가 아니라 스크롤 영역 안에 있어야 한다.
+    expect(body).toContainElement(child);
+    // 내부 리소스 섹션보다 뒤(아래)에 렌더링되어야 한다.
+    expect(
+      resourceTitle.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("내부 리소스 요약 화면에서 cluster 관련 키워드와 evidence 대표 문장을 표시한다", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({
