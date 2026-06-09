@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, cast
@@ -24,6 +25,7 @@ from .evidence import (
     _llm_schema_validity,
     _pii_redaction_failed,
 )
+from .feedback_replay_diff import build_feedback_replay_diff
 from .gates import _apply_tiered_label_gate, _release_tier
 from .graph_validation import _graph_validation_errors, _graph_validity  # noqa: F401
 from .metrics import (
@@ -74,6 +76,8 @@ from .thresholds import (
     WORKFLOW_SPECIFICITY_REVIEW_THRESHOLD,
 )
 
+_logger = logging.getLogger("pipeline.evaluation")
+
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     if upstream_manifest_path is None:
@@ -93,6 +97,10 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             evaluation_summary["replayLiftSummary"] = replay_lift_summary
         replay_report_path = stage_dir / "replay_lift_summary.json"
         replay_report_path.write_text(json.dumps(replay_lift_summary, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    feedback_replay_diff = _feedback_replay_diff(upstream_manifest_path, candidate)
+    if feedback_replay_diff is not None:
+        candidate["feedbackReplayDiff"] = feedback_replay_diff
 
     candidate_path = stage_dir / "publish_candidate_input.json"
     candidate_path.write_text(json.dumps(candidate, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -326,6 +334,33 @@ def _replay_lift_summary(upstream_manifest_path: str, candidate: dict[str, Any])
         "qualityDegraded": bool(degraded_metrics),
         "degradedMetrics": degraded_metrics,
     }
+
+
+def _feedback_replay_diff(upstream_manifest_path: str, candidate: dict[str, Any]) -> dict[str, Any] | None:
+    """feedback replay run에서만 구조 diff를 만든다. feedback constraints가 없으면 None."""
+    constraints = _load_feedback_constraint_rows()
+    if not constraints:
+        return None
+    source_manifest_path = _source_replay_manifest_path(Path(upstream_manifest_path))
+    before_candidate = _load_source_candidate(source_manifest_path) if source_manifest_path is not None else None
+    return build_feedback_replay_diff(candidate, before_candidate, constraints)
+
+
+def _load_feedback_constraint_rows() -> list[dict[str, Any]]:
+    path_value = os.getenv("PIPELINE_FEEDBACK_CONSTRAINTS_PATH", "").strip()
+    if not path_value:
+        return []
+    try:
+        payload = json.loads(Path(path_value).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        # constraint 파일은 backend가 쓰므로 정상 경로에선 유효하다. 손상 시 diff가 조용히 사라지지
+        # 않도록 경고를 남기고 빈 목록으로 강등한다(backend는 UNAVAILABLE로 표시).
+        _logger.warning("feedback constraints 파일을 읽지 못했습니다: %s", path_value)
+        return []
+    rows = payload.get("constraints") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
 
 
 def _source_replay_manifest_path(upstream_manifest_path: Path) -> Path | None:

@@ -5,12 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   confirmDomain,
   getCheckpoint,
+  getReplayDiff,
   submitFeedback,
 } from "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller";
 import {
   shouldPollPipelineReviewCheckpoint,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
+  useReplayDiff,
   useSubmitPipelineFeedback,
 } from "./pipelineReviewApi";
 
@@ -20,12 +22,14 @@ vi.mock(
     getCheckpoint: vi.fn(),
     confirmDomain: vi.fn(),
     submitFeedback: vi.fn(),
+    getReplayDiff: vi.fn(),
   }),
 );
 
 const mockedGetCheckpoint = vi.mocked(getCheckpoint);
 const mockedConfirmDomain = vi.mocked(confirmDomain);
 const mockedSubmitFeedback = vi.mocked(submitFeedback);
+const mockedGetReplayDiff = vi.mocked(getReplayDiff);
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({
@@ -38,6 +42,7 @@ beforeEach(() => {
   mockedGetCheckpoint.mockReset();
   mockedConfirmDomain.mockReset();
   mockedSubmitFeedback.mockReset();
+  mockedGetReplayDiff.mockReset();
 });
 
 describe("pipelineReviewApi", () => {
@@ -165,6 +170,89 @@ describe("pipelineReviewApi", () => {
 
     expect(mockedSubmitFeedback).toHaveBeenCalledWith(1, 7, {
       decisions: [{ reviewTaskId: 21, decisionType: "cannot_link" }],
+    });
+  });
+
+  it("does not fetch replay diff until ids are available", () => {
+    renderHook(() => useReplayDiff(undefined, 7), { wrapper });
+
+    expect(mockedGetReplayDiff).not.toHaveBeenCalled();
+  });
+
+  it("normalizes a full READY replay diff from generated getReplayDiff", async () => {
+    mockedGetReplayDiff.mockResolvedValueOnce({
+      data: {
+        available: true,
+        status: "READY",
+        reason: null,
+        structureComparisonAvailable: true,
+        intent: {
+          splitCount: 1,
+          mergeCount: 2,
+          labelChanges: [{ id: "0", before: "카드", after: "카드 분실" }],
+        },
+        workflow: { splitCount: 0, mergeCount: 1, labelChanges: [] },
+        decisions: [
+          {
+            reviewTaskId: 10,
+            scope: "intent",
+            decisionType: "must_link",
+            sourceId: "c1",
+            targetId: "c2",
+            status: "applied",
+            reason: null,
+            effect: "merged",
+          },
+          {
+            reviewTaskId: 11,
+            scope: "workflow",
+            decisionType: "separate_workflow",
+            sourceId: "c3",
+            targetId: "c4",
+            status: "partially_applied",
+            reason: "workflow_separated_but_intent_differs",
+            effect: "split",
+          },
+        ],
+        summary: { applied: 1, partiallyApplied: 1, ignored: 0, total: 2 },
+      },
+      status: 200,
+    } as unknown as Awaited<ReturnType<typeof getReplayDiff>>);
+
+    const { result } = renderHook(() => useReplayDiff(1, 7), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockedGetReplayDiff).toHaveBeenCalledWith(1, 7);
+    expect(result.current.data?.status).toBe("READY");
+    expect(result.current.data?.intent.labelChanges[0].after).toBe("카드 분실");
+    expect(result.current.data?.decisions[1].status).toBe("partially_applied");
+    expect(result.current.data?.decisions[1].effect).toBe("split");
+    expect(result.current.data?.summary.total).toBe(2);
+  });
+
+  it("applies safe defaults and clamps unknown status to NOT_APPLICABLE", async () => {
+    mockedGetReplayDiff.mockResolvedValueOnce({
+      data: {
+        status: "WAT",
+        decisions: [{ sourceId: "c1", targetId: "c2", status: "weird" }],
+      },
+      status: 200,
+    } as unknown as Awaited<ReturnType<typeof getReplayDiff>>);
+
+    const { result } = renderHook(() => useReplayDiff(1, 7), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.status).toBe("NOT_APPLICABLE");
+    expect(result.current.data?.available).toBe(false);
+    expect(result.current.data?.intent.splitCount).toBe(0);
+    expect(result.current.data?.intent.labelChanges).toEqual([]);
+    expect(result.current.data?.decisions[0].status).toBe("ignored");
+    expect(result.current.data?.decisions[0].reviewTaskId).toBeNull();
+    expect(result.current.data?.summary).toEqual({
+      applied: 0,
+      partiallyApplied: 0,
+      ignored: 0,
+      total: 0,
     });
   });
 });

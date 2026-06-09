@@ -1,5 +1,6 @@
 package com.init.pipelinejob.presentation.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -11,4 +12,6 @@ public record PipelineDomainPackDraftCallbackRequest(
         String packKey,
     @NotBlank(message = "packName은 필수입니다.") @Size(max = 255, message = "packName은 255자 이하여야 합니다.")
         String packName,
-    @Size(max = 10000, message = "summaryJson은 10000자 이하여야 합니다.") String summaryJson) {}
+    @Size(max = 10000, message = "summaryJson은 10000자 이하여야 합니다.") String summaryJson,
+    // feedback replay run에서만 존재. review 화면의 전후 구조 diff 노출을 위해 requestBodyJson에 보존된다.
+    JsonNode feedbackReplayDiff) {}

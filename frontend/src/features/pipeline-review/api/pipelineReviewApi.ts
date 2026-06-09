@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   confirmDomain,
   getCheckpoint,
+  getReplayDiff,
   submitFeedback,
 } from "@/shared/api/generated/endpoints/pipeline-review-controller/pipeline-review-controller";
 import { requireApiData } from "@/shared/api";
@@ -90,14 +91,19 @@ const PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS = 5_000;
 const checkpointQueryKey = (workspaceId?: number, pipelineJobId?: number) =>
   ["pipeline-review-checkpoint", workspaceId, pipelineJobId] as const;
 
-function requirePipelineReviewIds(workspaceId?: number, pipelineJobId?: number) {
+function requirePipelineReviewIds(
+  workspaceId?: number,
+  pipelineJobId?: number,
+) {
   if (workspaceId == null || pipelineJobId == null) {
     throw new Error("workspaceId and pipelineJobId are required");
   }
   return { workspaceId, pipelineJobId };
 }
 
-export function shouldPollPipelineReviewCheckpoint(checkpoint?: ReviewCheckpointView): boolean {
+export function shouldPollPipelineReviewCheckpoint(
+  checkpoint?: ReviewCheckpointView,
+): boolean {
   if (!checkpoint) {
     return true;
   }
@@ -112,7 +118,8 @@ export function usePipelineReviewCheckpoint(
   pipelineJobId?: number,
   options: PipelineReviewCheckpointOptions = {},
 ) {
-  const refetchIntervalMs = options.refetchIntervalMs ?? PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS;
+  const refetchIntervalMs =
+    options.refetchIntervalMs ?? PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS;
 
   return useQuery({
     queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
@@ -126,7 +133,10 @@ export function usePipelineReviewCheckpoint(
       );
     },
     refetchInterval: options.autoRefresh
-      ? (query) => (shouldPollPipelineReviewCheckpoint(query.state.data) ? refetchIntervalMs : false)
+      ? (query) =>
+          shouldPollPipelineReviewCheckpoint(query.state.data)
+            ? refetchIntervalMs
+            : false
       : false,
   });
 }
@@ -143,7 +153,10 @@ export interface ConfirmDomainInput {
   exclusionTerms?: string[];
 }
 
-export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: number) {
+export function useConfirmPipelineDomain(
+  workspaceId?: number,
+  pipelineJobId?: number,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ConfirmDomainInput) => {
@@ -158,10 +171,15 @@ export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: n
   });
 }
 
-export function useSubmitPipelineFeedback(workspaceId?: number, pipelineJobId?: number) {
+export function useSubmitPipelineFeedback(
+  workspaceId?: number,
+  pipelineJobId?: number,
+) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (decisions: Array<{ reviewTaskId: number; decisionType: string }>) => {
+    mutationFn: (
+      decisions: Array<{ reviewTaskId: number; decisionType: string }>,
+    ) => {
       const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
       return submitFeedback(ids.workspaceId, ids.pipelineJobId, { decisions });
     },
@@ -169,6 +187,169 @@ export function useSubmitPipelineFeedback(workspaceId?: number, pipelineJobId?: 
       void queryClient.invalidateQueries({
         queryKey: checkpointQueryKey(workspaceId, pipelineJobId),
       });
+      // replay가 새 draft를 만들 때까지 diff는 PENDING이므로 즉시 무효화해 폴링을 시작한다.
+      void queryClient.invalidateQueries({
+        queryKey: replayDiffQueryKey(workspaceId, pipelineJobId),
+      });
     },
+  });
+}
+
+// "이번 피드백으로 바뀐 것" 섹션이 의존하는 정규화 타입.
+// 생성 ReplayDiffView는 모든 필드가 optional이라 화면 계약에 부족해 firm 타입으로 정규화한다.
+export type ReplayDiffStatus =
+  | "READY"
+  | "PENDING"
+  | "UNAVAILABLE"
+  | "NOT_APPLICABLE";
+export type ReplayDecisionStatus = "applied" | "partially_applied" | "ignored";
+
+export interface ReplayLabelChange {
+  id: string;
+  before: string;
+  after: string;
+}
+
+export interface ReplayStructureDiff {
+  splitCount: number;
+  mergeCount: number;
+  labelChanges: ReplayLabelChange[];
+}
+
+export interface ReplayDecision {
+  reviewTaskId: number | null;
+  scope: "intent" | "workflow" | string;
+  decisionType: string;
+  sourceId: string;
+  targetId: string;
+  status: ReplayDecisionStatus;
+  reason: string | null;
+  effect: string | null;
+}
+
+export interface ReplayDiffSummary {
+  applied: number;
+  partiallyApplied: number;
+  ignored: number;
+  total: number;
+}
+
+export interface ReplayDiffView {
+  available: boolean;
+  status: ReplayDiffStatus;
+  reason: string | null;
+  structureComparisonAvailable: boolean;
+  intent: ReplayStructureDiff;
+  workflow: ReplayStructureDiff;
+  decisions: ReplayDecision[];
+  summary: ReplayDiffSummary;
+}
+
+const replayDiffQueryKey = (workspaceId?: number, pipelineJobId?: number) =>
+  ["pipeline-review-replay-diff", workspaceId, pipelineJobId] as const;
+
+function normalizeReplayStatus(status?: string): ReplayDiffStatus {
+  switch (status) {
+    case "READY":
+    case "PENDING":
+    case "UNAVAILABLE":
+      return status;
+    default:
+      return "NOT_APPLICABLE";
+  }
+}
+
+function normalizeDecisionStatus(status?: string): ReplayDecisionStatus {
+  return status === "applied" || status === "partially_applied"
+    ? status
+    : "ignored";
+}
+
+function normalizeStructureDiff(diff?: {
+  splitCount?: number;
+  mergeCount?: number;
+  labelChanges?: Array<{ id?: string; before?: string; after?: string }>;
+}): ReplayStructureDiff {
+  return {
+    splitCount: diff?.splitCount ?? 0,
+    mergeCount: diff?.mergeCount ?? 0,
+    labelChanges: (diff?.labelChanges ?? []).map((change) => ({
+      id: change.id ?? "",
+      before: change.before ?? "",
+      after: change.after ?? "",
+    })),
+  };
+}
+
+function normalizeReplayDiff(raw: {
+  available?: boolean;
+  status?: string;
+  reason?: string;
+  structureComparisonAvailable?: boolean;
+  intent?: Parameters<typeof normalizeStructureDiff>[0];
+  workflow?: Parameters<typeof normalizeStructureDiff>[0];
+  decisions?: Array<{
+    reviewTaskId?: number;
+    scope?: string;
+    decisionType?: string;
+    sourceId?: string;
+    targetId?: string;
+    status?: string;
+    reason?: string;
+    effect?: string;
+  }>;
+  summary?: {
+    applied?: number;
+    partiallyApplied?: number;
+    ignored?: number;
+    total?: number;
+  };
+}): ReplayDiffView {
+  return {
+    available: raw.available ?? false,
+    status: normalizeReplayStatus(raw.status),
+    reason: raw.reason ?? null,
+    structureComparisonAvailable: raw.structureComparisonAvailable ?? false,
+    intent: normalizeStructureDiff(raw.intent),
+    workflow: normalizeStructureDiff(raw.workflow),
+    decisions: (raw.decisions ?? []).map((decision) => ({
+      reviewTaskId: decision.reviewTaskId ?? null,
+      scope: decision.scope ?? "",
+      decisionType: decision.decisionType ?? "",
+      sourceId: decision.sourceId ?? "",
+      targetId: decision.targetId ?? "",
+      status: normalizeDecisionStatus(decision.status),
+      reason: decision.reason ?? null,
+      effect: decision.effect ?? null,
+    })),
+    summary: {
+      applied: raw.summary?.applied ?? 0,
+      partiallyApplied: raw.summary?.partiallyApplied ?? 0,
+      ignored: raw.summary?.ignored ?? 0,
+      total: raw.summary?.total ?? 0,
+    },
+  };
+}
+
+export function useReplayDiff(workspaceId?: number, pipelineJobId?: number) {
+  return useQuery({
+    queryKey: replayDiffQueryKey(workspaceId, pipelineJobId),
+    enabled: workspaceId != null && pipelineJobId != null,
+    queryFn: async () => {
+      const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
+      const response = await getReplayDiff(ids.workspaceId, ids.pipelineJobId);
+      const data = requireApiData<Parameters<typeof normalizeReplayDiff>[0]>(
+        response as unknown as {
+          data?: Parameters<typeof normalizeReplayDiff>[0];
+        },
+        "replay diff 응답을 확인할 수 없습니다.",
+      );
+      return normalizeReplayDiff(data);
+    },
+    // replay 진행 중(PENDING)에는 새 draft가 도착할 때까지 폴링한다.
+    refetchInterval: (query) =>
+      query.state.data?.status === "PENDING"
+        ? PIPELINE_REVIEW_AUTO_REFRESH_INTERVAL_MS
+        : false,
   });
 }

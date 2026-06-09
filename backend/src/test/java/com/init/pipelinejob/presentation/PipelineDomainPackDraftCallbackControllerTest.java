@@ -1,12 +1,15 @@
 package com.init.pipelinejob.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackCommand;
 import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackResult;
 import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackUseCase;
 import com.init.pipelinejob.application.ReceiveIntentDraftCallbackUseCase;
@@ -19,6 +22,7 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.shared.infrastructure.web.WebhookHeaderNames;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -193,6 +197,49 @@ class PipelineDomainPackDraftCallbackControllerTest {
                 .content("{\"externalEventId\":\"\",\"packKey\":\"\",\"packName\":\"\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
+  @DisplayName("feedbackReplayDiff가 있으면 requestBodyJson에 보존된다")
+  @WithMockUser
+  void receiveDomainPackDraftCallback_preservesFeedbackReplayDiff() throws Exception {
+    given(domainPackUseCase.execute(any()))
+        .willReturn(
+            ReceiveDomainPackDraftCallbackResult.created(
+                "evt-draft-1", 7L, 101L, 3, "refund-pack", true, 11L));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .header(WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET, "secret-123")
+                .contentType("application/json")
+                .content(domainPackRequestWithReplayDiffJson()))
+        .andExpect(status().isCreated());
+
+    ArgumentCaptor<ReceiveDomainPackDraftCallbackCommand> captor =
+        ArgumentCaptor.forClass(ReceiveDomainPackDraftCallbackCommand.class);
+    verify(domainPackUseCase).execute(captor.capture());
+    assertThat(captor.getValue().requestBodyJson())
+        .contains("feedbackReplayDiff")
+        .contains("\"available\":true")
+        .contains("must_link");
+  }
+
+  private String domainPackRequestWithReplayDiffJson() {
+    return """
+        {
+          "externalEventId": "evt-draft-1",
+          "packKey": "refund-pack",
+          "packName": "환불 Pack",
+          "summaryJson": "{\\"clusterCount\\":12}",
+          "feedbackReplayDiff": {
+            "schemaVersion": "feedback-replay-diff.v1",
+            "available": true,
+            "decisions": [{"reviewTaskId": "10", "scope": "intent", "type": "must_link", "status": "applied"}]
+          }
+        }
+        """;
   }
 
   private String validDomainPackRequestJson() {

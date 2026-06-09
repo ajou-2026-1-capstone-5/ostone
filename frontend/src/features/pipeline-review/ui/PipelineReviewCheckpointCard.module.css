@@ -656,3 +656,188 @@
   letter-spacing: -0.1px;
   line-height: 1.55;
 }
+
+/* "이번 피드백으로 바뀐 것" 섹션 — 인터페이스는 흑백 토큰만 사용한다. */
+.replaySection {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-4);
+  padding: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper);
+}
+
+.replayReason {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.5;
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.summaryChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+/* 색상 대신 채움/외곽선/음영으로 상태를 구분한다. */
+.statusApplied {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.statusPartial {
+  border-color: var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.statusIgnored {
+  border-color: var(--line);
+  background: var(--paper-2);
+  color: var(--ink-3);
+}
+
+.structureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3);
+}
+
+.structureCard {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper-2);
+}
+
+.structureTitle {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.structureCounts {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  letter-spacing: -0.1px;
+}
+
+.labelChangeList {
+  display: grid;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.labelChange {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.labelBefore {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+
+.labelAfter {
+  color: var(--ink);
+  font-weight: 480;
+}
+
+.decisionList {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decisionItem {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper);
+}
+
+.decisionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.decisionScope {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.decisionPair {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: -0.1px;
+  overflow-wrap: break-word;
+}
+
+.decisionStatus {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+}
+
+.decisionReason {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.5;
+}
+
+.decisionEffect {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}

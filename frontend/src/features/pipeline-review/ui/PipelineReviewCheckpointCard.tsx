@@ -11,6 +11,7 @@ import {
   usePipelineReviewCheckpoint,
   useSubmitPipelineFeedback,
 } from "../api/pipelineReviewApi";
+import { ReplayDiffSection } from "./ReplayDiffSection";
 import { domainPackListPath } from "@/shared/lib/domainPackRoutes";
 import {
   CTA_GO_DOMAIN_PACK,
@@ -110,8 +111,7 @@ export function PipelineReviewCheckpointCard({
     : null;
   // 후보를 바꾸면 편집값을 그 후보로 다시 시드한다. 운영자가 입력하기 전까지는 후보 기반 시드를 보여 준다.
   const activeDomainEdits =
-    selectedDomainTask &&
-    domainEdits.taskKey === currentDomainEditKey
+    selectedDomainTask && domainEdits.taskKey === currentDomainEditKey
       ? domainEdits.values
       : seedDomainEdits(selectedDomainTask);
   const updateDomainEdit = (field: keyof DomainProfileEdits, value: string) => {
@@ -265,61 +265,67 @@ export function PipelineReviewCheckpointCard({
 
   if (!query.data?.reviewKind) {
     return (
-      <StateActionCard
-        title={checkpointStateTitle(query.data?.pipelineStatus)}
-        description={checkpointStateDescription(query.data?.pipelineStatus)}
-      >
-        {query.data?.pipelineStatus === "SUCCEEDED" ? (
-          <>
-            <Link
-              to={domainPackListPath(workspaceId)}
-              className={styles.stateActionPrimary}
-            >
-              <ListChecksIcon aria-hidden="true" />
-              {CTA_GO_DOMAIN_PACK}
-            </Link>
+      <>
+        <StateActionCard
+          title={checkpointStateTitle(query.data?.pipelineStatus)}
+          description={checkpointStateDescription(query.data?.pipelineStatus)}
+        >
+          {query.data?.pipelineStatus === "SUCCEEDED" ? (
+            <>
+              <Link
+                to={domainPackListPath(workspaceId)}
+                className={styles.stateActionPrimary}
+              >
+                <ListChecksIcon aria-hidden="true" />
+                {CTA_GO_DOMAIN_PACK}
+              </Link>
+              <button
+                type="button"
+                className={styles.stateActionSecondary}
+                disabled={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                <RefreshCwIcon aria-hidden="true" />
+                상태 새로고침
+              </button>
+            </>
+          ) : query.data?.pipelineStatus === "FAILED" ||
+            query.data?.pipelineStatus === "CANCELLED" ? (
+            <>
+              <Link
+                to={`/workspaces/${workspaceId}/upload`}
+                className={styles.stateActionPrimary}
+              >
+                <UploadIcon aria-hidden="true" />
+                {CTA_RETRY_FROM_UPLOAD}
+              </Link>
+              <button
+                type="button"
+                className={styles.stateActionSecondary}
+                disabled={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                <RefreshCwIcon aria-hidden="true" />
+                현재 job 새로고침
+              </button>
+            </>
+          ) : (
             <button
               type="button"
-              className={styles.stateActionSecondary}
+              className={styles.stateActionPrimary}
               disabled={query.isFetching}
               onClick={() => void query.refetch()}
             >
               <RefreshCwIcon aria-hidden="true" />
               상태 새로고침
             </button>
-          </>
-        ) : query.data?.pipelineStatus === "FAILED" ||
-          query.data?.pipelineStatus === "CANCELLED" ? (
-          <>
-            <Link
-              to={`/workspaces/${workspaceId}/upload`}
-              className={styles.stateActionPrimary}
-            >
-              <UploadIcon aria-hidden="true" />
-              {CTA_RETRY_FROM_UPLOAD}
-            </Link>
-            <button
-              type="button"
-              className={styles.stateActionSecondary}
-              disabled={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              <RefreshCwIcon aria-hidden="true" />
-              현재 job 새로고침
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className={styles.stateActionPrimary}
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            <RefreshCwIcon aria-hidden="true" />
-            상태 새로고침
-          </button>
-        )}
-      </StateActionCard>
+          )}
+        </StateActionCard>
+        <ReplayDiffSection
+          workspaceId={workspaceId}
+          pipelineJobId={pipelineJobId}
+        />
+      </>
     );
   }
 
@@ -416,10 +422,10 @@ export function PipelineReviewCheckpointCard({
           {selectedDomainTask ? (
             <>
               <p className={styles.domainReviewImpact}>
-                후보 값을 기본으로 채웠습니다. 필요하면 직접 다듬어 확정하세요. 이
-                profile은 intent clustering 입력으로 반영되며, 확정 후 pipeline
-                replay를 거쳐 다음 review 단계 또는 Domain Pack 초안 생성으로
-                이어집니다.
+                후보 값을 기본으로 채웠습니다. 필요하면 직접 다듬어 확정하세요.
+                이 profile은 intent clustering 입력으로 반영되며, 확정 후
+                pipeline replay를 거쳐 다음 review 단계 또는 Domain Pack 초안
+                생성으로 이어집니다.
               </p>
               {lowConfidenceGuidance(selectedDomainTask.payload) && (
                 <p className={styles.domainReviewWarning} role="status">
@@ -433,7 +439,9 @@ export function PipelineReviewCheckpointCard({
                   value={activeDomainEdits.confirmedDomain}
                   disabled={confirmDomain.isPending}
                   invalid={activeDomainEdits.confirmedDomain.trim() === ""}
-                  onChange={(value) => updateDomainEdit("confirmedDomain", value)}
+                  onChange={(value) =>
+                    updateDomainEdit("confirmedDomain", value)
+                  }
                 />
                 <ProfileTextField
                   id="domain-edit-display-name"
@@ -474,7 +482,9 @@ export function PipelineReviewCheckpointCard({
                   value={activeDomainEdits.exclusionTerms}
                   disabled={confirmDomain.isPending}
                   showChips
-                  onChange={(value) => updateDomainEdit("exclusionTerms", value)}
+                  onChange={(value) =>
+                    updateDomainEdit("exclusionTerms", value)
+                  }
                 />
               </div>
               {selectedDomainTask.payload.confidence !== undefined && (

@@ -448,6 +448,7 @@ def _build_candidate_artifact(
         knowledge_metrics,
     )
     candidate = _build_candidate(intents, workflow_draft, stage_context, evaluation_inputs)
+    candidate["structureSnapshot"] = _build_structure_snapshot(clusters_payload, clusters)
     llm_summary = enrich_candidate_descriptions(candidate, runtime_config, logger=_logger)
     candidate["llmSummary"] = llm_summary
 
@@ -461,6 +462,69 @@ def _build_candidate_artifact(
         "llm_metrics": llm_summary,
     }
     return candidate, metrics
+
+
+def _build_structure_snapshot(
+    clusters_payload: dict[str, Any],
+    clusters: list[Any],
+) -> dict[str, Any]:
+    """replay 전후 비교용 intent/workflow membership·label 스냅샷.
+
+    backend가 중간 산출물을 보지 못하므로 candidate에 임베드해 둔다. membership은 split/merge
+    판정에 쓰이므로 truncate하지 않는다.
+    """
+    intents_by_id: dict[str, dict[str, Any]] = {}
+    workflows: list[dict[str, Any]] = []
+    for index, cluster in enumerate(clusters):
+        if not isinstance(cluster, dict):
+            continue
+        members = _conv_id_list(cluster.get("member_conv_ids"))
+        source_id = cluster.get("source_cluster_id")
+        if source_id is None:
+            source_id = cluster.get("cluster_id")
+        # id가 없으면 cluster마다 고유 id를 부여해 서로 다른 intent가 ""로 합쳐지지 않게 한다.
+        intent_id = str(source_id).strip() if source_id is not None else f"intent-{index}"
+        if not intent_id:
+            intent_id = f"intent-{index}"
+        workflow_id = cluster.get("workflow_entrypoint_id") or f"cluster-{cluster.get('cluster_id', index)}"
+        intent_label = _structure_label(cluster, "canonical_intent", "suggested_name")
+        workflows.append(
+            {
+                "workflowId": str(workflow_id),
+                "workflowLabel": _structure_label(cluster, "suggested_name", "canonical_intent"),
+                "intentId": intent_id,
+                "memberConversationIds": members,
+            }
+        )
+        entry = intents_by_id.setdefault(intent_id, {"label": intent_label, "members": []})
+        entry["members"].extend(members)
+        if not entry["label"]:
+            entry["label"] = intent_label
+    intents = [
+        {"intentId": intent_id, "intentLabel": data["label"], "memberConversationIds": data["members"]}
+        for intent_id, data in intents_by_id.items()
+    ]
+    flow_metrics = clusters_payload.get("flow_split_metrics")
+    workflow_feedback = flow_metrics.get("workflowFeedback") if isinstance(flow_metrics, dict) else None
+    if not isinstance(workflow_feedback, dict):
+        workflow_feedback = {"applied": [], "ignored": []}
+    return {
+        "schemaVersion": "structure-snapshot.v1",
+        "intents": intents,
+        "workflows": workflows,
+        "workflowFeedback": workflow_feedback,
+    }
+
+
+def _structure_label(cluster: dict[str, Any], primary: str, fallback: str) -> str:
+    value = cluster.get(primary) or cluster.get(fallback) or ""
+    return str(value).strip()
+
+
+def _conv_id_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for raw in value if (item := str(raw).strip())]
 
 
 def _flatten_metrics(metrics: dict[str, Any]) -> dict[str, Any]:

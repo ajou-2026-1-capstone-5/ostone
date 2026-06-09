@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.init.review.application.PipelineReviewCheckpointUseCase;
+import com.init.review.application.PipelineReviewReplayDiffUseCase;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,11 +22,35 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 class PipelineReviewControllerTest {
 
   @Mock private PipelineReviewCheckpointUseCase useCase;
+  @Mock private PipelineReviewReplayDiffUseCase replayDiffUseCase;
+
+  @Test
+  @DisplayName("get replay diff delegates workspace job and authenticated user")
+  void getReplayDiff_delegates() {
+    PipelineReviewController controller = new PipelineReviewController(useCase, replayDiffUseCase);
+    PipelineReviewReplayDiffUseCase.ReplayDiffView view =
+        new PipelineReviewReplayDiffUseCase.ReplayDiffView(
+            false,
+            null,
+            "NOT_APPLICABLE",
+            null,
+            false,
+            new PipelineReviewReplayDiffUseCase.StructureDiff(0, 0, List.of()),
+            new PipelineReviewReplayDiffUseCase.StructureDiff(0, 0, List.of()),
+            List.of(),
+            new PipelineReviewReplayDiffUseCase.DiffSummary(0, 0, 0, 0));
+    given(replayDiffUseCase.getReplayDiff(1L, 7L, 9L)).willReturn(view);
+
+    ResponseEntity<PipelineReviewReplayDiffUseCase.ReplayDiffView> response =
+        controller.getReplayDiff(1L, 7L, auth());
+
+    assertThat(response.getBody()).isSameAs(view);
+  }
 
   @Test
   @DisplayName("get checkpoint delegates workspace job and authenticated user")
   void getCheckpoint_delegates() {
-    PipelineReviewController controller = new PipelineReviewController(useCase);
+    PipelineReviewController controller = new PipelineReviewController(useCase, replayDiffUseCase);
     PipelineReviewCheckpointUseCase.ReviewCheckpointView view =
         new PipelineReviewCheckpointUseCase.ReviewCheckpointView(
             7L, "WAITING_HUMAN_FEEDBACK", null, List.of());
@@ -40,7 +65,7 @@ class PipelineReviewControllerTest {
   @Test
   @DisplayName("confirm domain maps review task and reason")
   void confirmDomain_mapsCommand() {
-    PipelineReviewController controller = new PipelineReviewController(useCase);
+    PipelineReviewController controller = new PipelineReviewController(useCase, replayDiffUseCase);
     given(useCase.confirmDomain(any()))
         .willReturn(new PipelineReviewCheckpointUseCase.ReviewCheckpointResult(55L, "TRIGGERED"));
 
@@ -78,7 +103,7 @@ class PipelineReviewControllerTest {
   @Test
   @DisplayName("submit feedback maps all pairwise decisions")
   void submitFeedback_mapsCommand() {
-    PipelineReviewController controller = new PipelineReviewController(useCase);
+    PipelineReviewController controller = new PipelineReviewController(useCase, replayDiffUseCase);
     given(useCase.submitFeedback(any()))
         .willReturn(new PipelineReviewCheckpointUseCase.ReviewCheckpointResult(56L, "TRIGGERED"));
 

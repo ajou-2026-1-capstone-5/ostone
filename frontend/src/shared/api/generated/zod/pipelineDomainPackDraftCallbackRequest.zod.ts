@@ -23,7 +23,10 @@ export const PipelineDomainPackDraftCallbackRequest = zod.object({
   "externalEventId": zod.string().min(pipelineDomainPackDraftCallbackRequestExternalEventIdMin).max(pipelineDomainPackDraftCallbackRequestExternalEventIdMax).optional(),
   "packKey": zod.string().min(pipelineDomainPackDraftCallbackRequestPackKeyMin).max(pipelineDomainPackDraftCallbackRequestPackKeyMax).optional(),
   "packName": zod.string().min(pipelineDomainPackDraftCallbackRequestPackNameMin).max(pipelineDomainPackDraftCallbackRequestPackNameMax).optional(),
-  "summaryJson": zod.string().min(pipelineDomainPackDraftCallbackRequestSummaryJsonMin).max(pipelineDomainPackDraftCallbackRequestSummaryJsonMax).optional()
+  "summaryJson": zod.string().min(pipelineDomainPackDraftCallbackRequestSummaryJsonMin).max(pipelineDomainPackDraftCallbackRequestSummaryJsonMax).optional(),
+  "feedbackReplayDiff": zod.looseObject({
+
+}).optional()
 })
 
 export type PipelineDomainPackDraftCallbackRequest = zod.input<typeof PipelineDomainPackDraftCallbackRequest>;

@@ -278,6 +278,25 @@ def test_callback_payload_contract_matches_fixture() -> None:
     assert actual == expected
 
 
+def test_domain_pack_payload_includes_feedback_replay_diff_when_present() -> None:
+    candidate = _candidate()
+    candidate["feedbackReplayDiff"] = {
+        "schemaVersion": "feedback-replay-diff.v1",
+        "available": True,
+        "decisions": [{"reviewTaskId": "10", "scope": "intent", "status": "applied"}],
+    }
+    payload = publish.build_domain_pack_payload(candidate, _stage_context())
+
+    assert payload["feedbackReplayDiff"]["available"] is True
+    assert payload["feedbackReplayDiff"]["decisions"][0]["reviewTaskId"] == "10"
+
+
+def test_domain_pack_payload_omits_feedback_replay_diff_when_absent() -> None:
+    payload = publish.build_domain_pack_payload(_candidate(), _stage_context())
+
+    assert "feedbackReplayDiff" not in payload
+
+
 def test_publish_success_writes_result_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     manifest_path, _candidate_path = _write_publish_inputs(tmp_path)
     artifact_root = tmp_path / "artifacts"
