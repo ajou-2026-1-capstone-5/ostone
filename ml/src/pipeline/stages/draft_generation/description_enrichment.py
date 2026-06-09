@@ -409,6 +409,7 @@ def _request_payload(model_name: str, entity: DescriptionEntity, field_name: str
             },
         ],
     }
+    payload["chat_template_kwargs"] = {"enable_thinking": False}
     payload["options"] = {"think": False}
     return payload
 

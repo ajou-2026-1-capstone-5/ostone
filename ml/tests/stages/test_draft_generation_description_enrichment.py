@@ -242,6 +242,7 @@ def test_description_enrichment_sends_model_options_by_default(monkeypatch, tmp_
 
     assert summary is not None
     assert summary["nameAppliedCount"] == 1
+    assert fake_client.requests[0]["json"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert fake_client.requests[0]["json"]["options"] == {"think": False}
 
 

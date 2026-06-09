@@ -271,6 +271,7 @@ def _request_payload(
             },
         ],
     }
+    payload["chat_template_kwargs"] = {"enable_thinking": False}
     payload["options"] = {"think": False}
     return payload
 
