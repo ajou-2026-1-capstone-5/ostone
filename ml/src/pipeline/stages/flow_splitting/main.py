@@ -7,6 +7,7 @@ from typing import Any, cast
 from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.exceptions import PipelineStageError
+from pipeline.stages.intent_discovery.feedback_constraints import load_workflow_feedback_constraints_from_env
 from pipeline.stages.preprocessing.io import read_stage_context
 
 # redundant alias import는 stage 분해 이전 경로를 쓰는 테스트를 위해 이 모듈로 re-export한다.
@@ -97,6 +98,7 @@ from .splitting import (
     _apply_regenerated_label_metadata,
     _flow_groups,
 )
+from .workflow_feedback import WorkflowFeedbackReconciler
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
@@ -126,12 +128,16 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         min_size=NOVEL_REVIEW_CANDIDATE_MIN_SIZE,
     )
     candidate_clusters = quality_filtered_clusters + novel_review_clusters
+    workflow_reconciler = WorkflowFeedbackReconciler(
+        load_workflow_feedback_constraints_from_env(),
+        candidate_clusters,
+    )
 
     split_clusters: list[dict[str, Any]] = []
     entrypoints: list[dict[str, Any]] = []
     split_count = 0
     next_cluster_id = 0
-    for cluster in candidate_clusters:
+    for cluster_index, cluster in enumerate(candidate_clusters):
         if not isinstance(cluster, dict):
             continue
         groups = _flow_groups(
@@ -140,6 +146,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             strategy=split_strategy,
             min_split_size=min_split_size,
         )
+        groups = workflow_reconciler.reconcile(cluster_index, groups)
         if len(groups) <= 1:
             group_key = next(iter(groups), "single_flow")
             split_reason = "mixed_flow" if group_key == "mixed_flow" else group_key
@@ -208,6 +215,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     output_payload["clusters"] = split_clusters
     output_payload["workflow_entrypoints_path"] = WORKFLOW_ENTRYPOINTS_ARTIFACT
     confidence_report = _workflow_confidence_report(split_clusters)
+    workflow_feedback_report = workflow_reconciler.report(entrypoints)
     report = {
         "schemaVersion": "flow-splitting.v2",
         "inputClusterCount": len(clusters),
@@ -232,6 +240,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         "workflowSeparability": _workflow_separability(entrypoints),
         **entrypoint_semantic_report,
         **confidence_report,
+        **workflow_feedback_report,
     }
     output_payload["flow_split_metrics"] = report
     clusters_path = output_dir / CLUSTERS_ARTIFACT

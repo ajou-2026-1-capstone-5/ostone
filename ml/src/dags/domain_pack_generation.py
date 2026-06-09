@@ -445,10 +445,16 @@ def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this
 
     @task(task_id="flow_splitting")
     def flow_splitting(intent_discovery_result: dict[str, str]) -> dict[str, str]:
-        return _run_stage(
-            "flow_splitting",
-            upstream_manifest_path=intent_discovery_result["artifact_manifest_path"],
-        )
+        with _stage_env(
+            {
+                "PIPELINE_FEEDBACK_CONSTRAINTS_PATH": _conf_value("feedback_constraints_path")
+                or _conf_json_file("feedback_constraints_json", "feedback_constraints.json"),
+            }
+        ):
+            return _run_stage(
+                "flow_splitting",
+                upstream_manifest_path=intent_discovery_result["artifact_manifest_path"],
+            )
 
     @task(task_id="start_llm_service")
     def start_llm_service(flow_splitting_result: dict[str, str]) -> dict[str, str]:
