@@ -435,9 +435,8 @@ class PipelineReviewCheckpointUseCaseTest {
   }
 
   @Test
-  @DisplayName(
-      "workflow boundary feedback preserves decision scope without direct intent constraint")
-  void submitFeedback_workflowBoundaryFeedback_mapsOnlyExplicitIntentDecisionToConstraint()
+  @DisplayName("workflow boundary feedback emits workflow-scope and intent-scope constraints")
+  void submitFeedback_workflowBoundaryFeedback_emitsWorkflowAndIntentConstraints()
       throws Exception {
     PipelineJob job =
         job(
@@ -533,9 +532,15 @@ class PipelineReviewCheckpointUseCaseTest {
     List<String> decisionPayloads =
         decisionCaptor.getAllValues().stream().map(ReviewDecision::getDecisionPayloadJson).toList();
 
-    assertThat(constraints).hasSize(1);
-    assertThat(constraints.get(0).path("sourceId").asText()).isEqualTo("wf3");
-    assertThat(constraints.get(0).path("type").asText()).isEqualTo("cannot_link");
+    assertThat(constraints).hasSize(2);
+    JsonNode workflowConstraint = constraintBySource(constraints, "wf1");
+    assertThat(workflowConstraint.path("type").asText()).isEqualTo("same_workflow");
+    assertThat(workflowConstraint.path("scope").asText()).isEqualTo("workflow");
+    assertThat(workflowConstraint.path("targetId").asText()).isEqualTo("wf2");
+    JsonNode intentConstraint = constraintBySource(constraints, "wf3");
+    assertThat(intentConstraint.path("type").asText()).isEqualTo("cannot_link");
+    assertThat(intentConstraint.path("scope").asText()).isEqualTo("intent");
+    assertThat(intentConstraint.path("targetId").asText()).isEqualTo("wf4");
     assertThat(decisionPayloads.getFirst())
         .contains(
             "\"decisionType\":\"same_workflow\"",
@@ -573,6 +578,15 @@ class PipelineReviewCheckpointUseCaseTest {
     assertThat(view.tasks()).hasSize(1);
     assertThat(view.tasks().getFirst().payload().path("questionText").asText())
         .isEqualTo("이 두 상담은 같은 업무인가?");
+  }
+
+  private static JsonNode constraintBySource(JsonNode constraints, String sourceId) {
+    for (JsonNode constraint : constraints) {
+      if (sourceId.equals(constraint.path("sourceId").asText())) {
+        return constraint;
+      }
+    }
+    throw new AssertionError("constraint not found for sourceId=" + sourceId);
   }
 
   private void givenReviewAccess(PipelineJob job) {

@@ -126,6 +126,138 @@ def test_flow_splitting_creates_entrypoints_and_split_clusters(monkeypatch, tmp_
     assert clusters["clusters"][1]["workflow_signal"]["has_escalation_cases"] is True
 
 
+def _write_signal_split_fixture(artifact_root: Path) -> Path:
+    base_dir = artifact_root / "domain_pack_generation" / "manual__run"
+    intent_dir = base_dir / "intent_discovery"
+    preprocessing_dir = base_dir / "preprocessing"
+    intent_dir.mkdir(parents=True)
+    preprocessing_dir.mkdir(parents=True)
+    (intent_dir / "clusters.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "clusters": [
+                    {
+                        "cluster_id": 7,
+                        "member_indices": [0, 1, 2, 3, 4, 5],
+                        "member_conv_ids": ["c1", "c2", "c3", "c4", "c5", "c6"],
+                        "exemplar_conv_ids": ["c1", "c4"],
+                        "suggested_name": "배송 문의",
+                        "workflow_signal": {"has_escalation_cases": True},
+                        "quality": {
+                            "interpretability_score": 0.8,
+                            "workflow_consistency_score": 0.7,
+                            "branching_explainability_score": 0.6,
+                        },
+                    }
+                ],
+                "stats": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    np.save(
+        intent_dir / "embeddings.npy",
+        np.asarray(
+            [[1.00, 0.00], [0.98, 0.02], [0.96, 0.04], [0.00, 1.00], [0.02, 0.98], [0.04, 0.96]],
+            dtype=np.float32,
+        ),
+    )
+    (preprocessing_dir / "preprocessed_data.json").write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {"id": "c1", "ended_status": "resolved", "workflow_signal": {"requires_payment_check": True}},
+                    {"id": "c2", "ended_status": "resolved", "workflow_signal": {"requires_payment_check": True}},
+                    {"id": "c3", "ended_status": "resolved", "workflow_signal": {"requires_payment_check": True}},
+                    {"id": "c4", "ended_status": "escalated", "workflow_signal": {"has_escalation_cases": True}},
+                    {"id": "c5", "ended_status": "escalated", "workflow_signal": {"has_escalation_cases": True}},
+                    {"id": "c6", "ended_status": "escalated", "workflow_signal": {"has_escalation_cases": True}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    upstream_manifest = intent_dir / "manifest.json"
+    upstream_manifest.write_text(
+        json.dumps(
+            {
+                "dag_id": "domain_pack_generation",
+                "run_id": "manual__run",
+                "workspace_id": "3",
+                "dataset_id": "5",
+                "pipeline_job_id": "11",
+                "payload": {"artifact_path": "clusters.json"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return upstream_manifest
+
+
+def test_flow_splitting_merges_entrypoints_on_same_workflow_feedback(monkeypatch, tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_FLOW_SPLIT_STRATEGY", "signal")
+    monkeypatch.setenv("PIPELINE_FLOW_MIN_SPLIT_SIZE", "3")
+    upstream_manifest = _write_signal_split_fixture(artifact_root)
+    constraints_path = tmp_path / "feedback_constraints.json"
+    constraints_path.write_text(
+        json.dumps(
+            {"constraints": [{"sourceId": "c1", "targetId": "c4", "type": "same_workflow", "scope": "workflow"}]}
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PIPELINE_FEEDBACK_CONSTRAINTS_PATH", str(constraints_path))
+
+    result = run(str(upstream_manifest))
+
+    output_dir = Path(cast(str, result["artifact_manifest_path"])).parent
+    entrypoints = json.loads((output_dir / "workflow_entrypoints.json").read_text(encoding="utf-8"))
+    report = json.loads((output_dir / "flow_split_report.json").read_text(encoding="utf-8"))
+
+    assert len(entrypoints["workflowEntryPoints"]) == 1
+    assert sorted(entrypoints["workflowEntryPoints"][0]["memberConversationIds"]) == [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "c5",
+        "c6",
+    ]
+    assert report["workflowConstraintCount"] == 1
+    assert report["appliedWorkflowConstraintCount"] == 1
+    assert report["workflowMergeByFeedbackCount"] == 1
+    assert report["workflowSplitByFeedbackCount"] == 0
+    assert report["ignoredWorkflowConstraintCount"] == 0
+    applied = report["workflowFeedback"]["applied"][0]
+    assert applied["effect"] == "merged"
+    assert applied["sourceEntryPointId"] == applied["targetEntryPointId"]
+
+
+def test_flow_splitting_without_feedback_keeps_baseline(monkeypatch, tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_FLOW_SPLIT_STRATEGY", "signal")
+    monkeypatch.setenv("PIPELINE_FLOW_MIN_SPLIT_SIZE", "3")
+    monkeypatch.delenv("PIPELINE_FEEDBACK_CONSTRAINTS_PATH", raising=False)
+    upstream_manifest = _write_signal_split_fixture(artifact_root)
+
+    result = run(str(upstream_manifest))
+
+    output_dir = Path(cast(str, result["artifact_manifest_path"])).parent
+    entrypoints = json.loads((output_dir / "workflow_entrypoints.json").read_text(encoding="utf-8"))
+    report = json.loads((output_dir / "flow_split_report.json").read_text(encoding="utf-8"))
+
+    assert len(entrypoints["workflowEntryPoints"]) == 2
+    assert report["workflowConstraintCount"] == 0
+    assert report["appliedWorkflowConstraintCount"] == 0
+    assert report["workflowMergeByFeedbackCount"] == 0
+    assert report["workflowFeedback"]["applied"] == []
+
+
 def test_flow_splitting_rejects_missing_clusters_list(monkeypatch, tmp_path: Path) -> None:
     artifact_root = tmp_path / "artifacts"
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))

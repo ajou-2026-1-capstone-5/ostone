@@ -204,15 +204,13 @@ public class PipelineReviewCheckpointUseCase {
               jsonSupport.toJson(decisionPayload(decisionMapping, question)),
               now);
       savedDecision = reviewDecisionRepository.save(savedDecision);
-      if (!decisionMapping.constraintType().isBlank()) {
-        ObjectNode constraint = constraints.addObject();
-        constraint.put("sourceId", jsonSupport.text(question, "sourceId"));
-        constraint.put("targetId", jsonSupport.text(question, "targetId"));
-        constraint.put("type", decisionMapping.constraintType());
-        constraint.put("confidence", 1.0);
-        constraint.put("scope", "intent");
-        constraint.put("reviewTaskId", task.getId());
-        constraint.put("decisionId", savedDecision.getId());
+      String intentConstraintType = decisionMapping.constraintType();
+      String workflowConstraintType = workflowConstraintType(decisionMapping);
+      if (!intentConstraintType.isBlank()) {
+        addConstraint(constraints, question, intentConstraintType, "intent", task, savedDecision);
+      } else if (!workflowConstraintType.isBlank()) {
+        addConstraint(
+            constraints, question, workflowConstraintType, "workflow", task, savedDecision);
       }
     }
     ObjectNode payload = jsonSupport.objectNode();
@@ -396,6 +394,34 @@ public class PipelineReviewCheckpointUseCase {
       case "must_link", "cannot_link" -> "intent";
       case "same_workflow", "same_intent_separate_workflow" -> "workflow";
       default -> firstPresent(questionDecisionScope, "none");
+    };
+  }
+
+  private void addConstraint(
+      ArrayNode constraints,
+      JsonNode question,
+      String type,
+      String scope,
+      ReviewTask task,
+      ReviewDecision savedDecision) {
+    ObjectNode constraint = constraints.addObject();
+    constraint.put("sourceId", jsonSupport.text(question, "sourceId"));
+    constraint.put("targetId", jsonSupport.text(question, "targetId"));
+    constraint.put("type", type);
+    constraint.put("confidence", 1.0);
+    constraint.put("scope", scope);
+    constraint.put("reviewTaskId", task.getId());
+    constraint.put("decisionId", savedDecision.getId());
+  }
+
+  private String workflowConstraintType(FeedbackDecisionMapping decisionMapping) {
+    if (!"workflow".equals(decisionMapping.decisionScope())) {
+      return "";
+    }
+    return switch (decisionMapping.decisionType()) {
+      case "same_workflow" -> "same_workflow";
+      case "same_intent_separate_workflow" -> "separate_workflow";
+      default -> "";
     };
   }
 
