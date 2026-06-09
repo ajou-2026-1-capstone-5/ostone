@@ -1,5 +1,11 @@
 import { vi } from "vite-plus/test";
 import "@testing-library/jest-dom";
+import { configure } from "@testing-library/react";
+
+// testing-library 의 waitFor/findBy 기본 비동기 타임아웃은 1000ms 라, CI 병렬
+// 부하 하에서 느린 비동기 흐름(예: 시뮬레이션 replay)이 간헐적으로 타임아웃되어
+// flaky 하게 실패했다. vitest testTimeout(10s) 안에서 여유를 두어 안정화한다.
+configure({ asyncUtilTimeout: 5000 });
 
 // WorkspaceMarker hits React Query (useListWorkspaces) which throws without
 // a QueryClientProvider. Tests render OstoneShell with no provider, so stub
