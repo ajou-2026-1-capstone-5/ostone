@@ -246,7 +246,7 @@ flowchart LR
 
 각 Stage는 독립적 DAG 태스크로 구현되며, Stage 간 데이터는 artifact(JSON/Parquet)로 전달한다.
 
-### Intent Discovery 알고리듬
+### Intent Discovery 알고리즘
 
 상담 로그를 의도 단위로 군집화하기 위해 다음을 결합한다.
 
@@ -277,7 +277,7 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 
 생성 품질은 **mapping rate**(매핑률) · **outlier rate**(이상치 비율) · **workflow separability**(워크플로우 분리도)로 평가하고, review 우선순위를 제안한다.
 
-> 알고리듬·평가 세부 정의는 [`.agent/docs/architecture.md`](.agent/docs/architecture.md)에 위임한다.
+> 알고리즘·평가 세부 정의는 [`.agent/docs/architecture.md`](.agent/docs/architecture.md)에 위임한다.
 
 ---
 
