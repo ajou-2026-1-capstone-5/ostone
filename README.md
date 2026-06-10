@@ -77,6 +77,24 @@
 
 <!-- 스크린샷: 상담 로그 업로드 화면 (추후 첨부) — ZIP 업로드, 적재 진행 상태, 구조화 결과 요약 -->
 
+<details>
+  <summary>서비스 화면</summary>
+
+<table>
+  <tr>
+    <th align="center">업로드 화면</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/e51b2885-a20b-4d93-9f88-3e4e0602aa1a" width="600"/>
+    </td>
+  </tr>
+</table>
+
+</details>
+
+
+
 > 스펙: [원본 로그 업로드 API](.agent/specs/121.md) · [Conversation/Turn 구조화](.agent/specs/122.md) · [ZIP-only 업로드 정책](.agent/specs/421.md)
 
 ### 2. Domain Pack 생성 파이프라인 (Intent Discovery)
@@ -84,14 +102,78 @@
 업로드된 로그를 8단계 오프라인 파이프라인으로 처리해 intent를 발견하고 workflow graph 초안까지 생성한다. 완료 시 결과를 Spring Backend로 콜백한다.
 
 <!-- 스크린샷: 파이프라인 실행 화면 (추후 첨부) — job 실행 요청, 단계별 진행 상태, 평가 리포트 -->
+<!-- 파이프라인 실행 화면 -->
+
+<details>
+  <summary>서비스 화면</summary>
+
+<table>
+  <tr>
+    <th align="center">Airflow 파이프라인 UI</th>
+    <th align="center">파이프라인 도메인 보정</th>
+    <th align="center">파이프라인 클러스터 보정</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/042c7992-8ba3-4ebc-a71a-311e6f946837" width="600"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/7127d339-9e00-4722-afa0-59e190ddb79d" width="600"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/b5d5ae62-6e53-41fb-b65b-bce2bb39ea30" width="600"/>
+    </td>
+  </tr>
+</table>
+
+</details>
 
 > 스펙: [Intent Discovery / Workflow Entry Point](.agent/specs/2-1-1.md) · [Workflow Graph 생성](.agent/specs/002218.md) · [publish_candidate → Backend 콜백](.agent/specs/218.md)
 
-### 3. AI 초안 검토·승인 (Human-in-the-loop)
+### 3. Doamin pack 초안 검토·승인 (Human-in-the-loop)
 
 파이프라인이 만든 intent / slot / policy / risk / workflow 초안을 운영자가 콘솔에서 조회·수정·승인·반려하고, 승인된 Domain Pack을 활성화한다.
 
 <!-- 스크린샷: AI 초안 검토 화면 (추후 첨부) — 초안 목록/상세, 수정·승인·반려 액션, 코멘트 이력 -->
+
+<details>
+  <summary>서비스 화면</summary>
+
+#### - Domain pack 배포 전
+
+<table>
+  <tr>
+    <th align="center">Domain pack</th>
+    <th align="center">Intent</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/388ed74b-bfec-4df4-b50e-a6ae6acd4dd6" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/212cab18-7451-4cbc-89ae-38217115c636" width="450"/>
+    </td>
+  </tr>
+</table>
+
+#### - Domain pack 배포 후
+
+<table>
+  <tr>
+    <th align="center">Domain pack</th>
+    <th align="center">Intent</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/40906c2b-47f6-4116-9f32-4bec2751fa2f" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/1d9d73ac-3ddb-4875-a6ad-1460ca70dd3c" width="450"/>
+    </td>
+  </tr>
+</table>
+
+</details>
 
 > 스펙: [Domain Pack DRAFT 생성](.agent/specs/213.md) · [Intent 초안 화면](.agent/specs/214.md) · [Intent 승인/반려 API](.agent/specs/313.md) · [Domain Pack 활성화](.agent/specs/332.md)
 
@@ -99,32 +181,114 @@
 
 활성화된 Domain Pack을 읽어 현재 대화 상태를 해석하고 다음 action을 결정하는 정책 기반 runtime 엔진. 외부 LLM이 호출하는 conversation state / slot / decision-log tool API를 제공한다.
 
+
 <!-- 스크린샷: 워크플로우 그래프 뷰어 (추후 첨부) — 상태 노드/전이 edge, 현재 상태 하이라이트 -->
+<details>
+  <summary>서비스 화면</summary>
+
+<table>
+  <tr>
+    <th align="center">workflow목록</th>
+    <th align="center">workflow</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/c0bf41df-4db5-4d08-b709-01e7b34d9305" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/fcc4ec4b-2e5e-4e73-b64a-e71acc490704" width="450"/>
+    </td>
+  </tr>
+</table>
+
+</details>
 
 > 스펙: [Policy-Aware Runtime Engine & Tool API](.agent/specs/524.md) · [Workflow-Aware LLM Assistant](.agent/specs/5.2.6.md) · [Conversation State Tool](.agent/specs/522.md)
 
-### 5. 채팅 데모 / 워크플로우 시각화
+### 5. 채팅 데모 / 워크플로우 시각화 / 상담사 개입
 
-고객 발화에 따라 workflow가 상태를 전이하는 모습을 시연하는 접점. 채팅 타임라인과 workflow graph를 양방향으로 연결해 메시지별 매핑을 보여준다.
+고객 발화에 따라 workflow가 상태를 전이하는 모습을 시연. 채팅 타임라인과 workflow graph를 양방향으로 연결해 메시지별 매핑을 보여준다. 
+이후 상담사 개입을 통해 문의가 처리된다. WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배정/해제, AI handoff(자동응답 ↔ 상담사 개입) 전환을 제공한다.
 
 <!-- 스크린샷: 채팅 데모 화면 (추후 첨부) — 대화 타임라인, 메시지-그래프 양방향 강조, slot/policy/risk 추출 상태 -->
 
-> 스펙: [채팅 타임라인·워크플로우 매핑](.agent/specs/4.1.7.md) · [워크플로우 그래프 뷰어](.agent/specs/4.1.8.md) · [메시지-그래프 양방향 강조](.agent/specs/4.1.10.md)
+<details>
+  <summary>서비스 화면</summary>
 
-### 6. 실시간 상담사 콘솔
+#### - 챗봇 응대화면
+<table>
+  <tr>
+    <th align="center">챗봇 초기 응대 화면</th>
+    <th align="center">workflow 매칭</th>
+    <th align="center">slot 저장</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/8bfca570-e505-482e-bd1e-fc343d35c700" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/6eaf05db-5391-48f5-ae4e-7107efb7973f" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/35354700-e69f-4f68-a023-3e3f7c8f8ade" width="450"/>
+    </td>
+  </tr>
+</table>
 
-WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배정/해제, AI handoff(자동응답 ↔ 상담사 개입) 전환, 세션 관리·지표를 제공한다.
+#### - 상담사 개입 화면
+<table>
+
+  <tr>
+    <th align="center">상담사 채팅</th>
+    <th align="center">상담 종료 처리</th>
+    <th align="center">상담 세션 종료</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/436613ea-6259-4ae9-a522-30e27a9ee472" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/42af59a9-02b2-4c85-a5f4-82f20abb36bd" width="450"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/1df86361-0c5f-4110-9a2c-adaf4581a292" width="450"/>
+    </td>
+  </tr>
+</table>
+
+</details>
+
+> 스펙: [채팅 타임라인·워크플로우 매핑](.agent/specs/4.1.7.md) · [워크플로우 그래프 뷰어](.agent/specs/4.1.8.md) · [STOMP WebSocket 채팅 인프라](.agent/specs/5.3.2.md) · [상담사 개입 기능](.agent/specs/5.3.4.md) · [AI handoff ↔ 대기열 연결](.agent/specs/356.md)
+
+### 6. 관리 대시보드
+
+상담 내역과 워크플로우 실행 로그를 기반으로 CS 운영 현황을 확인하는 워크스페이스 대시보드. 선택 기간의 상담 처리량, 자동화 커버리지, 핫패스 워크플로우 등을 시각화하고, 개선이 필요한 지점을 추천 액션으로 안내한다.
 
 <!-- 스크린샷: 실시간 상담사 콘솔 (추후 첨부) — 대기열·필터, 배정/해제, 상담사 채팅, AI handoff 상태 -->
 
-> 스펙: [STOMP WebSocket 채팅 인프라](.agent/specs/5.3.2.md) · [상담사 개입 기능](.agent/specs/5.3.4.md) · [AI handoff ↔ 대기열 연결](.agent/specs/356.md) · [상담사 대기열 실시간화](.agent/specs/298.md)
+<details>
+  <summary>서비스 화면</summary>
+
+<table>
+  <tr>
+    <th align="center">운영자 대시보드</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/b803bab9-5677-4baa-97f5-78009e2b3176" width="600"/>
+    </td>
+  </tr>
+</table>
+
+</details>
+
+> 스펙: [워크스페이스 고객용 대시보드](.agent/specs/517.md) · [상담 처리 요약 지표](.agent/specs/518.md) · [자동화 커버리지 지표](.agent/specs/522.md) · [핫패스 워크플로우 랭킹](.agent/specs/519.md) · [고객 액션 추천](.agent/specs/523.md)
 
 ---
 
 ## 데모 / 사용 흐름
 
-### 기능별 화면
-
+<!-- ### 기능별 화면 -->
 <!-- 스크린샷: 운영자 콘솔 (추후 첨부) — Domain Pack 목록/상세, intent·slot·policy·risk·workflow 버전 확인 -->
 <!-- 스크린샷: AI 초안 검토 화면 (추후 첨부) — review 작업 큐, 수정·승인·반려 액션, 코멘트 이력 -->
 <!-- 스크린샷: 파이프라인 실행 화면 (추후 첨부) — pipeline job 실행 요청, 단계별 진행 상태, 평가 리포트 -->
