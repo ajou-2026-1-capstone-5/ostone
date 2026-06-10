@@ -5,10 +5,8 @@ from pathlib import Path
 from typing import Any, cast
 
 import httpx
-import pytest
 
 from pipeline.common.config import PipelineRuntimeConfig
-from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.feedback_candidate_generation import review_question_enrichment
 from pipeline.stages.feedback_candidate_generation.main import run
 
@@ -144,8 +142,12 @@ def test_review_question_enrichment_handles_request_failure(monkeypatch, tmp_pat
         _fake_client_factory(httpx.ConnectError("connection failed")),
     )
 
-    with pytest.raises(PipelineStageError, match="Review question LLM enrichment failed"):
-        review_question_enrichment.enrich_review_questions([question], _runtime_config(tmp_path))
+    summary = review_question_enrichment.enrich_review_questions([question], _runtime_config(tmp_path))
+
+    assert summary["requestFailureCount"] == 1
+    assert summary["fallbackCount"] == 1
+    assert question["enrichmentStatus"] == "fallback"
+    assert question["enrichmentFallbackReason"] == "request_failure"
 
 
 def test_review_question_enrichment_keeps_abstain_as_low_priority(monkeypatch, tmp_path: Path) -> None:
@@ -237,6 +239,8 @@ def test_review_question_enrichment_sends_runtime_options_and_respects_limit(
     assert summary["skippedByLimitCount"] == 1
     assert second_question.get("enrichmentStatus") is None
     assert _FakeClient.calls[0]["headers"]["Authorization"] == "Bearer local-token"
+    assert _FakeClient.calls[0]["timeout"] == review_question_enrichment.DEFAULT_TIMEOUT_SECONDS
+    assert "max_tokens" not in _FakeClient.calls[0]["json"]
     assert _FakeClient.calls[0]["json"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert _FakeClient.calls[0]["json"]["options"] == {"think": False}
     assert question["enrichmentStatus"] == "applied"
@@ -329,6 +333,7 @@ class _FakeClient:
 
     def __init__(self, payload: dict[str, Any] | str | Exception) -> None:
         self._payload = payload
+        self._timeout: object = None
 
     def __enter__(self) -> "_FakeClient":
         return self
@@ -337,7 +342,9 @@ class _FakeClient:
         return None
 
     def post(self, *_args: object, **kwargs: object) -> _FakeResponse:
-        _FakeClient.calls.append(cast(dict[str, Any], kwargs))
+        call = cast(dict[str, Any], dict(kwargs))
+        call["timeout"] = self._timeout
+        _FakeClient.calls.append(call)
         if isinstance(self._payload, Exception):
             raise self._payload
         return _FakeResponse(self._payload)
@@ -347,8 +354,9 @@ def _fake_client_factory(payload: dict[str, Any] | str | Exception) -> type[_Fak
     _FakeClient.calls = []
 
     class BoundFakeClient(_FakeClient):
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
+        def __init__(self, *_args: object, **kwargs: object) -> None:
             super().__init__(payload)
+            self._timeout = kwargs.get("timeout")
 
     return BoundFakeClient
 

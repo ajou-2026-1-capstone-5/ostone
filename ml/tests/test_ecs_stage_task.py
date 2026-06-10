@@ -43,6 +43,8 @@ def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> No
     monkeypatch.setenv("PIPELINE_ECS_POLL_INTERVAL_SECONDS", "0")
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "90")
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "2048")
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "120")
+    monkeypatch.setenv("ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "8")
 
     runtime_config = PipelineRuntimeConfig(
         artifact_root=Path("/tmp/artifacts"),
@@ -80,6 +82,8 @@ def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> No
     } in environment
     assert {"name": "PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "value": "90"} in environment
     assert {"name": "PIPELINE_DOMAIN_CANDIDATE_LLM_MAX_TOKENS", "value": "2048"} in environment
+    assert {"name": "ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "value": "120"} in environment
+    assert {"name": "ML_REVIEW_QUESTION_ENRICHMENT_LIMIT", "value": "8"} in environment
 
 
 def test_run_stage_task_forwards_raw_object_key_to_ingestion(monkeypatch) -> None:

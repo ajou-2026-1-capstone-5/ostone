@@ -10,8 +10,8 @@ from typing import Any
 import httpx
 
 from pipeline.common.config import PipelineRuntimeConfig
-from pipeline.common.exceptions import PipelineStageError
 
+DEFAULT_TIMEOUT_SECONDS = 90.0
 MAX_EVIDENCE_ITEMS = 8
 MAX_EVIDENCE_CHARS = 420
 CHOICE_KEYS = ("must_link", "cannot_link", "unsure")
@@ -118,8 +118,6 @@ def _enrich_question(
         parsed = _parse_response(response.json())
     except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
         _increment(summary, "requestFailureCount")
-        if runtime_config.llm_runtime_base_url:
-            raise PipelineStageError("Review question LLM enrichment failed.") from exc
         _record_fallback(question, summary, "request_failure")
         if logger is not None:
             logger.warning(
@@ -195,7 +193,6 @@ def _request_payload(
     payload: dict[str, Any] = {
         "model": model_name,
         "temperature": 0.1,
-        "max_tokens": 520,
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -459,12 +456,12 @@ def _compact_json(payload: dict[str, Any]) -> str:
 
 
 def _timeout_seconds() -> float:
-    raw = os.getenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", "30").strip()
+    raw = os.getenv("ML_REVIEW_QUESTION_ENRICHMENT_TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS)).strip()
     try:
         value = float(raw)
     except ValueError:
-        return 30.0
-    return value if value > 0 else 30.0
+        return DEFAULT_TIMEOUT_SECONDS
+    return value if value > 0 else DEFAULT_TIMEOUT_SECONDS
 
 
 def _question_limit() -> int:
