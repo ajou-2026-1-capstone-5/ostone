@@ -146,6 +146,14 @@ WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배
 | --- | --- | --- |
 | 원본 상담 로그 (conversation 단위) | 8단계 오프라인 파이프라인 | publish candidate artifact (Domain Pack 초안) |
 
+### Domain Pack 구성
+
+<p align="center">
+  <img src="docs/assets/readme/domain-pack-composition.png" alt="Domain Pack Version을 중심으로 intent, slot, policy, risk, workflow가 연결되는 구성도" width="92%" />
+</p>
+
+Domain Pack은 개별 intent 목록이 아니라, 고객 요청 분류와 정보 수집, 정책 적용, 위험 감지, 실행 workflow를 하나의 버전 단위로 묶은 운영 지식 패키지다.
+
 ### Domain Pack 예시 (구조 발췌)
 
 아래는 `backend/src/main/resources/seed/hanacard-workflow-candidate.json`의 실제 구조에서 발췌·요약한 것이다. 최상위는 `domainPackDraft`, `intentDraft`, `workflowDraft`로 구성된다.
