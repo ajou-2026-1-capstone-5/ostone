@@ -29,7 +29,6 @@ import com.init.workflowruntime.domain.WorkflowExecutionRepository;
 import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,14 +83,35 @@ public class WorkflowAssistantStateService {
     if (!hasText(intentCode)) {
       throw new BadRequestException("INTENT_CODE_REQUIRED", "intentCode is required");
     }
-    Optional<Long> preferredWorkflow =
-        workflowMatchDecisionRepository.findLatestConfidentWorkflowId(
-            command.sessionId(), intentCode.trim());
-    Long workflowDefinitionId = preferredWorkflow.orElse(null);
+    Long workflowDefinitionId = resolvePreferredWorkflowId(command, intentCode.trim());
     llmToolService.selectIntent(
         new SelectLlmToolIntentCommand(
             command.sessionId(), intentCode.trim(), workflowDefinitionId));
     return AssistantConversationResult.of(inspectState(command.sessionId()));
+  }
+
+  /**
+   * 워크플로우 선택 우선순위(이슈 #909): (1) 분류기가 돌려준 workflowCode를 사용자가 그대로 골라 명시 → (2) 임베딩 CONFIDENT 결정 기록 →
+   * (3) null(이후 LlmToolService가 primary 폴백). 같은 intent에 여러 워크플로우가 있을 때 (3) 단독으로는 항상 primary로 고정되므로,
+   * 분류기가 식별한 워크플로우를 우선한다.
+   */
+  private Long resolvePreferredWorkflowId(
+      StartAssistantWorkflowCommand command, String intentCode) {
+    if (hasText(command.workflowCode())) {
+      ChatSession session = findSession(command.sessionId());
+      Long byCode =
+          workflowDefinitionRepository
+              .findByDomainPackVersionIdAndWorkflowCode(
+                  session.getDomainPackVersionId(), command.workflowCode().trim())
+              .map(WorkflowDefinition::getId)
+              .orElse(null);
+      if (byCode != null) {
+        return byCode;
+      }
+    }
+    return workflowMatchDecisionRepository
+        .findLatestConfidentWorkflowId(command.sessionId(), intentCode)
+        .orElse(null);
   }
 
   @Transactional

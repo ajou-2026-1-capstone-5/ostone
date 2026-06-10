@@ -3,10 +3,13 @@ package com.init.workflowruntime.application;
 import static com.init.workflowruntime.support.WorkflowRuntimeTestObjects.chatSessionWithId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 import com.init.domainpack.domain.model.IntentDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
 import com.init.workflowruntime.application.matching.WorkflowMatchCandidate;
@@ -30,6 +33,7 @@ class IntentClassificationServiceTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
+  @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private WorkflowMatchingService workflowMatchingService;
 
   private IntentClassificationService service;
@@ -38,7 +42,10 @@ class IntentClassificationServiceTest {
   void setUp() {
     service =
         new IntentClassificationService(
-            chatSessionRepository, intentDefinitionRepository, workflowMatchingService);
+            chatSessionRepository,
+            intentDefinitionRepository,
+            workflowDefinitionRepository,
+            workflowMatchingService);
   }
 
   @Test
@@ -297,6 +304,142 @@ class IntentClassificationServiceTest {
     assertThat(result.confidence()).isEqualTo(0.95);
   }
 
+  @Test
+  @DisplayName("classify: intent에 워크플로우가 1개면 해당 workflowCode를 함께 확신 반환한다")
+  void should_returnWorkflowCode_when_intentHasSingleWorkflow() {
+    givenSession();
+    IntentDefinition intent = intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(List.of(workflow("WF-REFUND", "환불 처리", "환불 처리 절차", true)));
+
+    IntentClassificationResult result = service.classify(command("환불하고 싶어요", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.intentCode()).isEqualTo("refund_request");
+    assertThat(result.workflowCode()).isEqualTo("WF-REFUND");
+    assertThat(result.candidates().get(0).workflowCode()).isEqualTo("WF-REFUND");
+  }
+
+  @Test
+  @DisplayName("classify: 1:N에서 발화가 한 워크플로우와 명확히 일치하면 그 workflowCode로 확신한다")
+  void should_selectMatchingWorkflow_when_intentHasMultipleWorkflows() {
+    givenSession();
+    IntentDefinition intent = intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(
+            List.of(
+                workflow("WF-FULL-REFUND", "전액 환불", "전액 환불 처리", true),
+                workflow("WF-PARTIAL-REFUND", "부분 환불", "부분 환불 처리", false)));
+
+    IntentClassificationResult result = service.classify(command("부분 환불 받고 싶어요", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.intentCode()).isEqualTo("refund_request");
+    assertThat(result.workflowCode()).isEqualTo("WF-PARTIAL-REFUND");
+  }
+
+  @Test
+  @DisplayName("classify: 1:N에서 발화가 primary가 아닌 워크플로우와 일치하면 그쪽으로 분리된다(핵심 회귀)")
+  void should_selectNonPrimaryWorkflow_when_utteranceMatchesNonPrimary() {
+    // 기존 버그: preferred가 없으면 항상 isPrimary 워크플로우로 고정 → non-primary 도달 불가.
+    // 수정 후: 발화가 non-primary 워크플로우와 일치하면 primary가 아니라 그쪽으로 라우팅되어야 한다.
+    givenSession();
+    IntentDefinition intent = intent("delivery_request", "배송 문의", "배송 관련 문의", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(
+            List.of(
+                workflow("WF-DELIVERY-TRACK", "배송 조회", "배송 상태 조회", true),
+                workflow("WF-DELIVERY-ADDRESS", "배송지 변경", "배송지 주소 변경", false),
+                workflow("WF-DELIVERY-CANCEL", "배송 취소", "배송 취소 처리", false)));
+
+    IntentClassificationResult result = service.classify(command("배송지 변경하고 싶어요", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.workflowCode()).isEqualTo("WF-DELIVERY-ADDRESS");
+  }
+
+  @Test
+  @DisplayName("classify: 1:N에서 발화에 따라 서로 다른 워크플로우로 분리된다(대칭)")
+  void should_routeToDifferentWorkflows_dependingOnUtterance() {
+    givenSession();
+    IntentDefinition intent = intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(
+            List.of(
+                workflow("WF-FULL-REFUND", "전액 환불", "전액 환불 처리", true),
+                workflow("WF-PARTIAL-REFUND", "부분 환불", "부분 환불 처리", false)),
+            List.of(
+                workflow("WF-FULL-REFUND", "전액 환불", "전액 환불 처리", true),
+                workflow("WF-PARTIAL-REFUND", "부분 환불", "부분 환불 처리", false)));
+
+    IntentClassificationResult full = service.classify(command("전액 환불 받고 싶어요", ""));
+    IntentClassificationResult partial = service.classify(command("부분 환불 받고 싶어요", ""));
+
+    assertThat(full.status()).isEqualTo("CONFIDENT");
+    assertThat(full.workflowCode()).isEqualTo("WF-FULL-REFUND");
+    assertThat(partial.status()).isEqualTo("CONFIDENT");
+    assertThat(partial.workflowCode()).isEqualTo("WF-PARTIAL-REFUND");
+  }
+
+  @Test
+  @DisplayName("classify: 1:N에서 워크플로우 코드 토큰으로도 분리된다")
+  void should_separateWorkflows_byWorkflowCodeToken() {
+    givenSession();
+    IntentDefinition intent = intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(
+            List.of(
+                workflow("coupon_refund", "쿠폰 보상", "쿠폰으로 보상", true),
+                workflow("cash_refund", "현금 환불", "계좌로 환불", false)));
+
+    IntentClassificationResult result = service.classify(command("cash refund 원해요", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.workflowCode()).isEqualTo("cash_refund");
+  }
+
+  @Test
+  @DisplayName("classify: 1:N에서 워크플로우가 박빙/무신호면 워크플로우 이름으로 재질의한다")
+  void should_askWorkflowConfirmation_when_workflowsAreAmbiguous() {
+    givenSession();
+    IntentDefinition intent = intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED");
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of(intent));
+    given(
+            workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                any(), eq(101L)))
+        .willReturn(
+            List.of(
+                workflow("WF-FULL-REFUND", "전액 환불", "전액 환불 처리", true),
+                workflow("WF-PARTIAL-REFUND", "부분 환불", "부분 환불 처리", false)));
+
+    IntentClassificationResult result = service.classify(command("환불하고 싶어요", ""));
+
+    assertThat(result.status()).isEqualTo("AMBIGUOUS");
+    assertThat(result.candidates()).hasSize(2);
+    assertThat(result.candidates())
+        .allSatisfy(candidate -> assertThat(candidate.intentCode()).isEqualTo("refund_request"));
+    // 재질의 후보가 workflowCode를 노출해야 사용자의 선택을 정확한 워크플로우로 라우팅할 수 있다.
+    assertThat(result.candidates())
+        .extracting(candidate -> candidate.workflowCode())
+        .containsExactlyInAnyOrder("WF-FULL-REFUND", "WF-PARTIAL-REFUND");
+    assertThat(result.confirmationQuestion()).contains("전액 환불").contains("부분 환불");
+  }
+
   private void givenSession() {
     ChatSession session = ChatSession.create(10L, 101L, ChatSessionStatus.OPEN, "WEB", "{}");
     ChatSession identifiedSession = chatSessionWithId(session, 1L);
@@ -315,5 +458,22 @@ class IntentClassificationServiceTest {
       intent.changeStatus(status);
     }
     return intent;
+  }
+
+  private WorkflowDefinition workflow(
+      String workflowCode, String name, String description, boolean isPrimary) {
+    return WorkflowDefinition.create(
+        101L,
+        workflowCode,
+        name,
+        description,
+        "{}",
+        "START",
+        "[]",
+        "{}",
+        "{}",
+        20L,
+        isPrimary,
+        "{}");
   }
 }

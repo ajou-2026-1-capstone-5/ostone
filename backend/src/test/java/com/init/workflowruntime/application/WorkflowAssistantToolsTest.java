@@ -114,7 +114,7 @@ class WorkflowAssistantToolsTest {
     given(stateService.startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request")))
         .willReturn(AssistantConversationResult.of(expected));
 
-    AssistantConversationState result = tools.startWorkflow("refund_request", toolContext);
+    AssistantConversationState result = tools.startWorkflow("refund_request", null, toolContext);
 
     assertThat(result).isSameAs(expected);
     verify(stateService).startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request"));
@@ -127,7 +127,7 @@ class WorkflowAssistantToolsTest {
     given(stateService.startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request")))
         .willThrow(new BadRequestException("WORKFLOW_INVALID", "workflow graph leaked"));
 
-    AssistantConversationState result = tools.startWorkflow("refund_request", toolContext);
+    AssistantConversationState result = tools.startWorkflow("refund_request", null, toolContext);
 
     assertThat(result.nextAction().type()).isEqualTo("ERROR");
     assertThat(result.nextAction().message()).doesNotContain("workflow graph");

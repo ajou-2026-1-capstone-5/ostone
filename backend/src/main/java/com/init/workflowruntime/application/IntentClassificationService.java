@@ -1,7 +1,9 @@
 package com.init.workflowruntime.application;
 
 import com.init.domainpack.domain.model.IntentDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentCandidate;
@@ -35,14 +37,17 @@ public class IntentClassificationService {
 
   private final ChatSessionRepository chatSessionRepository;
   private final IntentDefinitionRepository intentDefinitionRepository;
+  private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final WorkflowMatchingService workflowMatchingService;
 
   public IntentClassificationService(
       ChatSessionRepository chatSessionRepository,
       IntentDefinitionRepository intentDefinitionRepository,
+      WorkflowDefinitionRepository workflowDefinitionRepository,
       WorkflowMatchingService workflowMatchingService) {
     this.chatSessionRepository = chatSessionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
+    this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.workflowMatchingService = workflowMatchingService;
   }
 
@@ -55,7 +60,10 @@ public class IntentClassificationService {
       if ("CONFIDENT".equals(matchResult.status())) {
         WorkflowMatchCandidate candidate = matchResult.candidates().getFirst();
         return IntentClassificationResult.confident(
-            candidate.intentCode(), candidate.confidence(), List.of(toIntentCandidate(candidate)));
+            candidate.intentCode(),
+            candidate.workflowCode(),
+            candidate.confidence(),
+            List.of(toIntentCandidate(candidate)));
       }
       if ("AMBIGUOUS".equals(matchResult.status())) {
         return IntentClassificationResult.ambiguous(
@@ -103,8 +111,116 @@ public class IntentClassificationService {
           buildConfirmationQuestion(candidates), candidates);
     }
 
+    return finalizeWorkflowSelection(session, top, query);
+  }
+
+  /**
+   * 키워드 폴백에서 확신한 intent가 결정된 뒤, 해당 intent의 워크플로우를 선택한다(이슈 #909).
+   *
+   * <ul>
+   *   <li>0개: 기존처럼 intent 수준 CONFIDENT (이후 resolveWorkflow가 처리)
+   *   <li>1개: 그 워크플로우로 CONFIDENT
+   *   <li>2개 이상: 발화 기준 점수화 후 명확히 우세하면 CONFIDENT, 박빙/무신호면 워크플로우 후보로 AMBIGUOUS(재질의)
+   * </ul>
+   */
+  private IntentClassificationResult finalizeWorkflowSelection(
+      ChatSession session, ScoredIntent top, String query) {
+    IntentDefinition intent = top.intent();
+    List<WorkflowDefinition> workflows =
+        workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+            intent.getId(), session.getDomainPackVersionId());
+
+    if (workflows.isEmpty()) {
+      return IntentClassificationResult.confident(
+          intent.getIntentCode(), confidence(top.score()), List.of(toCandidate(top)));
+    }
+    if (workflows.size() == 1) {
+      return confidentWorkflow(top, workflows.get(0));
+    }
+
+    List<ScoredWorkflow> scoredWorkflows =
+        workflows.stream()
+            .map(workflow -> new ScoredWorkflow(workflow, scoreWorkflow(workflow, query)))
+            .sorted(
+                Comparator.comparing(ScoredWorkflow::score)
+                    .reversed()
+                    .thenComparing(
+                        scored -> scored.workflow().getIsPrimary(),
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(
+                        scored -> scored.workflow().getId(),
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+            .toList();
+
+    ScoredWorkflow topWorkflow = scoredWorkflows.get(0);
+    ScoredWorkflow secondWorkflow = scoredWorkflows.get(1);
+    // 1위 워크플로우가 무신호이거나 2위와 박빙이면 어느 워크플로우인지 단정할 수 없으므로 재질의한다.
+    boolean ambiguous =
+        topWorkflow.score() <= 0
+            || secondWorkflow.score() >= topWorkflow.score() * AMBIGUITY_RATIO_THRESHOLD;
+    if (ambiguous) {
+      List<IntentCandidate> workflowCandidates =
+          scoredWorkflows.stream()
+              .limit(2)
+              .map(scored -> toWorkflowCandidate(top, scored.workflow()))
+              .toList();
+      return IntentClassificationResult.ambiguous(
+          buildWorkflowConfirmationQuestion(workflowCandidates), workflowCandidates);
+    }
+    return confidentWorkflow(top, topWorkflow.workflow());
+  }
+
+  private IntentClassificationResult confidentWorkflow(
+      ScoredIntent top, WorkflowDefinition workflow) {
     return IntentClassificationResult.confident(
-        top.intent().getIntentCode(), confidence(top.score()), List.of(toCandidate(top)));
+        top.intent().getIntentCode(),
+        workflow.getWorkflowCode(),
+        confidence(top.score()),
+        List.of(toWorkflowCandidate(top, workflow)));
+  }
+
+  private double scoreWorkflow(WorkflowDefinition workflow, String query) {
+    double score = 0.0;
+    String name = normalize(workflow.getName());
+    if (!name.isBlank() && query.contains(name)) {
+      score += 3.0;
+    }
+
+    for (String token : tokens(workflow.getWorkflowCode())) {
+      if (query.contains(token)) {
+        score += 2.0;
+      }
+    }
+
+    for (String token : tokens(workflow.getName() + " " + workflow.getDescription())) {
+      if (query.contains(token)) {
+        score += 1.0;
+      }
+    }
+
+    return score;
+  }
+
+  private IntentCandidate toWorkflowCandidate(ScoredIntent top, WorkflowDefinition workflow) {
+    return new IntentCandidate(
+        top.intent().getIntentCode(),
+        top.intent().getName(),
+        confidence(top.score()),
+        workflow.getWorkflowCode(),
+        workflow.getName());
+  }
+
+  private String buildWorkflowConfirmationQuestion(List<IntentCandidate> candidates) {
+    if (candidates.size() < 2) {
+      return "어떤 업무를 도와드리면 될까요?";
+    }
+    return "%s와 %s 중 어떤 업무에 가까울까요?"
+        .formatted(workflowLabel(candidates.get(0)), workflowLabel(candidates.get(1)));
+  }
+
+  private String workflowLabel(IntentCandidate candidate) {
+    String name = candidate.workflowName();
+    return name != null && !name.isBlank() ? name : candidate.name();
   }
 
   private ScoredIntent score(IntentDefinition intent, String query) {
@@ -138,7 +254,11 @@ public class IntentClassificationService {
 
   private IntentCandidate toIntentCandidate(WorkflowMatchCandidate candidate) {
     return new IntentCandidate(
-        candidate.intentCode(), candidate.intentName(), candidate.confidence());
+        candidate.intentCode(),
+        candidate.intentName(),
+        candidate.confidence(),
+        candidate.workflowCode(),
+        candidate.workflowName());
   }
 
   private String buildConfirmationQuestion(List<IntentCandidate> candidates) {
@@ -178,4 +298,6 @@ public class IntentClassificationService {
   }
 
   private record ScoredIntent(IntentDefinition intent, double score) {}
+
+  private record ScoredWorkflow(WorkflowDefinition workflow, double score) {}
 }

@@ -170,6 +170,70 @@ class WorkflowAssistantStateServiceTest {
   }
 
   @Test
+  @DisplayName("startWorkflow: workflowCode가 주어지면 해당 워크플로우 id를 selectIntent에 전달한다(이슈 #909)")
+  void should_passChosenWorkflowId_when_workflowCodeProvided() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse("collect_order", "handoff", "HANDOFF", "edge-handoff", List.of()));
+    // 세션 domainPackVersionId=3L, 선택된 워크플로우 코드 → id 88L
+    WorkflowDefinition chosen =
+        workflowDefinitionWithId(
+            WorkflowDefinition.create(
+                3L,
+                "WF-PARTIAL",
+                "부분 환불",
+                null,
+                "{\"nodes\":[],\"edges\":[]}",
+                "start",
+                "[]",
+                "[]",
+                "{}",
+                70L,
+                false,
+                "{}"),
+            88L);
+    given(workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(3L, "WF-PARTIAL"))
+        .willReturn(Optional.of(chosen));
+
+    startWorkflow("refund_request", "WF-PARTIAL");
+
+    verify(llmToolService)
+        .selectIntent(
+            argThat(
+                command ->
+                    command.sessionId().equals(1L)
+                        && command.intentCode().equals("refund_request")
+                        && Long.valueOf(88L).equals(command.workflowDefinitionId())));
+  }
+
+  @Test
+  @DisplayName("startWorkflow: workflowCode가 없으면 임베딩 CONFIDENT 결정의 워크플로우 id로 폴백한다")
+  void should_fallBackToEmbeddingDecision_when_workflowCodeAbsent() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse("collect_order", "handoff", "HANDOFF", "edge-handoff", List.of()));
+    given(workflowMatchDecisionRepository.findLatestConfidentWorkflowId(1L, "refund_request"))
+        .willReturn(Optional.of(99L));
+
+    startWorkflow("refund_request");
+
+    verify(llmToolService)
+        .selectIntent(
+            argThat(
+                command ->
+                    command.intentCode().equals("refund_request")
+                        && Long.valueOf(99L).equals(command.workflowDefinitionId())));
+  }
+
+  @Test
   @DisplayName("inspect: COMPLETED action을 assistant-facing 완료 상태로 반환한다")
   void should_returnCompletedState() {
     AssistantConversationState result =
@@ -407,6 +471,12 @@ class WorkflowAssistantStateServiceTest {
 
   private AssistantConversationState startWorkflow(String intentCode) {
     return service.startWorkflow(new StartAssistantWorkflowCommand(1L, intentCode)).state();
+  }
+
+  private AssistantConversationState startWorkflow(String intentCode, String workflowCode) {
+    return service
+        .startWorkflow(new StartAssistantWorkflowCommand(1L, intentCode, workflowCode))
+        .state();
   }
 
   private AssistantConversationState updateSlot(String slotCode, String value) {

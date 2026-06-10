@@ -71,10 +71,18 @@ public class WorkflowAssistantTools {
   public AssistantConversationState startWorkflow(
       @ToolParam(required = true, description = "Confirmed intent code returned by classify_intent")
           String intentCode,
+      @ToolParam(
+              required = false,
+              description =
+                  "Workflow code returned by classify_intent. Required only when the user chose"
+                      + " among multiple workflows of the same intent; pass the chosen candidate's"
+                      + " workflowCode. Omit when classify_intent returned no workflowCode.")
+          String workflowCode,
       ToolContext toolContext) {
     try {
       return stateService
-          .startWorkflow(new StartAssistantWorkflowCommand(sessionId(toolContext), intentCode))
+          .startWorkflow(
+              new StartAssistantWorkflowCommand(sessionId(toolContext), intentCode, workflowCode))
           .state();
     } catch (BusinessException | IllegalArgumentException e) {
       logToolFailure("start_workflow", e);

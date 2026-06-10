@@ -313,8 +313,24 @@ public class WorkflowMatchingCore {
     if (ranked.size() < 2) {
       return "어떤 업무를 도와드리면 될까요?";
     }
-    return "%s와 %s 중 어떤 문의에 가까울까요?"
-        .formatted(ranked.get(0).intentName(), ranked.get(1).intentName());
+    WorkflowMatchCandidate top = ranked.get(0);
+    WorkflowMatchCandidate second = ranked.get(1);
+    // 같은 intent의 두 워크플로우가 박빙이면(same_intent_workflow_overlap) intent 이름이 동일해
+    // "X와 X 중..."이 되므로, 워크플로우 이름으로 구분해 되묻는다(이슈 #909).
+    boolean sameIntent =
+        top.intentDefinitionId() != null
+            && top.intentDefinitionId().equals(second.intentDefinitionId());
+    String left = sameIntent ? confirmationLabel(top) : top.intentName();
+    String right = sameIntent ? confirmationLabel(second) : second.intentName();
+    return "%s와 %s 중 어떤 업무에 가까울까요?".formatted(left, right);
+  }
+
+  private String confirmationLabel(WorkflowMatchCandidate candidate) {
+    String workflowName = candidate.workflowName();
+    if (workflowName != null && !workflowName.isBlank()) {
+      return workflowName;
+    }
+    return candidate.intentName();
   }
 
   private boolean containsAnyActiveNegative(JsonNode terms, String normalizedText) {
