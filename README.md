@@ -257,6 +257,16 @@ flowchart LR
 
 산출물은 intent cluster candidate / exemplar set / outlier set이다.
 
+### ML 파이프라인 개선 과정 기록
+
+초기 intent discovery 설계는 **IntentGPT: Few-Shot Intent Discovery with Large Language Models**의 접근에서 출발했다. 다만 이 프로젝트의 목표는 intent label을 한 번에 생성하는 데서 끝나지 않고, 상담 로그를 실행 가능한 Domain Pack으로 전환하는 것이므로 연구 아이디어를 그대로 옮기기보다 운영 산출물 중심으로 변형했다.
+
+현재 파이프라인은 few-shot LLM 기반 의도 발견을 `ingestion → preprocessing → representation → intent_discovery → flow_splitting → draft_generation → evaluation → publish_candidate` 흐름으로 확장한다. semantic cluster는 workflow entry point 단위로 다시 나뉘고, 최종 결과는 intent뿐 아니라 slot / policy / risk / workflow 초안과 평가 artifact까지 포함한다.
+
+가장 중요한 품질 보정 축은 **human-in-the-loop**다. 파이프라인이 만든 초안은 곧바로 publish되지 않고 운영자 검토 화면에서 수정, 승인, 반려를 거친다. 실제 개선 관점에서도 자동 clustering이나 prompt 조정만으로 끝내기보다 사람이 domain pack 초안을 보정하는 단계가 가장 큰 품질 상승분을 만든다는 판단을 반영했다.
+
+향후 같은 데이터를 충분히 축적한다면 LLM fine-tuning이 더 효과적인 경로가 될 수 있다. 다만 현재 구현은 fine-tuning 전제 없이도 상담 로그에서 운영 지식을 추출하고, review feedback을 통해 품질을 끌어올릴 수 있는 구조를 우선한다.
+
 ### Workflow = 상태 기반 graph
 
 workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로 본다. START / ACTION / DECISION / HANDOFF / TERMINAL 노드와 전이 edge로 처리 흐름을 표현하며, runtime은 publish된 domain pack을 읽어 현재 대화 상태를 해석하고 다음 action을 결정한다.
