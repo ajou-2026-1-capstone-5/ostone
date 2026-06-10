@@ -5,11 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @DisplayName("AiConfig")
@@ -87,5 +92,29 @@ class AiConfigTest {
     assertThatThrownBy(() -> new AiConfig(" "))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("systemPrompt must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("production system prompt는 사용자 응답 markdown 생성을 금지한다")
+  void should_keepPlainTextResponseRule_when_configuringProductionSystemPrompt()
+      throws IOException {
+    String systemPrompt = productionSystemPrompt();
+
+    assertThat(systemPrompt)
+        .contains("14. Do not use markdown syntax")
+        .contains("numbered lists, or any other markdown formatting")
+        .contains("Plain text only.");
+  }
+
+  private String productionSystemPrompt() throws IOException {
+    YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
+    List<PropertySource<?>> propertySources =
+        loader.load("application", new FileSystemResource("src/main/resources/application.yml"));
+    return propertySources.stream()
+        .map(propertySource -> propertySource.getProperty("app.ai.chat.system-prompt"))
+        .filter(String.class::isInstance)
+        .map(String.class::cast)
+        .findFirst()
+        .orElseThrow();
   }
 }
