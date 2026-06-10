@@ -98,7 +98,7 @@ export function PipelineReviewCheckpointCard({
       .sort(
         (a, b) => (b.payload.confidence ?? 0) - (a.payload.confidence ?? 0),
       );
-    const rankByTaskId = new Map<string, number>();
+    const rankByTaskId = new Map<number, number>();
     let rank = 0;
     let previousConfidence: number | undefined;
     for (const task of ranked) {
