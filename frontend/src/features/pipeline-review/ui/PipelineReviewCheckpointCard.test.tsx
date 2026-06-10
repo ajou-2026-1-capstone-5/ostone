@@ -343,6 +343,52 @@ describe("PipelineReviewCheckpointCard", () => {
     ).toBeInTheDocument();
   });
 
+  it("ranks domain candidates by relative confidence so distinct scores never share a rank", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 101,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: { displayName: "카드 상담", confidence: 0.62 },
+          },
+          {
+            id: 102,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "대출 상담",
+            // 같은 임계 구간(0.5~0.8)이지만 confidence가 달라 순위가 갈려야 한다.
+            payload: { displayName: "대출 상담", confidence: 0.55 },
+          },
+          {
+            id: 103,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "보험 상담",
+            payload: { displayName: "보험 상담", confidence: 0.88 },
+          },
+        ],
+      },
+    } as never);
+
+    renderCard();
+
+    // 임계 구간이 아니라 상대 순위로 매겨지므로 세 후보가 1·2·3순위로 모두 구분된다.
+    expect(screen.getByText("1순위")).toBeInTheDocument();
+    expect(screen.getByText("2순위")).toBeInTheDocument();
+    expect(screen.getByText("3순위")).toBeInTheDocument();
+  });
+
   it("guides operators when the selected candidate has low confidence", () => {
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
