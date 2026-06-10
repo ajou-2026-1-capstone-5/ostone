@@ -626,7 +626,7 @@ test.describe("Workspace core operator screens", () => {
         await page.goto("/workspaces/1/simulation");
         await expect(page.getByRole("heading", { name: "상담 시뮬레이션" })).toBeVisible();
 
-        await page.getByLabel("고객 이름").fill("최시뮬");
+        await page.getByLabel("시뮬레이션 이름").fill("최시뮬");
         await page.getByLabel("시작 workflow 선택").selectOption("401");
         await page.getByRole("button", { name: "세션 생성" }).click();
         await expect(page.getByLabel("시뮬레이션 대화")).toContainText(
