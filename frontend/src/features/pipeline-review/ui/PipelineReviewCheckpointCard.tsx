@@ -89,6 +89,28 @@ export function PipelineReviewCheckpointCard({
     () => openTasks.map((task) => task.id),
     [openTasks],
   );
+  // confidence가 가까운 후보들이 같은 임계 구간에 묶여 같은 순위로 보이는 문제를 막기 위해
+  // 절대 임계값이 아니라 후보 간 상대 순위(높은 confidence가 1순위)로 순위를 매긴다.
+  // confidence가 동일한 후보만 같은 순위를 공유한다(dense ranking).
+  const domainRankByTaskId = useMemo(() => {
+    const ranked = openTasks
+      .filter((task) => typeof task.payload.confidence === "number")
+      .sort(
+        (a, b) => (b.payload.confidence ?? 0) - (a.payload.confidence ?? 0),
+      );
+    const rankByTaskId = new Map<string, number>();
+    let rank = 0;
+    let previousConfidence: number | undefined;
+    for (const task of ranked) {
+      const confidence = task.payload.confidence ?? 0;
+      if (previousConfidence === undefined || confidence !== previousConfidence) {
+        rank += 1;
+        previousConfidence = confidence;
+      }
+      rankByTaskId.set(task.id, rank);
+    }
+    return rankByTaskId;
+  }, [openTasks]);
   const domainSelectionKey =
     query.data?.reviewKind === "DOMAIN_CONFIRMATION"
       ? `${workspaceId}:${pipelineJobId}:${openTaskIds.join(",")}`
@@ -389,7 +411,7 @@ export function PipelineReviewCheckpointCard({
                   ) : (
                     task.payload.confidence !== undefined && (
                       <span className={styles.confidence}>
-                        {formatDomainConfidence(task.payload.confidence)}
+                        {formatDomainRank(domainRankByTaskId.get(task.id))}
                       </span>
                     )
                   )}
@@ -480,8 +502,8 @@ export function PipelineReviewCheckpointCard({
                 <div className={styles.termRow} aria-label="후보 신뢰도">
                   <span className={styles.term}>
                     후보 신뢰도{" "}
-                    {formatDomainConfidence(
-                      selectedDomainTask.payload.confidence,
+                    {formatDomainRank(
+                      domainRankByTaskId.get(selectedDomainTask.id),
                     )}
                   </span>
                 </div>
@@ -743,10 +765,9 @@ function questionScopeLabel(
   return `${decisionScope || "intent"} scope`;
 }
 
-function formatDomainConfidence(confidence: number): string {
-  if (confidence >= 0.8) return "1순위";
-  if (confidence >= 0.5) return "2순위";
-  return "3순위";
+function formatDomainRank(rank: number | undefined): string | null {
+  if (rank === undefined) return null;
+  return `${rank}순위`;
 }
 
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
