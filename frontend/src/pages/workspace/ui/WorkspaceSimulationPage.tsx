@@ -1728,7 +1728,7 @@ export function WorkspaceSimulationPage() {
           </p>
         </div>
         <label className={styles.field}>
-          <span>고객 이름</span>
+          <span>시뮬레이션 이름</span>
           <input
             value={customerNameInput}
             onChange={(event) => setCustomerNameInput(event.target.value)}
