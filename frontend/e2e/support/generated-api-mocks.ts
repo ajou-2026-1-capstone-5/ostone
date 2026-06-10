@@ -209,7 +209,7 @@ export async function installDomainPackApiMocks(page: Page, seen: string[]) {
 }
 
 interface ConsultationApiMockOptions {
-  messageEvidenceDelayMs?: () => number;
+  messageEvidenceGate?: () => Promise<void> | null;
   shouldFailMessageEvidence?: () => boolean;
 }
 
@@ -369,9 +369,9 @@ export async function installConsultationApiMocks(
       method === "GET" &&
       path === "/consultation/sessions/601/messages/701/domain-pack-elements"
     ) {
-      const delayMs = options.messageEvidenceDelayMs?.() ?? 0;
-      if (delayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      const gate = options.messageEvidenceGate?.();
+      if (gate) {
+        await gate;
       }
 
       if (options.shouldFailMessageEvidence?.()) {

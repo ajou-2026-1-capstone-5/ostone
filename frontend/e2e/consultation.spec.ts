@@ -7,17 +7,17 @@ import { installMockStomp } from "./support/mock-stomp";
 
 test.describe("Consultation screen", () => {
   let seen: string[];
-  let messageEvidenceDelayMs: number;
+  let messageEvidenceGate: Promise<void> | null;
   let shouldFailMessageEvidence: boolean;
 
   test.beforeEach(async ({ page }) => {
     seen = [];
-    messageEvidenceDelayMs = 0;
+    messageEvidenceGate = null;
     shouldFailMessageEvidence = false;
     await installAuth(page);
     await installMockStomp(page);
     await installConsultationApiMocks(page, seen, {
-      messageEvidenceDelayMs: () => messageEvidenceDelayMs,
+      messageEvidenceGate: () => messageEvidenceGate,
       shouldFailMessageEvidence: () => shouldFailMessageEvidence,
     });
   });
@@ -188,14 +188,21 @@ test.describe("Consultation screen", () => {
           },
         ] as const;
 
-        messageEvidenceDelayMs = 100;
+        // 응답을 게이트로 붙잡아 로딩 상태가 사라지기 전에 확인할 수 있게 한다.
+        let releaseMessageEvidence!: () => void;
+        messageEvidenceGate = new Promise((resolve) => {
+          releaseMessageEvidence = resolve;
+        });
 
-        for (const target of evidenceTargets) {
+        for (const [index, target] of evidenceTargets.entries()) {
           await openGeneratedConsultationMessage(page);
 
-          await expect(page.getByTestId("message-domain-loading")).toContainText(
-            "근거를 불러오는 중입니다",
-          );
+          if (index === 0) {
+            await expect(
+              page.getByTestId("message-domain-loading"),
+            ).toContainText("근거를 불러오는 중입니다");
+            releaseMessageEvidence();
+          }
           const evidencePanel = page.locator("aside").filter({ hasText: "확인 항목" });
           await expect(evidencePanel).toBeVisible();
           await expect(evidencePanel.getByText("응대 기준")).toBeVisible();
