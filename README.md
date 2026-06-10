@@ -259,13 +259,15 @@ flowchart LR
 
 ### ML 파이프라인 개선 과정 기록
 
-초기 intent discovery 설계는 **IntentGPT: Few-Shot Intent Discovery with Large Language Models**의 접근에서 출발했다. 다만 이 프로젝트의 목표는 intent label을 한 번에 생성하는 데서 끝나지 않고, 상담 로그를 실행 가능한 Domain Pack으로 전환하는 것이므로 연구 아이디어를 그대로 옮기기보다 운영 산출물 중심으로 변형했다.
+초기 intent discovery 설계는 **IntentGPT: Few-Shot Intent Discovery with Large Language Models**의 접근에서 출발했다. 이 접근에서 가져온 핵심 아이디어는 소량의 예시와 LLM의 의미 이해 능력을 이용해 상담 발화 묶음에서 잠재 intent를 발견하고, 각 cluster를 대표하는 exemplar와 label 후보를 만드는 것이다. 초기에는 이 구조만으로도 상담 로그의 반복 패턴을 어느 정도 추출할 수 있었지만, 실제 고객지원 운영 지식으로 쓰기에는 두 가지 한계가 분명했다. 첫째, intent label만으로는 상담사가 어떤 정보를 물어야 하는지, 어떤 정책을 확인해야 하는지, 어디서 상담사에게 넘겨야 하는지 알 수 없다. 둘째, 같은 intent처럼 보이는 상담도 처리 절차가 다르면 다른 workflow entry point로 분리되어야 한다.
 
-현재 파이프라인은 few-shot LLM 기반 의도 발견을 `ingestion → preprocessing → representation → intent_discovery → flow_splitting → draft_generation → evaluation → publish_candidate` 흐름으로 확장한다. semantic cluster는 workflow entry point 단위로 다시 나뉘고, 최종 결과는 intent뿐 아니라 slot / policy / risk / workflow 초안과 평가 artifact까지 포함한다.
+그래서 현재 파이프라인은 few-shot LLM 기반 intent discovery를 그대로 끝단으로 두지 않고, `ingestion → preprocessing → representation → intent_discovery → flow_splitting → draft_generation → evaluation → publish_candidate` 흐름으로 확장했다. `representation` 단계에서는 발화 텍스트만 보지 않고 상담자/고객 role과 대화 진행 순서를 반영한 semantic representation, flow signature를 만든다. `intent_discovery` 단계는 semantic similarity 기반 후보군을 만들고, `flow_splitting` 단계는 이 후보군을 다시 실제 처리 흐름 단위로 나눈다. 이 변형 덕분에 "무엇을 물어봤는가"뿐 아니라 "어떤 절차로 해결되는가"가 Domain Pack 생성의 기준에 들어간다.
 
-가장 중요한 품질 보정 축은 **human-in-the-loop**다. 파이프라인이 만든 초안은 곧바로 publish되지 않고 운영자 검토 화면에서 수정, 승인, 반려를 거친다. 실제 개선 관점에서도 자동 clustering이나 prompt 조정만으로 끝내기보다 사람이 domain pack 초안을 보정하는 단계가 가장 큰 품질 상승분을 만든다는 판단을 반영했다.
+이후 `draft_generation`은 intent cluster를 단순 목록으로 저장하지 않고 slot / policy / risk / workflow graph 초안으로 구조화한다. 예를 들어 어떤 cluster가 "카드 분실 신고"로 묶였더라도, 최종 산출물에는 본인 확인에 필요한 slot, 분실/정지/해제 정책, 위험 신호, START / ACTION / DECISION / HANDOFF / TERMINAL 노드로 이어지는 workflow가 함께 포함되어야 한다. `evaluation`은 mapping rate, outlier rate, workflow separability를 기준으로 이 초안이 운영자가 검토할 만한 수준인지 판단하고, `publish_candidate`는 Spring Backend가 review 작업으로 이어받을 수 있는 artifact 형태로 정리한다.
 
-향후 같은 데이터를 충분히 축적한다면 LLM fine-tuning이 더 효과적인 경로가 될 수 있다. 다만 현재 구현은 fine-tuning 전제 없이도 상담 로그에서 운영 지식을 추출하고, review feedback을 통해 품질을 끌어올릴 수 있는 구조를 우선한다.
+가장 중요한 품질 보정 축은 **human-in-the-loop**다. 파이프라인이 만든 초안은 곧바로 publish되지 않고 운영자 검토 화면에서 수정, 승인, 반려를 거친다. 이 단계는 단순한 QA가 아니라 자동 생성이 놓치기 쉬운 운영 맥락을 다시 주입하는 과정이다. 상담 로그에는 암묵적인 정책, 예외 처리, 조직별 표현 습관, 위험 상황에서의 handoff 기준이 섞여 있기 때문에, 자동 clustering이나 prompt 조정만으로 모든 경계를 안정적으로 잡기 어렵다. 실제 개선 관점에서도 사람이 Domain Pack 초안을 검토하며 intent 병합/분리, slot 필수 여부, policy 조건, workflow 전이를 보정하는 단계가 가장 큰 품질 상승분을 만든다는 판단을 반영했다.
+
+향후 같은 도메인의 검토 데이터가 충분히 축적된다면 LLM fine-tuning이 더 효과적인 경로가 될 수 있다. 특히 운영자가 반복적으로 수정한 intent label, slot 정의, workflow 전이, 반려 사유가 쌓이면 fine-tuning 또는 preference tuning 데이터로 전환할 수 있다. 다만 현재 구현은 처음부터 fine-tuning된 모델을 전제로 하지 않는다. 데이터가 적은 초기 단계에서는 파이프라인이 후보를 만들고, 사람이 검토로 품질을 끌어올리며, 그 검토 결과가 다시 다음 개선의 학습 재료가 되는 구조가 더 현실적이라고 보았다.
 
 ### Workflow = 상태 기반 graph
 
