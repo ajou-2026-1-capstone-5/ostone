@@ -188,7 +188,9 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
           COUNT(dl.id) FILTER (
             WHERE jsonb_array_length(dl.missing_slots_json) > 0
           ) AS missing_slot_hit_count,
-          COALESCE(SUM(jsonb_array_length(dl.risk_hits_json)), 0) AS risk_hit_count,
+          COUNT(dl.id) FILTER (
+            WHERE jsonb_array_length(dl.risk_hits_json) > 0
+          ) AS risk_hit_count,
           COUNT(dl.id) FILTER (
             WHERE dl.confidence_score IS NOT NULL
               AND dl.confidence_score < :lowConfidenceThreshold
