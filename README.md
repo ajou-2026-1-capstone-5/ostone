@@ -259,15 +259,15 @@ flowchart LR
 
 ### ML 파이프라인 개선 과정 기록
 
-초기 intent discovery 설계는 **IntentGPT: Few-Shot Intent Discovery with Large Language Models**의 접근에서 출발했다. 이 접근에서 가져온 핵심 아이디어는 소량의 예시와 LLM의 의미 이해 능력을 이용해 상담 발화 묶음에서 잠재 intent를 발견하고, 각 cluster를 대표하는 exemplar와 label 후보를 만드는 것이다. 초기에는 이 구조만으로도 상담 로그의 반복 패턴을 어느 정도 추출할 수 있었지만, 실제 고객지원 운영 지식으로 쓰기에는 두 가지 한계가 분명했다. 첫째, intent label만으로는 상담사가 어떤 정보를 물어야 하는지, 어떤 정책을 확인해야 하는지, 어디서 상담사에게 넘겨야 하는지 알 수 없다. 둘째, 같은 intent처럼 보이는 상담도 처리 절차가 다르면 다른 workflow entry point로 분리되어야 한다.
+intent discovery는 처음부터 8단계였던 것이 아니라, few-shot LLM 접근의 한계를 만나며 확장된 결과다. 핵심 결정만 요약하면 다음과 같다.
 
-그래서 현재 파이프라인은 few-shot LLM 기반 intent discovery를 그대로 끝단으로 두지 않고, `ingestion → preprocessing → representation → intent_discovery → flow_splitting → draft_generation → evaluation → publish_candidate` 흐름으로 확장했다. `representation` 단계에서는 발화 텍스트만 보지 않고 상담자/고객 role과 대화 진행 순서를 반영한 semantic representation, flow signature를 만든다. `intent_discovery` 단계는 semantic similarity 기반 후보군을 만들고, `flow_splitting` 단계는 이 후보군을 다시 실제 처리 흐름 단위로 나눈다. 이 변형 덕분에 "무엇을 물어봤는가"뿐 아니라 "어떤 절차로 해결되는가"가 Domain Pack 생성의 기준에 들어간다.
+- **출발점** — **IntentGPT: Few-Shot Intent Discovery with Large Language Models** 접근으로, 소량 예시 + LLM 의미 이해로 잠재 intent와 exemplar/label 후보를 발견했다.
+- **한계** — intent label만으로는 ① 상담사가 물어야 할 정보·정책·handoff 기준을 알 수 없고, ② 의미가 같아 보여도 처리 절차가 다르면 분리되지 않았다.
+- **확장** — `representation`(role·대화 순서 반영)과 `flow_splitting`(처리 흐름 단위 분할)을 더해 "무엇을 물었나"뿐 아니라 **"어떤 절차로 해결되나"**를 생성 기준에 넣었고, `draft_generation`에서 slot/policy/risk/workflow graph 초안으로 구조화했다.
+- **최대 품질 축** — **human-in-the-loop**, 그것도 단순 QA가 아닌 **closed-loop**. 운영자 검토 결정을 must/cannot-link·same/separate-workflow 제약으로 정규화해 다음 실행의 clustering·flow splitting에 재주입하고, 경계가 모호한 지점은 능동적으로 검토 질문을 생성한다.
+- **향후** — 검토 이력이 축적되면 fine-tuning/preference tuning으로 후보 생성 품질을 끌어올린다. 다만 루프를 대체하지 않고, 데이터가 쌓인 뒤의 다음 단계로 둔다.
 
-이후 `draft_generation`은 intent cluster를 단순 목록으로 저장하지 않고 slot / policy / risk / workflow graph 초안으로 구조화한다. 예를 들어 어떤 cluster가 "카드 분실 신고"로 묶였더라도, 최종 산출물에는 본인 확인에 필요한 slot, 분실/정지/해제 정책, 위험 신호, START / ACTION / DECISION / HANDOFF / TERMINAL 노드로 이어지는 workflow가 함께 포함되어야 한다. `evaluation`은 mapping rate, outlier rate, workflow separability를 기준으로 이 초안이 운영자가 검토할 만한 수준인지 판단하고, `publish_candidate`는 Spring Backend가 review 작업으로 이어받을 수 있는 artifact 형태로 정리한다.
-
-가장 중요한 품질 보정 축은 **human-in-the-loop**다. 파이프라인이 만든 초안은 곧바로 publish되지 않고 운영자 검토 화면에서 수정, 승인, 반려를 거친다. 이 단계는 단순한 QA가 아니라 자동 생성이 놓치기 쉬운 운영 맥락을 다시 주입하는 과정이다. 상담 로그에는 암묵적인 정책, 예외 처리, 조직별 표현 습관, 위험 상황에서의 handoff 기준이 섞여 있기 때문에, 자동 clustering이나 prompt 조정만으로 모든 경계를 안정적으로 잡기 어렵다. 실제 개선 관점에서도 사람이 Domain Pack 초안을 검토하며 intent 병합/분리, slot 필수 여부, policy 조건, workflow 전이를 보정하는 단계가 가장 큰 품질 상승분을 만든다는 판단을 반영했다.
-
-향후 같은 도메인의 검토 데이터가 충분히 축적된다면 LLM fine-tuning이 더 효과적인 경로가 될 수 있다. 특히 운영자가 반복적으로 수정한 intent label, slot 정의, workflow 전이, 반려 사유가 쌓이면 fine-tuning 또는 preference tuning 데이터로 전환할 수 있다. 다만 현재 구현은 처음부터 fine-tuning된 모델을 전제로 하지 않는다. 데이터가 적은 초기 단계에서는 파이프라인이 후보를 만들고, 사람이 검토로 품질을 끌어올리며, 그 검토 결과가 다시 다음 개선의 학습 재료가 되는 구조가 더 현실적이라고 보았다.
+> 한계 분석과 단계별 설계 근거의 전체 서술은 [`.agent/docs/ml-pipeline-evolution.md`](.agent/docs/ml-pipeline-evolution.md)를 참조한다.
 
 ### Workflow = 상태 기반 graph
 
@@ -301,7 +301,9 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 ├── frontend/       # Vite + React FSD 웹 애플리케이션 (운영자 콘솔 · 채팅 데모)
 ├── ml/             # Python Pipeline (Airflow DAG 기반 도메인 팩 생성 계층)
 ├── infra/          # AWS 배포 인프라 (terraform · aws · postgres)
-└── .agent/docs/    # architecture · schema · deployment 문서
+├── .agent/specs/   # 기능별 SDD 스펙 문서 ({이슈번호}.md)
+├── .agent/rules/   # 기여·테스트·git 규칙
+└── .agent/docs/    # architecture · schema · deployment · ml-pipeline-evolution 문서
 ```
 
 | 모듈 | 설명 | README |
@@ -519,7 +521,7 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
   - `frontend`: `pnpm run deps:frontend && pnpm run ci:frontend`, mocked E2E는 별도 job에서 `pnpm run e2e:frontend`
   - `ml`: `pnpm run ci:ml`
 - **spec-check**: `feature/*`, `fix/*`, `spec/*` 브랜치는 `.agent/specs/{이슈번호}.md` 스펙 파일을 필수 검증한다.
-- **coverage baseline**: Backend line 90% / branch 70%, Frontend statements 80% / branches 70% / functions 75% / lines 80%, ML total 80%를 CI에서 강제한다. 장기 목표는 `.agent/rules/testing.md`의 70%+ 라인 커버리지와 새 코드 80% 기준이며, baseline은 coverage 개선 PR에서 점진적으로 상향한다. CI는 각 모듈의 coverage artifact를 업로드해 실패한 파일/영역을 확인할 수 있게 한다.
+- **coverage baseline**: 모듈별 현재 강제 기준은 Backend line 90% / branch 70%, Frontend statements 80% / branches 70% / functions 75% / lines 80%, ML total 80%다. `.agent/rules/testing.md`의 기준은 대상별로 다르다 — **전체 라인 70%+**, **도메인 로직 90%+**, **새 코드 80%+**(레거시 제외). 즉 모듈 baseline은 레거시 공백을 고려한 현재 강제선이고, coverage 개선 PR에서 위 대상별 목표를 향해 점진 상향한다. CI는 각 모듈의 coverage artifact를 업로드해 실패한 파일/영역을 확인할 수 있게 한다.
 - Backend의 빠른 로컬 테스트(`./gradlew test` 또는 `./gradlew testH2`)는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
 - Backend의 CI 재현 테스트(`./gradlew testPg`)는 PostgreSQL/pgvector DB에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 로컬 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓸 수 있다.
   CI basic에서는 checkstyle을 실행하지 않는다. checkstyle은 `pnpm run lint:backend`, frontend lint는 pre-commit과 `pnpm run lint:frontend`, ML ruff/mypy는 pre-commit과 `pnpm run quality:ml`에서 실행해 빠른 PR feedback과 포괄 검사를 분리한다.
