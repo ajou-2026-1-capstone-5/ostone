@@ -77,9 +77,6 @@
 
 <!-- 스크린샷: 상담 로그 업로드 화면 (추후 첨부) — ZIP 업로드, 적재 진행 상태, 구조화 결과 요약 -->
 
-<details>
-  <summary>서비스 화면</summary>
-
 <table>
   <tr>
     <th align="center">업로드 화면</th>
@@ -91,7 +88,6 @@
   </tr>
 </table>
 
-</details>
 
 
 
@@ -103,9 +99,6 @@
 
 <!-- 스크린샷: 파이프라인 실행 화면 (추후 첨부) — job 실행 요청, 단계별 진행 상태, 평가 리포트 -->
 <!-- 파이프라인 실행 화면 -->
-
-<details>
-  <summary>서비스 화면</summary>
 
 <table>
   <tr>
@@ -126,8 +119,6 @@
   </tr>
 </table>
 
-</details>
-
 > 스펙: [Intent Discovery / Workflow Entry Point](.agent/specs/2-1-1.md) · [Workflow Graph 생성](.agent/specs/002218.md) · [publish_candidate → Backend 콜백](.agent/specs/218.md)
 
 ### 3. Doamin pack 초안 검토·승인 (Human-in-the-loop)
@@ -135,9 +126,6 @@
 파이프라인이 만든 intent / slot / policy / risk / workflow 초안을 운영자가 콘솔에서 조회·수정·승인·반려하고, 승인된 Domain Pack을 활성화한다.
 
 <!-- 스크린샷: AI 초안 검토 화면 (추후 첨부) — 초안 목록/상세, 수정·승인·반려 액션, 코멘트 이력 -->
-
-<details>
-  <summary>서비스 화면</summary>
 
 #### - Domain pack 배포 전
 
@@ -173,8 +161,6 @@
   </tr>
 </table>
 
-</details>
-
 > 스펙: [Domain Pack DRAFT 생성](.agent/specs/213.md) · [Intent 초안 화면](.agent/specs/214.md) · [Intent 승인/반려 API](.agent/specs/313.md) · [Domain Pack 활성화](.agent/specs/332.md)
 
 ### 4. 상태 기반 Workflow Runtime (LLM Tool calling)
@@ -183,8 +169,6 @@
 
 
 <!-- 스크린샷: 워크플로우 그래프 뷰어 (추후 첨부) — 상태 노드/전이 edge, 현재 상태 하이라이트 -->
-<details>
-  <summary>서비스 화면</summary>
 
 <table>
   <tr>
@@ -201,8 +185,6 @@
   </tr>
 </table>
 
-</details>
-
 > 스펙: [Policy-Aware Runtime Engine & Tool API](.agent/specs/524.md) · [Workflow-Aware LLM Assistant](.agent/specs/5.2.6.md) · [Conversation State Tool](.agent/specs/522.md)
 
 ### 5. 채팅 데모 / 워크플로우 시각화 / 상담사 개입
@@ -211,9 +193,6 @@
 이후 상담사 개입을 통해 문의가 처리된다. WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배정/해제, AI handoff(자동응답 ↔ 상담사 개입) 전환을 제공한다.
 
 <!-- 스크린샷: 채팅 데모 화면 (추후 첨부) — 대화 타임라인, 메시지-그래프 양방향 강조, slot/policy/risk 추출 상태 -->
-
-<details>
-  <summary>서비스 화면</summary>
 
 #### - 챗봇 응대화면
 <table>
@@ -256,8 +235,6 @@
   </tr>
 </table>
 
-</details>
-
 > 스펙: [채팅 타임라인·워크플로우 매핑](.agent/specs/4.1.7.md) · [워크플로우 그래프 뷰어](.agent/specs/4.1.8.md) · [STOMP WebSocket 채팅 인프라](.agent/specs/5.3.2.md) · [상담사 개입 기능](.agent/specs/5.3.4.md) · [AI handoff ↔ 대기열 연결](.agent/specs/356.md)
 
 ### 6. 관리 대시보드
@@ -265,9 +242,6 @@
 상담 내역과 워크플로우 실행 로그를 기반으로 CS 운영 현황을 확인하는 워크스페이스 대시보드. 선택 기간의 상담 처리량, 자동화 커버리지, 핫패스 워크플로우 등을 시각화하고, 개선이 필요한 지점을 추천 액션으로 안내한다.
 
 <!-- 스크린샷: 실시간 상담사 콘솔 (추후 첨부) — 대기열·필터, 배정/해제, 상담사 채팅, AI handoff 상태 -->
-
-<details>
-  <summary>서비스 화면</summary>
 
 <table>
   <tr>
@@ -279,8 +253,6 @@
     </td>
   </tr>
 </table>
-
-</details>
 
 > 스펙: [워크스페이스 고객용 대시보드](.agent/specs/517.md) · [상담 처리 요약 지표](.agent/specs/518.md) · [자동화 커버리지 지표](.agent/specs/522.md) · [핫패스 워크플로우 랭킹](.agent/specs/519.md) · [고객 액션 추천](.agent/specs/523.md)
 
