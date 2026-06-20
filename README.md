@@ -36,15 +36,19 @@
 
 ## 서비스 개요
 
-이 프로젝트의 핵심은 **고객응대 챗봇 자체를 만드는 것이 아니다.** 기존 상담 로그로부터 고객지원 도메인의 운영 지식을 추출해, 챗봇이 따라야 할 정책과 처리 흐름을 자동으로 만들어 내는 시스템이다.
+이 서비스는 기존 상담 로그로부터 고객지원 도메인의 운영 지식을 추출하여 **Domain Pack**을 생성하고, 이를 기반으로 챗봇 상담과 상담사 이관을 지원하는 AI 고객상담 자동화 서비스이다.
 
-즉, 실시간으로 답변을 잘하는 챗봇보다 **챗봇이 따라야 할 정책과 처리 흐름을 자동으로 만드는 시스템**에 가깝다. 상담 로그에서 추출한 운영 지식은 다음 5종 산출물을 묶은 **Domain Pack** 단위로 관리한다.
+본 서비스는 챗봇이 상담 과정에서 따라야 할 정책과 처리 흐름을 자동으로 생성·관리하는 데 중점을 둔다. 이를 통해 상담 기록에 포함된 반복적인 고객 요청 의도, 필수 확인 정보, 응대 정책, 위험 조건 및 처리 절차를 구조화하고, 실제 상담 자동화에 활용 가능한 운영지식으로 구성한다.
 
-- **intent** — 고객 요청의 의도 분류
-- **slot** — 요청 처리에 필요한 정보 항목
-- **policy** — 응대 시 지켜야 할 정책/규칙
-- **risk** — 주의가 필요한 위험 신호
-- **workflow** — 상태 기반 graph로 표현된 처리 흐름
+상담 로그에서 추출·생성된 운영 지식은 **Domain Pack** 단위로 관리된다. Domain Pack은 챗봇이 특정 고객지원 도메인에서 상담을 수행하기 위해 참고하는 구조화된 상담 업무 데이터 묶음으로 다음과 같은 상담 처리 구조 정보를 포함한다.
+
+* **intent** — 고객 요청의 의도 분류
+* **slot** — 요청 처리에 필요한 정보 항목
+* **policy** — 응대 시 지켜야 할 정책 및 규칙
+* **risk** — 주의가 필요한 위험 조건
+* **workflow** — 상태 기반 그래프로 표현된 상담 처리 흐름
+
+생성된 Domain Pack은 저장·버전 관리·배포 과정을 거쳐 실제 챗봇 상담에 적용된다. 챗봇은 배포된 Domain Pack을 참고하여 사용자의 발화 의도를 파악하고, 정해진 workflow에 따라 필요한 정보를 질문하거나 정책을 확인하며 상담을 진행한다. 또한 예외 상황이나 위험 조건이 발생하면 상담사에게 상담을 이관하고, 상담사는 실제 사용자와의 채팅을 이어받아 응대를 지속할 수 있다.
 
 ### 기존 방식 대비 차별점
 
@@ -61,8 +65,8 @@
 
 ### 범위 밖 (Non-goals)
 
-- 실시간 고객 응대 챗봇 서비스 제공이 목표가 아니다.
-- 채팅 데모(`chat-demo`)는 답변 생성기가 아니라 workflow runtime 동작을 **시각화하는 시연용 접점**이다.
+- 실시간 고객 응대 챗봇 서비스 제공은 목표가 아니다.
+- 채팅 데모(`chat-demo`)는 답변 생성기가 아니라 workflow runtime 동작을 **시각화하는 시연용 화면**이다.
 - MSA가 아니라 단일 배포 단위의 **모듈형 모놀리스**를 채택한다.
 
 ---
@@ -165,7 +169,7 @@
 
 ### 4. 상태 기반 Workflow Runtime (LLM Tool calling)
 
-활성화된 Domain Pack을 읽어 현재 대화 상태를 해석하고 다음 action을 결정하는 정책 기반 runtime 엔진. 외부 LLM이 호출하는 conversation state / slot / decision-log tool API를 제공한다.
+활성화된 Domain Pack을 읽어 현재 대화 상태를 해석하고 다음 action을 결정하는 정책 기반 runtime 엔진으로, 외부 LLM이 호출하는 conversation state / slot / decision-log tool API를 제공한다.
 
 
 <!-- 스크린샷: 워크플로우 그래프 뷰어 (추후 첨부) — 상태 노드/전이 edge, 현재 상태 하이라이트 -->
@@ -239,7 +243,7 @@
 
 ### 6. 관리 대시보드
 
-상담 내역과 워크플로우 실행 로그를 기반으로 CS 운영 현황을 확인하는 워크스페이스 대시보드. 선택 기간의 상담 처리량, 자동화 커버리지, 핫패스 워크플로우 등을 시각화하고, 개선이 필요한 지점을 추천 액션으로 안내한다.
+상담 내역과 워크플로우 실행 로그를 기반으로 CS 운영 현황을 확인하는 워크스페이스 대시보드이다. 선택 기간의 상담 처리량, 자동화 커버리지, 핫패스 워크플로우 등을 시각화하고, 개선이 필요한 지점을 추천 액션으로 안내한다.
 
 <!-- 스크린샷: 실시간 상담사 콘솔 (추후 첨부) — 대기열·필터, 배정/해제, 상담사 채팅, AI handoff 상태 -->
 
@@ -292,7 +296,7 @@ Domain Pack은 개별 intent 목록이 아니라, 고객 요청 분류와 정보
 
 ### Domain Pack 예시 (구조 발췌)
 
-아래는 `backend/src/main/resources/seed/hanacard-workflow-candidate.json`의 실제 구조에서 발췌·요약한 것이다. 최상위는 `domainPackDraft`, `intentDraft`, `workflowDraft`로 구성된다.
+아래는 `backend/src/main/resources/seed/hanacard-workflow-candidate.json`의 실제 구조에서 발췌·요약한 것이다. 최상위 요소는 `domainPackDraft`, `intentDraft`, `workflowDraft`로 구성된다.
 
 **intent 예시**
 
@@ -403,7 +407,7 @@ flowchart LR
 
 ### ML 파이프라인 개선 과정 기록
 
-intent discovery는 처음부터 8단계였던 것이 아니라, few-shot LLM 접근의 한계를 만나며 확장된 결과다. 핵심 결정만 요약하면 다음과 같다.
+intent discovery는 few-shot LLM 접근의 한계를 만나며 파이프라인 처리 과정을 8단계로 확장하였다. 핵심 결정만 요약하면 다음과 같다.
 
 - **출발점** — **IntentGPT: Few-Shot Intent Discovery with Large Language Models** 접근으로, 소량 예시 + LLM 의미 이해로 잠재 intent와 exemplar/label 후보를 발견했다.
 - **한계** — intent label만으로는 ① 상담사가 물어야 할 정보·정책·handoff 기준을 알 수 없고, ② 의미가 같아 보여도 처리 절차가 다르면 분리되지 않았다.
@@ -421,7 +425,7 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 
 생성 품질은 **mapping rate**(매핑률) · **outlier rate**(이상치 비율) · **workflow separability**(워크플로우 분리도)로 평가하고, review 우선순위를 제안한다.
 
-> 알고리즘·평가 세부 정의는 [`.agent/docs/architecture.md`](.agent/docs/architecture.md)에 위임한다.
+> 알고리즘·평가 세부 정의는 [`.agent/docs/architecture.md`](.agent/docs/architecture.md)를 참조한다.
 
 ---
 
@@ -517,11 +521,11 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 - **Python 3.13 + uv 0.11.19** (ML)
 - **Docker / Docker Compose** (전체 스택)
 
-개발 도구 버전은 루트 [`mise.toml`](mise.toml)에서 한 번에 확인한다. 루트 [`package.json`](package.json)과 [`frontend/package.json`](frontend/package.json)의 `packageManager`는 같은 pnpm 버전을 사용하며, Python 기준은 [`ml/.python-version`](ml/.python-version)과 일치한다. GitHub Actions의 Java / Node.js / pnpm / Python / uv setup도 이 루트 기준과 동일한 버전을 사용한다.
+개발 도구 버전은 루트 [`mise.toml`](mise.toml)를 기준으로 관리한다. 루트 [`package.json`](package.json)과 [`frontend/package.json`](frontend/package.json)의 `packageManager`는 동일한 pnpm 버전을 사용하며, Python 버전은 [`ml/.python-version`](ml/.python-version)에 정의된 버전을 기준으로 한다. GitHub Actions의 Java / Node.js / pnpm / Python / uv setup설정 역시 루트 기준 버전과 동일하게 맞춘다.
 
 ### 환경 변수 (`.env.example` 그룹)
 
-`.env.example`은 다음 그룹으로 구성된다. 실제 값은 채우지 말고 용도만 참고한다.
+`.env.example`은 다음 그룹으로 구성된다.
 
 | 그룹 | 변수 예 | 용도 |
 | --- | --- | --- |
@@ -574,14 +578,14 @@ pnpm run dev          # = pnpm run up:light
 
 `pnpm run dev`(=`up:light`)는 부트스트랩(`pnpm run dev:setup`)을 먼저 수행한 뒤 `docker compose up -d`로 **light** 모드를 기동하고, 성공 시 접속 URL을 출력한다. 부트스트랩은 다음을 한 번에 처리한다.
 
-- `.env`가 없으면 `.env.example` 기반으로 생성한다. 이때 `JWT_SECRET`은 로컬 전용 랜덤 값으로 자동 채워진다(기존 `.env`는 수정하지 않음).
+- `.env`가 없으면 `.env.example` 기반으로 생성한다. 이때 `JWT_SECRET`은 로컬 전용 랜덤 값으로 자동으로 채워진다(기존 `.env`는 수정하지 않음).
 - 필수 환경 변수(`DB_PASSWORD`, `JWT_SECRET`, `AIRFLOW_WEBHOOK_SECRET`)의 누락·빈 값·placeholder를 점검하고, 실패 시 필요한 값과 조치를 로그로 안내한다.
 - backend JAR가 없거나 오래된 경우에만 자동으로 다시 패키징(preflight)한다.
 - `docker compose config --quiet`로 Compose 설정을 검증하고, 주요 호스트 포트 점유를 사전 경고한다.
 
 기동 없이 준비·점검만 하려면 `pnpm run dev:setup`을 단독 실행한다. MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성하므로 수동 `mc mb`가 필요 없다.
 
-**실행 모드** — Airflow는 compose profile로 분리되어 opt-in이다.
+**실행 모드** — Airflow는 Docker Compose profile로 분리되어 있으며, 필요한 경우에 선택적으로 실행할 수 있다.
 
 | 모드 | 명령 | 구동 서비스 | 용도 |
 | --- | --- | --- | --- |
@@ -689,7 +693,7 @@ pnpm run test:backend:pg
 
 ### 스키마 마이그레이션
 
-- **Liquibase**로 PostgreSQL 스키마를 버전 관리한다(`db.changelog-master.sql`).
+- PostgreSQL 스키마를 **Liquibase**로 버전 관리한다(`db.changelog-master.sql`).
 
 ### 배포 (CD)
 
